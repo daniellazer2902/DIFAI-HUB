@@ -5,6 +5,7 @@ function fakePty() {
   const handlers: { data: ((d: string) => void)[]; exit: ((e: { exitCode: number }) => void)[] } = { data: [], exit: [] }
   return {
     write: vi.fn(),
+    resize: vi.fn(),
     kill: vi.fn(),
     onData: (cb: (d: string) => void) => handlers.data.push(cb),
     onExit: (cb: (e: { exitCode: number }) => void) => handlers.exit.push(cb),
@@ -14,18 +15,20 @@ function fakePty() {
 }
 
 describe('PtyManager', () => {
-  it('crée une session avec un tabId unique et lance le spawner avec cwd + DIFAI_HUB_TAB', () => {
+  it('crée une session : spawner reçoit claudePath, args et cwd + DIFAI_HUB_TAB', () => {
     const pty = fakePty()
     const spawn = vi.fn(() => pty)
     const mgr = new PtyManager({ spawn, claudePath: 'C:\\claude.exe' })
 
-    const tabId = mgr.create('C:\\proj')
+    const tabId = mgr.create('C:\\proj', { args: ['--settings', 'C:\\h.json'], env: { DIFAI_HUB_PORT: '7711' } })
 
     expect(tabId).toBeTruthy()
-    expect(spawn).toHaveBeenCalledOnce()
-    const opts = spawn.mock.calls[0][1]
+    const [file, args, opts] = spawn.mock.calls[0]
+    expect(file).toBe('C:\\claude.exe')
+    expect(args).toEqual(['--settings', 'C:\\h.json'])
     expect(opts.cwd).toBe('C:\\proj')
     expect(opts.env.DIFAI_HUB_TAB).toBe(tabId)
+    expect(opts.env.DIFAI_HUB_PORT).toBe('7711')
   })
 
   it('route les données du pty vers le callback onData avec le bon tabId', () => {
@@ -46,6 +49,14 @@ describe('PtyManager', () => {
     const tabId = mgr.create('C:\\p')
     mgr.write(tabId, 'ls\r')
     expect(pty.write).toHaveBeenCalledWith('ls\r')
+  })
+
+  it('resize transmet les dimensions au bon pty', () => {
+    const pty = fakePty()
+    const mgr = new PtyManager({ spawn: () => pty, claudePath: 'c' })
+    const tabId = mgr.create('C:\\p')
+    mgr.resize(tabId, 120, 40)
+    expect(pty.resize).toHaveBeenCalledWith(120, 40)
   })
 
   it('kill termine le pty et oublie le tabId', () => {
