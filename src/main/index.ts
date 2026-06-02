@@ -3,15 +3,41 @@ import { join } from 'node:path'
 import { PtyManager } from './PtyManager'
 import { nodePtySpawner } from './ptyFactory'
 import { resolveClaudePath } from './claudePath'
+import { SessionRegistry } from './SessionRegistry'
+import { HookServer } from './HookServer'
+import { applyHookEvent, type HookEvent } from './hookEvents'
+import { writeHooksSettings } from './hubHooks'
 
 let mainWindow: BrowserWindow | null = null
+let hooksSettingsPath = ''
 
+const registry = new SessionRegistry()
+const hookServer = new HookServer((e) => {
+  const event = e as HookEvent
+  applyHookEvent(registry, event)
+  const tabId = event.tabId
+  if (tabId) {
+    const s = registry.get(tabId)
+    console.log('[hub] event', event.hook_event_name, '| tab', tabId.slice(0, 8),
+      '| sessionId', s?.sessionId?.slice(0, 8) ?? '-', '| etat', s?.state)
+  }
+})
 const ptyManager = new PtyManager({ spawn: nodePtySpawner, claudePath: resolveClaudePath() })
 
 ptyManager.onData((tabId, data) => mainWindow?.webContents.send('pty:data', tabId, data))
-ptyManager.onExit((tabId, code) => mainWindow?.webContents.send('pty:exit', tabId, code))
+ptyManager.onExit((tabId, code) => {
+  registry.setState(tabId, 'done')
+  mainWindow?.webContents.send('pty:exit', tabId, code)
+})
 
-ipcMain.handle('session:new', (_e, cwd: string) => ptyManager.create(cwd))
+ipcMain.handle('session:new', (_e, cwd: string) => {
+  const tabId = ptyManager.create(cwd, {
+    args: ['--settings', hooksSettingsPath],
+    env: { DIFAI_HUB_PORT: String(hookServer.port) }
+  })
+  registry.register(tabId, cwd)
+  return tabId
+})
 ipcMain.on('session:input', (_e, tabId: string, data: string) => ptyManager.write(tabId, data))
 ipcMain.on('session:resize', (_e, tabId: string, cols: number, rows: number) => ptyManager.resize(tabId, cols, rows))
 
@@ -40,7 +66,12 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  const port = await hookServer.start()
+  const forwardScript = join(app.getAppPath(), 'resources', 'hooks', 'hook-forward.mjs')
+  hooksSettingsPath = writeHooksSettings(app.getPath('userData'), forwardScript)
+  console.log('[hub] HookServer sur port', port, '| hooks settings :', hooksSettingsPath)
+
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
