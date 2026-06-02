@@ -21,6 +21,22 @@ export function mountTerminal(container: HTMLElement, tabId: string): Terminal {
   requestAnimationFrame(doFit)
   window.addEventListener('resize', doFit)
 
+  // Copier / coller : xterm intercepte les touches, on câble Ctrl/Cmd+V (coller)
+  // et Ctrl/Cmd+C (copier UNIQUEMENT s'il y a une sélection — sinon on laisse passer le SIGINT).
+  term.attachCustomKeyEventHandler((e): boolean => {
+    if (e.type !== 'keydown' || !(e.ctrlKey || e.metaKey)) return true
+    const key = e.key.toLowerCase()
+    if (key === 'v') {
+      navigator.clipboard.readText().then((t) => { if (t) term.paste(t) }).catch(() => {})
+      return false
+    }
+    if (key === 'c' && term.hasSelection()) {
+      navigator.clipboard.writeText(term.getSelection()).catch(() => {})
+      return false
+    }
+    return true
+  })
+
   // pty -> écran
   window.hub.onData((id, data) => { if (id === tabId) term.write(data) })
   // clavier -> pty
