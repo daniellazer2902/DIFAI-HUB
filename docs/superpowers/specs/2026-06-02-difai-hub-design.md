@@ -215,7 +215,7 @@ sessions même projet, clignotement + acquittement.
 
 ### Stack
 
-**Vitest** (ou Jest) pour le main process. Pas de tests UI renderer en V1 (YAGNI).
+**Vitest** pour le main process. Pas de tests UI renderer en V1 (YAGNI).
 
 ## 8. Stack technique
 
@@ -225,7 +225,7 @@ sessions même projet, clignotement + acquittement.
 | Terminal | **xterm.js + node-pty** | Terminal interactif embarqué, standard de l'industrie |
 | Surveillance FS | **chokidar** | Watch des transcripts `~/.claude/projects/<slug>/` |
 | Transport événements | **mini-serveur HTTP local** | Temps réel ; pattern hook→HTTP déjà utilisé par Daniel |
-| Tests | **Vitest / Jest** | Logique main process |
+| Tests | **Vitest** | Logique main process |
 
 ## 9. Risques connus
 
