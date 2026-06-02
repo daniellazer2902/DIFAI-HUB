@@ -5,7 +5,22 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
     <title>DIFAI-HUB</title>
     <style>
-      html, body, #app { margin: 0; height: 100%; background: #1e1e1e; }
+      html, body, #app { margin: 0; height: 100%; background: #1e1e1e; color: #ddd; font-family: Consolas, monospace; }
+      #row { display: flex; height: 100%; }
+      #term { flex: 1; min-width: 0; }
+      #console { flex: 1; min-width: 0; border-left: 1px solid #333; overflow-y: auto; padding: 6px; font-size: 12px; display: none; }
+      #console.open { display: block; }
+      #rail { width: 150px; border-left: 1px solid #333; overflow-y: auto; background: #181818; }
+      .agent { padding: 6px 8px; border-bottom: 1px solid #2a2a2a; cursor: pointer; font-size: 11px; }
+      .agent:hover { background: #242424; }
+      .agent.sel { background: #33291a; outline: 1px solid #c80; }
+      .agent .type { color: #7fd; }
+      .agent.done .type { color: #888; }
+      .cline { white-space: pre-wrap; line-height: 1.4; }
+      .cline.tool { color: #fb7; }
+      .cline.text { color: #cde; }
+      .cline.prompt { color: #9c9; }
+      .cline.result { color: #888; }
     </style>
   </head>
   <body>
