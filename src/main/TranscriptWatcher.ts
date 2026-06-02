@@ -1,6 +1,6 @@
 import chokidar, { type FSWatcher } from 'chokidar'
 import { readFileSync, statSync } from 'node:fs'
-import { basename } from 'node:path'
+import { basename, dirname, sep } from 'node:path'
 import { parseTranscriptLine, type ConsoleLine } from './transcriptParser'
 import { newCompleteLines } from './transcriptPaths'
 
@@ -10,23 +10,34 @@ export interface WatcherSink {
   onAgentLines: (agentId: string, lines: ConsoleLine[]) => void
 }
 
-/** Surveille <session>/subagents/ : meta.json => agent ajouté, .jsonl => lignes live. */
+/**
+ * Surveille les transcripts d'agents d'une session. Le dossier <session>/subagents/
+ * n'existe pas encore au démarrage (créé au 1er agent) : on watche donc le dossier
+ * projet (dirname du transcript, déjà présent) en profondeur, et on filtre sur
+ * `<sessionId>/subagents/` pour ne garder que les agents de CETTE session.
+ */
 export class TranscriptWatcher {
   private watcher: FSWatcher | null = null
+  private marker = ''
   private readonly seen = new Map<string, number>() // path .jsonl -> lignes déjà émises
   private readonly known = new Set<string>()        // agentId déjà annoncés
 
   constructor(private readonly sink: WatcherSink) {}
 
-  watch(dir: string): void {
+  watch(transcriptPath: string, sessionId: string): void {
     this.stop()
-    this.watcher = chokidar.watch(dir, { ignoreInitial: false, depth: 0 })
+    const root = dirname(transcriptPath)
+    this.marker = `${sep}${sessionId}${sep}subagents${sep}`
+    console.log('[watch] root', root, '| marker', this.marker)
+    this.watcher = chokidar.watch(root, { ignoreInitial: true, depth: 3 })
     this.watcher.on('add', (p) => this.handle(p))
     this.watcher.on('change', (p) => this.handle(p))
   }
 
   private handle(path: string): void {
+    if (!path.includes(this.marker)) return
     const name = basename(path)
+    console.log('[watch] +', name)
     const meta = name.match(/^agent-(.+)\.meta\.json$/)
     if (meta) return this.handleMeta(path, meta[1])
     const jsonl = name.match(/^agent-(.+)\.jsonl$/)
@@ -56,6 +67,7 @@ export class TranscriptWatcher {
   stop(): void {
     this.watcher?.close()
     this.watcher = null
+    this.marker = ''
     this.seen.clear()
     this.known.clear()
   }
