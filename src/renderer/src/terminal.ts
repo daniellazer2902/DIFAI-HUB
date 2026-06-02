@@ -9,7 +9,10 @@ export function mountTerminal(container: HTMLElement, tabId: string): Terminal {
   term.open(container)
 
   const doFit = (): void => {
-    try { fit.fit() } catch { /* conteneur pas encore dimensionné */ }
+    try {
+      fit.fit()
+      window.hub.resize(tabId, term.cols, term.rows) // propage la taille réelle au pty
+    } catch { /* conteneur pas encore dimensionné */ }
   }
   // Le conteneur n'a pas forcément ses dimensions au moment du open() (fit() calculerait
   // ~1 colonne). On (re)fait le fit dès qu'il obtient/change de taille.
