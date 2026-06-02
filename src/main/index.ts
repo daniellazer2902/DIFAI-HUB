@@ -8,7 +8,6 @@ import { HookServer } from './HookServer'
 import { applyHookEvent, type HookEvent } from './hookEvents'
 import { writeHooksSettings } from './hubHooks'
 import { TranscriptWatcher } from './TranscriptWatcher'
-import { subagentsDir } from './transcriptPaths'
 
 let mainWindow: BrowserWindow | null = null
 let hooksSettingsPath = ''
@@ -25,14 +24,13 @@ const hookServer = new HookServer((e) => {
   console.log('[hub] event', event.hook_event_name, '| tab', tabId.slice(0, 8), '| etat', s?.state)
 
   if (event.hook_event_name === 'SessionStart' && s?.sessionId && s.transcriptPath && !watchers.has(tabId)) {
-    const dir = subagentsDir(s.transcriptPath, s.sessionId)
     const w = new TranscriptWatcher({
       onAgentAdded: (agentId, meta) =>
         mainWindow?.webContents.send('agent:added', tabId, agentId, meta.agentType, meta.description),
       onAgentLines: (agentId, lines) =>
         mainWindow?.webContents.send('agent:lines', tabId, agentId, lines)
     })
-    w.watch(dir)
+    w.watch(s.transcriptPath, s.sessionId)
     watchers.set(tabId, w)
   }
 })
