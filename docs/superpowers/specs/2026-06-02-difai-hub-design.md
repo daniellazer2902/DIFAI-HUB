@@ -21,6 +21,10 @@ doc, changement de statuts.
 
 ### Étape 0 — POC technique (dé-risquage, avant tout build d'UI)
 
+> **Statut : ✅ RÉALISÉ le 2026-06-02 — GO.** Détails et fixtures : `poc/FINDINGS.md`.
+> Corrélation déterministe prouvée, mirror live des agents confirmé, node-pty installé
+> sans node-gyp. Points appris reportés dans l'architecture ci-dessous.
+
 But : lever les **2 inconnues** avant d'investir dans l'app.
 
 1. Spawner `claude` dans un `pty` avec `DIFAI_HUB_TAB` + un hook `SessionStart`
@@ -87,18 +91,21 @@ réutilisées pour les tests unitaires.
 ### Main process — 4 modules isolés
 
 1. **`PtyManager`** — spawn/kill des sessions `claude` (node-pty), un `pty` par `tabId`,
-   relaie l'I/O ↔ renderer. Injecte `DIFAI_HUB_TAB` + `cwd`.
+   relaie l'I/O ↔ renderer. Injecte `DIFAI_HUB_TAB` + `cwd`. Sous Windows, **résout le
+   chemin absolu de `claude.exe`** (`where claude`) car node-pty ne parcourt pas le PATH.
 2. **`HookServer`** — mini-serveur HTTP local (port **dynamique**). Reçoit les POST des
    hooks : `SessionStart` (corrélation — fournit `session_id` + `transcript_path` + `cwd`),
    `Stop` / `Notification` (état de la session), `SubagentStop` (fournit `agent_id`,
    `agent_type`, `agent_transcript_path`). Route par `tabId`.
 3. **`SessionRegistry`** — table de vérité en mémoire :
    `tabId ↔ sessionId ↔ cwd ↔ jsonlPath ↔ état`. Source des compteurs sidebar.
-4. **`TranscriptWatcher`** — chokidar sur le répertoire du `transcript_path` de la session.
-   Détecte les transcripts d'agents qui apparaissent/grossissent **en live**, lit en
-   incrémental (tail), parse, pousse les événements au renderer. Le hook `SubagentStop`
-   fournit en complément les **métadonnées propres** de chaque agent (type, chemin canonique,
-   fin) — le watch donne le live, le hook confirme/enrichit.
+4. **`TranscriptWatcher`** — chokidar sur **`<session>\subagents\`** (les transcripts
+   d'agents y sont directement : `agent-<id>.jsonl` + `agent-<id>.meta.json`). Lit le
+   `.jsonl` en incrémental (tail — croissance live confirmée par le POC), parse les lignes
+   typées (`isSidechain:true`, `type`, `message.content`, `tool_use`), pousse au renderer.
+   Le `.meta.json` (présent dès la création) fournit `agentType` + `description` → le rail
+   affiche l'agent immédiatement. Le hook `SubagentStop` fournit la fin + `agent_type` +
+   `agent_transcript_path` + `last_assistant_message`.
 
 ### Renderer (UI)
 
