@@ -9,6 +9,12 @@ const hub = {
   },
   onExit: (cb: (tabId: string, code: number) => void): void => {
     ipcRenderer.on('pty:exit', (_e, tabId: string, code: number) => cb(tabId, code))
+  },
+  onAgentAdded: (cb: (tabId: string, agentId: string, agentType: string, description: string) => void): void => {
+    ipcRenderer.on('agent:added', (_e, tabId, agentId, agentType, description) => cb(tabId, agentId, agentType, description))
+  },
+  onAgentLines: (cb: (tabId: string, agentId: string, lines: { kind: string; text: string }[]) => void): void => {
+    ipcRenderer.on('agent:lines', (_e, tabId, agentId, lines) => cb(tabId, agentId, lines))
   }
 }
 
