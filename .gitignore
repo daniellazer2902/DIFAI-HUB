@@ -1,0 +1,16 @@
+# Dépendances
+node_modules/
+
+# Build
+dist/
+out/
+*.log
+
+# Compagnon visuel brainstorming (superpowers)
+.superpowers/
+
+# OS / éditeur
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
