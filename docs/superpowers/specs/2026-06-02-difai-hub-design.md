@@ -119,8 +119,12 @@ Pont IPC sécurisé (`contextBridge`), API étroite (`onPtyData`, `sendInput`,
 
 ### Côté Claude (hors app)
 
-Hooks déclarés dans `settings.json` (4 petits scripts qui POST au `HookServer`).
-**Le hub propose la modif avec un diff avant/après — jamais d'écriture silencieuse.**
+Hooks **injectés au lancement** via `claude --settings <hub-hooks.json>` (flag natif confirmé) :
+les hooks s'**additionnent** à ceux de l'utilisateur, **sans modifier** son `settings.json`
+global ni projet → **zéro pollution de la config utilisateur** (mieux que le « diff avant/après »
+initialement prévu, désormais inutile). Les 4 hooks sont de type `command` → un script qui
+forwarde l'event + le `tabId` (env `DIFAI_HUB_TAB`) au `HookServer` (port via env
+`DIFAI_HUB_PORT`).
 
 ```
 ┌─────────────── Electron ───────────────┐

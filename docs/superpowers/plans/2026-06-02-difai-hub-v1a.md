@@ -658,8 +658,14 @@ git commit -m "chore(v1a): nettoyage + integration terminal embarque OK"
 - **Placeholders :** aucun — code complet à chaque step.
 - **Cohérence des types :** `hub.newSession/sendInput/onData/onExit` identiques entre preload, `api.d.ts`, et renderer ; `PtySpawner`/`PtyProcess` cohérents entre `PtyManager`, `ptyFactory`, et les tests.
 
+## Corrections appliquées à l'exécution (checkpoint GUI)
+
+Trois ajustements découverts en validant l'app réelle (intégrés à V1-A) :
+1. **Preload chargé en `.mjs`** : avec `"type":"module"`, electron-vite génère `out/preload/index.mjs` ; le main doit référencer `../preload/index.mjs` (sinon `window.hub` jamais exposé → écran noir).
+2. **`fit()` via `ResizeObserver`** : appelé synchroniquement après `open()`, xterm calculait ~1 colonne. Le refit sur `ResizeObserver` règle l'affichage.
+3. **Resize propagé au pty** : ajout de `PtyManager.resize` + IPC `session:resize` + appel depuis le renderer (sinon claude reste à 110×32 et se tasse en haut-gauche).
+
 ## Limites connues de V1-A (hors périmètre, pour les sous-plans suivants)
 
 - Un seul onglet/terminal en dur (le multi-onglets + sidebar = V1-E).
-- Pas de resize du pty propagé côté node-pty (cols/rows fixes) — à brancher quand le layout multi-pane arrive.
 - Pas encore de corrélation côté hub (HookServer/Registry = V1-B).
