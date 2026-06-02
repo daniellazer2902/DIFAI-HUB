@@ -69,7 +69,7 @@ réutilisées pour les tests unitaires.
 - Pas de multi-fenêtres (une seule fenêtre, onglets).
 - Pas de supervision des sessions Claude lancées **hors** du hub (sans `tabId`) — ignorées.
 - Pas de multi-console simultanée (remplacement simple suffit).
-- Pas de thèmes/personnalisation, pas d'auth.
+- Pas de thèmes multiples ni de personnalisation poussée (le toggle clair/sombre est inclus), pas d'auth.
 
 ## 3. Décisions UI (validées)
 
@@ -80,6 +80,7 @@ réutilisées pour les tests unitaires.
 | Déploiement console agent | **Split vertical** redimensionnable (terminal \| console) |
 | Multi-agents | **Remplacement simple** — une console visible à la fois |
 | Notification | Clignotement de l'onglet + son configurable ; acquittement au re-clic |
+| Style visuel | Épuré / minimal, sobre. **Toggle clair/sombre** (dark mode) commutable par l'utilisateur, état persisté |
 
 ## 4. Architecture (Electron, 3 couches)
 
