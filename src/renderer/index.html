@@ -8,7 +8,7 @@
       html, body, #app { margin: 0; height: 100%; background: #1e1e1e; color: #ddd; font-family: Consolas, monospace; }
       #row { display: flex; height: 100%; }
       #term { flex: 1; min-width: 0; }
-      #console { flex: 1; min-width: 0; border-left: 1px solid #333; overflow-y: auto; padding: 6px; font-size: 12px; display: none; }
+      #console { flex: 1; min-width: 0; border-left: 1px solid #333; overflow-y: auto; padding: 0; font-size: 12px; display: none; }
       #console.open { display: block; }
       #rail { width: 150px; border-left: 1px solid #333; overflow-y: auto; background: #181818; }
       .agent { padding: 6px 8px; border-bottom: 1px solid #2a2a2a; cursor: pointer; font-size: 11px; }
@@ -21,6 +21,14 @@
       .cline.text { color: #cde; }
       .cline.prompt { color: #9c9; }
       .cline.result { color: #888; }
+      .console-header { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 8px; background: #1e1e1e; border-bottom: 1px solid #333; color: #7fd; font-size: 11px; }
+      .console-body { padding: 6px 8px; }
+      .cclose, .aclose { cursor: pointer; color: #888; user-select: none; }
+      .cclose:hover, .aclose:hover { color: #f66; }
+      .agent { position: relative; }
+      .agent .desc { color: #aaa; }
+      .aclose { position: absolute; top: 4px; right: 6px; font-size: 10px; opacity: 0; }
+      .agent:hover .aclose { opacity: 1; }
     </style>
   </head>
   <body>
