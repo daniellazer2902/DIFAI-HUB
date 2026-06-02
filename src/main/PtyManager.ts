@@ -16,7 +16,7 @@ export interface SpawnOptions {
   env: NodeJS.ProcessEnv
 }
 
-export type PtySpawner = (file: string, opts: SpawnOptions) => PtyProcess
+export type PtySpawner = (file: string, args: string[], opts: SpawnOptions) => PtyProcess
 
 export class PtyManager {
   private readonly spawn: PtySpawner
@@ -33,14 +33,14 @@ export class PtyManager {
   onData(cb: (tabId: string, data: string) => void): void { this.dataCb = cb }
   onExit(cb: (tabId: string, exitCode: number) => void): void { this.exitCb = cb }
 
-  create(cwd: string): string {
+  create(cwd: string, opts?: { args?: string[]; env?: Record<string, string> }): string {
     const tabId = randomUUID()
-    const pty = this.spawn(this.claudePath, {
+    const pty = this.spawn(this.claudePath, opts?.args ?? [], {
       name: 'xterm-color',
       cols: 110,
       rows: 32,
       cwd,
-      env: { ...process.env, DIFAI_HUB_TAB: tabId }
+      env: { ...process.env, DIFAI_HUB_TAB: tabId, ...(opts?.env ?? {}) }
     })
     pty.onData((data) => this.dataCb(tabId, data))
     pty.onExit(({ exitCode }) => {
