@@ -9,6 +9,16 @@
           }
         ]
       }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\Users\\daniel.gavriline\\Desktop\\Travail\\Claude apps\\DIFAI-HUB\\poc\\hooks\\on-session-start.mjs\""
+          }
+        ]
+      }
     ]
   }
 }

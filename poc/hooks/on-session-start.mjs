@@ -1,15 +1,12 @@
-// Hook SessionStart : lit l'evenement sur stdin, lit DIFAI_HUB_TAB dans l'env,
-// POST la correlation au serveur local du POC.
+// Hook generique POC : lit l'evenement sur stdin, y ajoute DIFAI_HUB_TAB depuis l'env,
+// et POST l'event COMPLET au serveur local. Sert pour SessionStart, SubagentStop, etc.
+// (input.hook_event_name distingue le type ; on forwarde tous les champs tels quels).
 import { readFileSync } from 'node:fs';
 
 const input = JSON.parse(readFileSync(0, 'utf8')); // fd 0 = stdin
 const payload = JSON.stringify({
-  hook: 'SessionStart',
+  ...input,
   tabId: process.env.DIFAI_HUB_TAB ?? null,
-  session_id: input.session_id ?? null,
-  transcript_path: input.transcript_path ?? null,
-  cwd: input.cwd ?? null,
-  source: input.source ?? null,
 });
 
 try {
