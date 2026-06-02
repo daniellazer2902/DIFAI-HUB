@@ -28,7 +28,6 @@ export class TranscriptWatcher {
     this.stop()
     const root = dirname(transcriptPath)
     this.marker = `${sep}${sessionId}${sep}subagents${sep}`
-    console.log('[watch] root', root, '| marker', this.marker)
     this.watcher = chokidar.watch(root, { ignoreInitial: true, depth: 3 })
     this.watcher.on('add', (p) => this.handle(p))
     this.watcher.on('change', (p) => this.handle(p))
@@ -37,7 +36,6 @@ export class TranscriptWatcher {
   private handle(path: string): void {
     if (!path.includes(this.marker)) return
     const name = basename(path)
-    console.log('[watch] +', name)
     const meta = name.match(/^agent-(.+)\.meta\.json$/)
     if (meta) return this.handleMeta(path, meta[1])
     const jsonl = name.match(/^agent-(.+)\.jsonl$/)
