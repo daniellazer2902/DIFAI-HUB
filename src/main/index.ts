@@ -5,6 +5,7 @@ import { nodePtySpawner } from './ptyFactory'
 import { resolveClaudePath } from './claudePath'
 
 let mainWindow: BrowserWindow | null = null
+
 const ptyManager = new PtyManager({ spawn: nodePtySpawner, claudePath: resolveClaudePath() })
 
 ptyManager.onData((tabId, data) => mainWindow?.webContents.send('pty:data', tabId, data))
@@ -12,6 +13,7 @@ ptyManager.onExit((tabId, code) => mainWindow?.webContents.send('pty:exit', tabI
 
 ipcMain.handle('session:new', (_e, cwd: string) => ptyManager.create(cwd))
 ipcMain.on('session:input', (_e, tabId: string, data: string) => ptyManager.write(tabId, data))
+ipcMain.on('session:resize', (_e, tabId: string, cols: number, rows: number) => ptyManager.resize(tabId, cols, rows))
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -19,7 +21,7 @@ function createWindow(): void {
     height: 800,
     show: false,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 export interface PtyProcess {
   write(data: string): void
+  resize(cols: number, rows: number): void
   kill(): void
   onData(cb: (data: string) => void): void
   onExit(cb: (e: { exitCode: number }) => void): void
@@ -51,6 +52,7 @@ export class PtyManager {
   }
 
   write(tabId: string, data: string): void { this.ptys.get(tabId)?.write(data) }
+  resize(tabId: string, cols: number, rows: number): void { this.ptys.get(tabId)?.resize(cols, rows) }
   kill(tabId: string): void {
     const pty = this.ptys.get(tabId)
     if (!pty) return
