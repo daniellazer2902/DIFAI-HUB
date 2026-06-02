@@ -1,5 +1,17 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'node:path'
+import { PtyManager } from './PtyManager'
+import { nodePtySpawner } from './ptyFactory'
+import { resolveClaudePath } from './claudePath'
+
+let mainWindow: BrowserWindow | null = null
+const ptyManager = new PtyManager({ spawn: nodePtySpawner, claudePath: resolveClaudePath() })
+
+ptyManager.onData((tabId, data) => mainWindow?.webContents.send('pty:data', tabId, data))
+ptyManager.onExit((tabId, code) => mainWindow?.webContents.send('pty:exit', tabId, code))
+
+ipcMain.handle('session:new', (_e, cwd: string) => ptyManager.create(cwd))
+ipcMain.on('session:input', (_e, tabId: string, data: string) => ptyManager.write(tabId, data))
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -14,7 +26,10 @@ function createWindow(): void {
     }
   })
 
+  mainWindow = win
+
   win.on('ready-to-show', () => win.show())
+  win.on('closed', () => { mainWindow = null })
 
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(process.env.ELECTRON_RENDERER_URL)
