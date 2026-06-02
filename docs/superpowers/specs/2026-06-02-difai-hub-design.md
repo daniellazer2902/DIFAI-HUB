@@ -88,12 +88,16 @@ réutilisées pour les tests unitaires.
 1. **`PtyManager`** — spawn/kill des sessions `claude` (node-pty), un `pty` par `tabId`,
    relaie l'I/O ↔ renderer. Injecte `DIFAI_HUB_TAB` + `cwd`.
 2. **`HookServer`** — mini-serveur HTTP local (port **dynamique**). Reçoit les POST des
-   hooks : `SessionStart` (corrélation), `Stop` / `Notification` / `SubagentStop` (état).
-   Route par `tabId`.
+   hooks : `SessionStart` (corrélation — fournit `session_id` + `transcript_path` + `cwd`),
+   `Stop` / `Notification` (état de la session), `SubagentStop` (fournit `agent_id`,
+   `agent_type`, `agent_transcript_path`). Route par `tabId`.
 3. **`SessionRegistry`** — table de vérité en mémoire :
    `tabId ↔ sessionId ↔ cwd ↔ jsonlPath ↔ état`. Source des compteurs sidebar.
-4. **`TranscriptWatcher`** — chokidar sur `~/.claude/projects/<slug>/`. Détecte les
-   `agent-*.jsonl`, lit en incrémental (tail), parse, pousse les événements au renderer.
+4. **`TranscriptWatcher`** — chokidar sur le répertoire du `transcript_path` de la session.
+   Détecte les transcripts d'agents qui apparaissent/grossissent **en live**, lit en
+   incrémental (tail), parse, pousse les événements au renderer. Le hook `SubagentStop`
+   fournit en complément les **métadonnées propres** de chaque agent (type, chemin canonique,
+   fin) — le watch donne le live, le hook confirme/enrichit.
 
 ### Renderer (UI)
 
@@ -135,15 +139,17 @@ Hooks déclarés dans `settings.json` (4 petits scripts qui POST au `HookServer`
    claude  (env: DIFAI_HUB_TAB=<tabId>, cwd=…/Cerba)
    └─ xterm affiche le terminal interactif
 
-3. Claude démarre → hook SessionStart POST { tabId, sessionId, cwd }
-   └─ SessionRegistry corrélé ✅
+3. Claude démarre → hook SessionStart POST { tabId, session_id, transcript_path, cwd }
+   └─ SessionRegistry corrélé ✅ (jsonlPath connu directement)
 
-4. TranscriptWatcher surveille le jsonl de cette session
+4. TranscriptWatcher surveille le répertoire du transcript de cette session
 
-5. Dispatch d'agents → agent-*.jsonl apparaissent → chokidar détecte
+5. Dispatch d'agents → transcripts d'agents apparaissent/grossissent → chokidar détecte
    └─ rail d'agents se peuple en live
+   └─ hook SubagentStop POST { tabId, agent_id, agent_type, agent_transcript_path } à la fin
+      → métadonnées propres + marque l'agent terminé
 
-6. Clic agent → Main tail son jsonl, parse
+6. Clic agent → Main tail son transcript, parse
    └─ split s'ouvre, console lecture seule (remplace la précédente)
 
 7. Claude finit / attend → hook Stop|Notification POST { tabId, event }
