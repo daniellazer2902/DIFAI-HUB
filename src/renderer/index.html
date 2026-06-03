@@ -46,6 +46,15 @@
       .term-area { flex: 1; min-width: 0; position: relative; display: flex; }
       .rails-toggle { position: absolute; top: 6px; right: 20px; z-index: 3; background: #1e1e1e; color: #888; border: 1px solid #444; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-family: inherit; font-size: 11px; }
 
+      .term-host { flex: 1; min-width: 0; height: 100%; position: relative; }
+      .term-screen { height: 100%; width: 100%; }
+      .term-search { position: absolute; top: 6px; right: 88px; z-index: 6; display: flex; align-items: center; gap: 4px; background: #202227; border: 1px solid #3a3d44; border-radius: 6px; padding: 3px 6px; }
+      .term-search input { background: #161616; border: 1px solid #444; border-radius: 4px; color: #ddd; font-family: inherit; font-size: 12px; padding: 2px 6px; width: 180px; outline: none; }
+      .term-search input:focus { border-color: #c80; }
+      .term-search-count { color: #888; font-size: 11px; min-width: 40px; text-align: center; }
+      .term-search button { background: none; border: none; color: #aaa; cursor: pointer; font-size: 11px; padding: 2px 4px; line-height: 1; }
+      .term-search button:hover { color: #fff; }
+
       .splitter { flex: none; width: 5px; cursor: col-resize; background: #2a2a2a; }
       .splitter:hover { background: #c80; }
       .console-host { flex: none; min-width: 0; display: flex; }
