@@ -8,42 +8,79 @@ export interface AgentView {
   lines: ConsoleLine[]
 }
 
-interface HubState {
-  tabId: string | null
-  sessionState: SessionState
+export interface TabState {
+  id: string
+  title: string
+  cwd: string
+  state: SessionState
   agents: AgentView[]
   openAgentId: string | null
-  setTab: (tabId: string) => void
-  setSessionState: (state: SessionState) => void
-  addAgent: (agent: AgentView) => void
-  appendLines: (agentId: string, lines: ConsoleLine[]) => void
-  removeAgent: (agentId: string) => void
-  openAgent: (agentId: string | null) => void
+  railCollapsed: boolean
+}
+
+interface HubState {
+  tabs: TabState[]
+  activeTabId: string | null
+  soundEnabled: boolean
+  addTab: (tab: TabState) => void
+  removeTab: (id: string) => void
+  setActiveTab: (id: string) => void
+  setTabState: (id: string, state: SessionState) => void
+  addAgent: (id: string, agent: AgentView) => void
+  appendLines: (id: string, agentId: string, lines: ConsoleLine[]) => void
+  removeAgent: (id: string, agentId: string) => void
+  openAgent: (id: string, agentId: string | null) => void
+  toggleRail: (id: string) => void
+  setSoundEnabled: (v: boolean) => void
   reset: () => void
 }
 
 const initial = {
-  tabId: null as string | null,
-  sessionState: 'starting' as SessionState,
-  agents: [] as AgentView[],
-  openAgentId: null as string | null
+  tabs: [] as TabState[],
+  activeTabId: null as string | null,
+  soundEnabled: true
+}
+
+function patch(tabs: TabState[], id: string, fn: (t: TabState) => TabState): TabState[] {
+  return tabs.map((t) => (t.id === id ? fn(t) : t))
 }
 
 export const useHub = create<HubState>((set) => ({
   ...initial,
-  setTab: (tabId) => set({ tabId }),
-  setSessionState: (sessionState) => set({ sessionState }),
-  addAgent: (agent) =>
-    set((s) => (s.agents.some((a) => a.id === agent.id) ? s : { agents: [...s.agents, agent] })),
-  appendLines: (agentId, lines) =>
+  addTab: (tab) =>
+    set((s) => (s.tabs.some((t) => t.id === tab.id) ? s : { tabs: [...s.tabs, tab], activeTabId: tab.id })),
+  removeTab: (id) =>
+    set((s) => {
+      const tabs = s.tabs.filter((t) => t.id !== id)
+      const activeTabId =
+        s.activeTabId === id ? (tabs.length ? tabs[tabs.length - 1].id : null) : s.activeTabId
+      return { tabs, activeTabId }
+    }),
+  setActiveTab: (activeTabId) => set({ activeTabId }),
+  setTabState: (id, state) => set((s) => ({ tabs: patch(s.tabs, id, (t) => ({ ...t, state })) })),
+  addAgent: (id, agent) =>
     set((s) => ({
-      agents: s.agents.map((a) => (a.id === agentId ? { ...a, lines: [...a.lines, ...lines] } : a))
+      tabs: patch(s.tabs, id, (t) =>
+        t.agents.some((a) => a.id === agent.id) ? t : { ...t, agents: [...t.agents, agent] }
+      )
     })),
-  removeAgent: (agentId) =>
+  appendLines: (id, agentId, lines) =>
     set((s) => ({
-      agents: s.agents.filter((a) => a.id !== agentId),
-      openAgentId: s.openAgentId === agentId ? null : s.openAgentId
+      tabs: patch(s.tabs, id, (t) => ({
+        ...t,
+        agents: t.agents.map((a) => (a.id === agentId ? { ...a, lines: [...a.lines, ...lines] } : a))
+      }))
     })),
-  openAgent: (openAgentId) => set({ openAgentId }),
+  removeAgent: (id, agentId) =>
+    set((s) => ({
+      tabs: patch(s.tabs, id, (t) => ({
+        ...t,
+        agents: t.agents.filter((a) => a.id !== agentId),
+        openAgentId: t.openAgentId === agentId ? null : t.openAgentId
+      }))
+    })),
+  openAgent: (id, agentId) => set((s) => ({ tabs: patch(s.tabs, id, (t) => ({ ...t, openAgentId: agentId })) })),
+  toggleRail: (id) => set((s) => ({ tabs: patch(s.tabs, id, (t) => ({ ...t, railCollapsed: !t.railCollapsed })) })),
+  setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
   reset: () => set({ ...initial })
 }))
