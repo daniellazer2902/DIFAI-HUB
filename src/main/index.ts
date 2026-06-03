@@ -29,7 +29,8 @@ const ctx: AppContext = {
   pickFolder: async () => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory'] })
     return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
-  }
+  },
+  userDataDir: app.getPath('userData')
 }
 
 const modules: HubModule[] = [createSessionModule(), createAgentsModule()]
