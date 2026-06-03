@@ -10,15 +10,25 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     const container = containerRef.current
     if (!container) return
 
-    const term = new XTerm({ fontFamily: 'Consolas, monospace', fontSize: 13, cursorBlink: true })
+    const term = new XTerm({ fontFamily: 'Consolas, monospace', fontSize: 13, cursorBlink: true, scrollback: 5000 })
     const fit = new FitAddon()
     term.loadAddon(fit)
     term.open(container)
 
+    let lastCols = 0
+    let lastRows = 0
     const doFit = (): void => {
+      // Onglet caché (display:none) => offsetParent null : ne pas fit/resize (taille 0).
+      if (container.offsetParent === null) return
       try {
         fit.fit()
-        window.hub.resize(tabId, term.cols, term.rows)
+        // Ne propager au pty QUE si la taille a vraiment changé (évite le spam de resize
+        // pendant le drag du splitter, qui fait redessiner la TUI Claude et pollue l'historique).
+        if (term.cols !== lastCols || term.rows !== lastRows) {
+          lastCols = term.cols
+          lastRows = term.rows
+          window.hub.resize(tabId, term.cols, term.rows)
+        }
       } catch { /* conteneur pas encore dimensionné */ }
     }
     const ro = new ResizeObserver(() => doFit())
