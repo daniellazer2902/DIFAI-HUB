@@ -1,10 +1,25 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
+
+const SEARCH_OPTS = {
+  decorations: {
+    matchBackground: '#664400',
+    matchOverviewRuler: '#664400',
+    activeMatchBackground: '#cc8800',
+    activeMatchColorOverviewRuler: '#fb3'
+  }
+}
 
 export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<SearchAddon | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState({ index: -1, count: 0 })
 
   useEffect(() => {
     const container = containerRef.current
@@ -12,8 +27,13 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
 
     const term = new XTerm({ fontFamily: 'Consolas, monospace', fontSize: 13, cursorBlink: true, scrollback: 5000 })
     const fit = new FitAddon()
+    const search = new SearchAddon()
     term.loadAddon(fit)
+    term.loadAddon(search)
+    searchRef.current = search
     term.open(container)
+
+    const offResults = search.onDidChangeResults((r) => setResults({ index: r.resultIndex, count: r.resultCount }))
 
     let lastCols = 0
     let lastRows = 0
@@ -36,15 +56,18 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     requestAnimationFrame(doFit)
     window.addEventListener('resize', doFit)
 
-    // Le menu Electron (et son rôle "paste" natif) est retiré → on gère nous-mêmes le
-    // collage. Ctrl/Cmd+V : colle le presse-papier (une seule source, pas de double).
-    // Ctrl/Cmd+C : copie UNIQUEMENT s'il y a une sélection (sinon laisser passer le SIGINT).
+    // Menu Electron retiré → on gère le clavier nous-mêmes.
+    // Ctrl/Cmd+F : ouvre la recherche · Ctrl/Cmd+V : colle (une seule source) ·
+    // Ctrl/Cmd+C : copie si sélection (sinon laisser passer le SIGINT).
     term.attachCustomKeyEventHandler((e): boolean => {
       if (e.type !== 'keydown' || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return true
       const key = e.key.toLowerCase()
+      if (key === 'f') {
+        e.preventDefault()
+        setSearchOpen(true)
+        return false
+      }
       if (key === 'v') {
-        // preventDefault coupe le collage natif du navigateur (sinon double-collage :
-        // notre term.paste + l'insertion native via l'événement `paste`).
         e.preventDefault()
         navigator.clipboard.readText().then((t) => { if (t) term.paste(t) }).catch(() => {})
         return false
@@ -61,13 +84,59 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     const onInput = term.onData((data) => window.hub.sendInput(tabId, data))
 
     return () => {
+      offResults.dispose()
       offData()
       onInput.dispose()
       ro.disconnect()
       window.removeEventListener('resize', doFit)
       term.dispose()
+      searchRef.current = null
     }
   }, [tabId])
 
-  return <div ref={containerRef} style={{ flex: 1, minWidth: 0, height: '100%' }} />
+  useEffect(() => {
+    if (searchOpen) inputRef.current?.focus()
+  }, [searchOpen])
+
+  function runSearch(q: string, prev = false): void {
+    setQuery(q)
+    if (!q) {
+      searchRef.current?.clearDecorations()
+      setResults({ index: -1, count: 0 })
+      return
+    }
+    if (prev) searchRef.current?.findPrevious(q, SEARCH_OPTS)
+    else searchRef.current?.findNext(q, SEARCH_OPTS)
+  }
+
+  function closeSearch(): void {
+    setSearchOpen(false)
+    setQuery('')
+    searchRef.current?.clearDecorations()
+    setResults({ index: -1, count: 0 })
+  }
+
+  return (
+    <div className="term-host">
+      {searchOpen && (
+        <div className="term-search">
+          <input
+            ref={inputRef}
+            value={query}
+            placeholder="Rechercher…"
+            onChange={(e) => runSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); runSearch(query, e.shiftKey) }
+              else if (e.key === 'Escape') { e.preventDefault(); closeSearch() }
+            }}
+          />
+          <span className="term-search-count">{results.count ? `${results.index + 1}/${results.count}` : '0/0'}</span>
+          <button title="Précédent (Maj+Entrée)" onClick={() => runSearch(query, true)}>▲</button>
+          <button title="Suivant (Entrée)" onClick={() => runSearch(query)}>▼</button>
+          <button title="Fermer (Échap)" onClick={closeSearch}>✕</button>
+        </div>
+      )}
+      <div ref={containerRef} className="term-screen" />
+    </div>
+  )
 }
