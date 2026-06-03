@@ -35,4 +35,11 @@ describe('agentsModule', () => {
     createAgentsModule().register(ctx)
     expect(() => exit('t-inconnu', 0)).not.toThrow()
   })
+
+  it('SubagentStop => notifie le renderer (AgentDone) avec agent_id', () => {
+    const { ctx, fire } = fakeCtx()
+    createAgentsModule().register(ctx)
+    fire({ hook_event_name: 'SubagentStop', tabId: 't1', agent_id: 'ag1' })
+    expect(ctx.sender.send).toHaveBeenCalledWith(IPC.AgentDone, 't1', 'ag1')
+  })
 })

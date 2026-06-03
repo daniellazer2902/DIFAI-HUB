@@ -6,6 +6,7 @@ export interface AgentView {
   type: string
   desc: string
   lines: ConsoleLine[]
+  done: boolean
 }
 
 export interface TabState {
@@ -29,6 +30,7 @@ interface HubState {
   addAgent: (id: string, agent: AgentView) => void
   appendLines: (id: string, agentId: string, lines: ConsoleLine[]) => void
   removeAgent: (id: string, agentId: string) => void
+  setAgentDone: (id: string, agentId: string) => void
   openAgent: (id: string, agentId: string | null) => void
   toggleRail: (id: string) => void
   setSoundEnabled: (v: boolean) => void
@@ -79,8 +81,21 @@ export const useHub = create<HubState>((set) => ({
         openAgentId: t.openAgentId === agentId ? null : t.openAgentId
       }))
     })),
+  setAgentDone: (id, agentId) =>
+    set((s) => ({
+      tabs: patch(s.tabs, id, (t) => ({
+        ...t,
+        agents: t.agents.map((a) => (a.id === agentId ? { ...a, done: true } : a))
+      }))
+    })),
   openAgent: (id, agentId) => set((s) => ({ tabs: patch(s.tabs, id, (t) => ({ ...t, openAgentId: agentId })) })),
-  toggleRail: (id) => set((s) => ({ tabs: patch(s.tabs, id, (t) => ({ ...t, railCollapsed: !t.railCollapsed })) })),
+  toggleRail: (id) =>
+    set((s) => ({
+      tabs: patch(s.tabs, id, (t) => {
+        const railCollapsed = !t.railCollapsed
+        return { ...t, railCollapsed, openAgentId: railCollapsed ? null : t.openAgentId }
+      })
+    })),
   setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
   reset: () => set({ ...initial })
 }))

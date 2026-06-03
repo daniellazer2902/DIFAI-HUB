@@ -35,7 +35,7 @@
       .tabpane { height: 100%; }
       .term-wrap { display: flex; height: 100%; min-width: 0; }
       .term-area { flex: 1; min-width: 0; position: relative; display: flex; }
-      .rails-toggle { position: absolute; top: 6px; right: 8px; z-index: 3; background: #1e1e1e; color: #888; border: 1px solid #444; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-family: inherit; font-size: 11px; }
+      .rails-toggle { position: absolute; top: 6px; right: 20px; z-index: 3; background: #1e1e1e; color: #888; border: 1px solid #444; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-family: inherit; font-size: 11px; }
 
       .console { flex: 1; min-width: 0; border-left: 1px solid #333; overflow-y: auto; font-size: 12px; }
       .rail { width: 150px; border-left: 1px solid #333; overflow-y: auto; background: #181818; }
@@ -44,6 +44,8 @@
       .agent.sel { background: #33291a; outline: 1px solid #c80; }
       .agent .type { color: #7fd; }
       .agent .desc { color: #aaa; }
+      .agent.done .type { color: #888; }
+      .agent.done .desc { color: #777; }
       .aclose { position: absolute; top: 4px; right: 6px; font-size: 10px; opacity: 0; cursor: pointer; color: #888; user-select: none; }
       .agent:hover .aclose { opacity: 1; }
       .aclose:hover { color: #f66; }
