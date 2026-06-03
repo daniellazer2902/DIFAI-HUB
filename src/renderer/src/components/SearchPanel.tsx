@@ -21,24 +21,35 @@ function highlight(text: string, q: string): React.ReactNode {
 }
 
 export function SearchPanel({ tabId }: { tabId: string }): React.JSX.Element {
-  const close = useHub((s) => s.setSearch)
+  const setSearch = useHub((s) => s.setSearch)
+  const toggleSearch = useHub((s) => s.toggleSearch)
+  const setSearchQuery = useHub((s) => s.setSearchQuery)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [query, setQuery] = useState('')
+  // Query initiale = celle mémorisée pour CET onglet (persiste quand on cache la recherche).
+  const [query, setQuery] = useState(() => useHub.getState().tabs.find((t) => t.id === tabId)?.searchQuery ?? '')
   const [matches, setMatches] = useState<TranscriptMatch[]>([])
+
+  function fetchMatches(q: string): void {
+    if (!q.trim()) { setMatches([]); return }
+    window.hub.searchTranscript(tabId, q).then(setMatches).catch(() => setMatches([]))
+  }
 
   useEffect(() => {
     inputRef.current?.focus()
+    inputRef.current?.select()
+    const init = (useHub.getState().tabs.find((t) => t.id === tabId)?.searchQuery ?? '').trim()
+    if (init) fetchMatches(init) // recharge les résultats au ré-affichage de l'onglet
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function runSearch(q: string): void {
     setQuery(q)
+    setSearchQuery(tabId, q) // mémorise par onglet
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (!q.trim()) { setMatches([]); return }
-    debounceRef.current = setTimeout(() => {
-      window.hub.searchTranscript(tabId, q).then(setMatches).catch(() => setMatches([]))
-    }, 180)
+    debounceRef.current = setTimeout(() => fetchMatches(q), 180)
   }
 
   const q = query.trim()
@@ -52,9 +63,14 @@ export function SearchPanel({ tabId }: { tabId: string }): React.JSX.Element {
           value={query}
           placeholder="Rechercher dans la conversation…"
           onChange={(e) => runSearch(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); close(tabId, false) } }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') { e.preventDefault(); setSearch(tabId, false) }
+            else if (e.key.toLowerCase() === 'f' && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+              e.preventDefault(); toggleSearch(tabId) // Ctrl+F bascule aussi depuis le champ
+            }
+          }}
         />
-        <button className="search-close" title="Fermer (Échap)" onClick={() => close(tabId, false)}>✕</button>
+        <button className="search-close" title="Fermer (Échap)" onClick={() => setSearch(tabId, false)}>✕</button>
       </div>
       {q && (
         <div className="search-summary">

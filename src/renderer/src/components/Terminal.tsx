@@ -45,7 +45,7 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
       const key = e.key.toLowerCase()
       if (key === 'f') {
         e.preventDefault()
-        useHub.getState().setSearch(tabId, true)
+        useHub.getState().toggleSearch(tabId)
         return false
       }
       if (key === 'v') {

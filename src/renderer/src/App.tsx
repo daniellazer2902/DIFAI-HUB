@@ -37,7 +37,7 @@ export function App(): React.JSX.Element {
       window.hub.newSession(cwd).then((id) => {
         if (!active) return
         useHub.getState().addTab({
-          id, title: basename(cwd), cwd, state: 'starting', agents: [], openAgentId: null, railCollapsed: false, searchOpen: false
+          id, title: basename(cwd), cwd, state: 'starting', agents: [], openAgentId: null, railCollapsed: false, searchOpen: false, searchQuery: ''
         })
       })
     })
