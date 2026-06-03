@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
 import { join } from 'node:path'
 import { PtyManager } from './PtyManager'
 import { nodePtySpawner } from './ptyFactory'
@@ -24,7 +24,12 @@ const ctx: AppContext = {
   pty: ptyManager,
   registry,
   hookServer,
-  hooksSettingsPath: () => hooksSettingsPath
+  hooksSettingsPath: () => hooksSettingsPath,
+  defaultCwd: process.cwd(),
+  pickFolder: async () => {
+    const r = await dialog.showOpenDialog({ properties: ['openDirectory'] })
+    return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
+  }
 }
 
 const modules: HubModule[] = [createSessionModule(), createAgentsModule()]
@@ -35,6 +40,9 @@ function createWindow(): void {
     width: 1200,
     height: 800,
     show: false,
+    autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#121212', symbolColor: '#dddddd', height: 36 },
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false,
@@ -56,6 +64,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  Menu.setApplicationMenu(null) // retire le menu File/Edit/View/Window/Help
   const port = await hookServer.start()
   const forwardScript = join(app.getAppPath(), 'resources', 'hooks', 'hook-forward.mjs')
   hooksSettingsPath = writeHooksSettings(app.getPath('userData'), forwardScript)
