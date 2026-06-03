@@ -12,8 +12,13 @@ describe('workspaceStore (pur)', () => {
   })
 
   it('parseWorkspace : JSON valide => arbre', () => {
-    const tree: WorkspaceTree = { activeGroupId: 'g1', groups: [{ id: 'g1', name: 'Messika', collapsed: false, items: [{ id: 'i1', name: 'api', cwd: 'C:/p' }] }] }
+    const tree: WorkspaceTree = { activeGroupId: 'g1', groups: [{ id: 'g1', name: 'Messika', collapsed: false, defaultCwd: 'C:/messika', items: [{ id: 'i1', name: 'api', cwd: 'C:/p' }] }] }
     expect(parseWorkspace(JSON.stringify(tree))).toEqual(tree)
+  })
+
+  it('parseWorkspace : defaultCwd absent => null', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'X', collapsed: false, items: [] }] })
+    expect(parseWorkspace(raw).groups[0].defaultCwd).toBeNull()
   })
 
   it('parseWorkspace : JSON invalide => défaut', () => {
@@ -25,7 +30,7 @@ describe('workspaceStore (pur)', () => {
   })
 
   it('serializeWorkspace : round-trip stable', () => {
-    const tree: WorkspaceTree = { activeGroupId: 'g1', groups: [{ id: 'g1', name: 'X', collapsed: true, items: [] }] }
+    const tree: WorkspaceTree = { activeGroupId: 'g1', groups: [{ id: 'g1', name: 'X', collapsed: true, defaultCwd: null, items: [] }] }
     expect(parseWorkspace(serializeWorkspace(tree))).toEqual(tree)
   })
 })

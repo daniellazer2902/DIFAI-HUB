@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useHub, type Item } from '../store'
+import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, PinIcon, EditIcon, TrashIcon } from './icons'
+import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon } from './icons'
 import { basename } from '../util'
 
 /** Ouvre une session pour un item éteint et la lie. */
@@ -58,15 +58,22 @@ export function Sidebar(): React.JSX.Element {
     if (!item.tabId) await launch(item)
   }
 
-  async function addItemTo(groupId: string): Promise<void> {
-    const cwd = await window.hub.pickFolder()
+  // ＋ du groupe : utilise le dossier par défaut du groupe s'il est défini, sinon demande.
+  async function addItemTo(group: Group): Promise<void> {
+    const cwd = group.defaultCwd ?? (await window.hub.pickFolder())
     if (!cwd) return
     const tabId = await window.hub.newSession(cwd)
     const item: Item = {
       id: crypto.randomUUID(), name: basename(cwd), cwd, pinned: false, tabId,
       state: 'starting', agents: [], openAgentId: null, railCollapsed: false, searchOpen: false, searchQuery: ''
     }
-    useHub.getState().addItem(groupId, item)
+    useHub.getState().addItem(group.id, item)
+  }
+
+  async function setGroupDefault(groupId: string): Promise<void> {
+    setMenu(null)
+    const cwd = await window.hub.pickFolder()
+    if (cwd) useHub.getState().setGroupDefaultCwd(groupId, cwd)
   }
 
   function addGroup(): void {
@@ -118,12 +125,13 @@ export function Sidebar(): React.JSX.Element {
               <span className="group-chevron" onClick={() => useHub.getState().toggleGroupCollapsed(g.id)}>{g.collapsed ? '▸' : '▾'}</span>
               <span className="group-name-wrap" onClick={() => useHub.getState().setActiveGroup(g.id)}>{nameOrEditor('group', g.id, g.name, 'group-name')}</span>
               <span className="group-actions">
-                <span className="ic-btn" title="Ajouter un Claude" onClick={() => addItemTo(g.id)}>＋</span>
+                <span className="ic-btn" title="Ajouter un Claude" onClick={() => addItemTo(g)}>＋</span>
                 <span className="ic-btn menu-btn" title="Menu" onClick={() => setMenu(menu === g.id ? null : g.id)}>···</span>
               </span>
               {menu === g.id && (
                 <div className="ctx-menu">
                   <div onClick={() => startRename('group', g.id, g.name)}><EditIcon /> Renommer</div>
+                  <div onClick={() => setGroupDefault(g.id)}><FolderIcon /> Dossier par défaut…</div>
                   <div className="danger" onClick={() => removeGroup(g.id, g.name)}><TrashIcon /> Supprimer</div>
                 </div>
               )}

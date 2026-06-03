@@ -79,12 +79,20 @@ describe('store groupes/items', () => {
     expect(useHub.getState().toPersistable().groups[0].items).toEqual([{ id: 'pin', name: 'api', cwd: 'C:/api' }])
   })
 
-  it('loadWorkspace recrée les groupes/items (éteints, épinglés)', () => {
-    useHub.getState().loadWorkspace({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'M', collapsed: false, items: [{ id: 'i1', name: 'api', cwd: 'C:/api' }] }] })
+  it('loadWorkspace recrée les groupes/items (éteints, épinglés) + defaultCwd', () => {
+    useHub.getState().loadWorkspace({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'M', collapsed: false, defaultCwd: 'C:/m', items: [{ id: 'i1', name: 'api', cwd: 'C:/api' }] }] })
     expect(useHub.getState().groups).toHaveLength(1)
+    expect(useHub.getState().groups[0].defaultCwd).toBe('C:/m')
     const it = useHub.getState().itemById('i1')!
     expect(it.pinned).toBe(true)
     expect(it.tabId).toBeNull()
+  })
+
+  it('setGroupDefaultCwd + toPersistable conservent le dossier par défaut', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().setGroupDefaultCwd(g, 'C:/projet')
+    expect(useHub.getState().groups[0].defaultCwd).toBe('C:/projet')
+    expect(useHub.getState().toPersistable().groups[0].defaultCwd).toBe('C:/projet')
   })
 
   it('setSoundEnabled / setConsoleWidth conservés', () => {

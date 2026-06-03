@@ -27,6 +27,7 @@ export interface Group {
   id: string
   name: string
   collapsed: boolean
+  defaultCwd: string | null
   items: Item[]
 }
 
@@ -44,6 +45,7 @@ interface HubState {
   renameGroup: (groupId: string, name: string) => void
   removeGroup: (groupId: string) => void
   toggleGroupCollapsed: (groupId: string) => void
+  setGroupDefaultCwd: (groupId: string, cwd: string) => void
   setActiveGroup: (groupId: string) => void
 
   addItem: (groupId: string, item: Item) => void
@@ -101,7 +103,7 @@ export const useHub = create<HubState>((set, get) => ({
 
   addGroup: (name) => {
     const id = uid('g')
-    set((s) => ({ groups: [...s.groups, { id, name, collapsed: false, items: [] }], activeGroupId: id }))
+    set((s) => ({ groups: [...s.groups, { id, name, collapsed: false, defaultCwd: null, items: [] }], activeGroupId: id }))
     return id
   },
   renameGroup: (groupId, name) =>
@@ -114,6 +116,8 @@ export const useHub = create<HubState>((set, get) => ({
     }),
   toggleGroupCollapsed: (groupId) =>
     set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, collapsed: !g.collapsed } : g)) })),
+  setGroupDefaultCwd: (groupId, cwd) =>
+    set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, defaultCwd: cwd } : g)) })),
   setActiveGroup: (activeGroupId) => set({ activeGroupId }),
 
   addItem: (groupId, item) =>
@@ -222,7 +226,7 @@ export const useHub = create<HubState>((set, get) => ({
     return {
       activeGroupId: s.activeGroupId,
       groups: s.groups.map((g) => ({
-        id: g.id, name: g.name, collapsed: g.collapsed,
+        id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd,
         items: g.items.filter((i) => i.pinned).map((i) => ({ id: i.id, name: i.name, cwd: i.cwd }))
       }))
     }
@@ -232,7 +236,7 @@ export const useHub = create<HubState>((set, get) => ({
       activeGroupId: tree.activeGroupId,
       activeItemId: null,
       groups: tree.groups.map((g) => ({
-        id: g.id, name: g.name, collapsed: g.collapsed,
+        id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd ?? null,
         items: g.items.map((i) => ({
           id: i.id, name: i.name, cwd: i.cwd, pinned: true, tabId: null,
           state: 'done', agents: [], openAgentId: null, railCollapsed: false, searchOpen: false, searchQuery: ''

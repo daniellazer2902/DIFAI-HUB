@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import type { WorkspaceTree, PersistGroup, PersistItem } from '../shared/ipc'
 
 export function defaultWorkspace(): WorkspaceTree {
-  const g: PersistGroup = { id: 'g-default', name: 'Sessions', collapsed: false, items: [] }
+  const g: PersistGroup = { id: 'g-default', name: 'Sessions', collapsed: false, defaultCwd: null, items: [] }
   return { activeGroupId: g.id, groups: [g] }
 }
 
@@ -19,7 +19,8 @@ function normGroup(x: unknown): PersistGroup | null {
   const o = x as Record<string, unknown>
   if (typeof o.id !== 'string' || typeof o.name !== 'string') return null
   const items = Array.isArray(o.items) ? (o.items.map(normItem).filter(Boolean) as PersistItem[]) : []
-  return { id: o.id, name: o.name, collapsed: o.collapsed === true, items }
+  const defaultCwd = typeof o.defaultCwd === 'string' ? o.defaultCwd : null
+  return { id: o.id, name: o.name, collapsed: o.collapsed === true, defaultCwd, items }
 }
 
 /** Parse le contenu JSON ; renvoie l'arbre par défaut si invalide/incomplet. */
