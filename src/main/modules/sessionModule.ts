@@ -24,6 +24,8 @@ export function createSessionModule(): HubModule {
       ctx.ipc.on(IPC.SessionInput, (_e, tabId: string, data: string) => ctx.pty.write(tabId, data))
       ctx.ipc.on(IPC.SessionResize, (_e, tabId: string, cols: number, rows: number) => ctx.pty.resize(tabId, cols, rows))
       ctx.ipc.on(IPC.SessionKill, (_e, tabId: string) => ctx.pty.kill(tabId))
+      ctx.ipc.handle(IPC.DefaultCwd, () => ctx.defaultCwd)
+      ctx.ipc.handle(IPC.PickFolder, () => ctx.pickFolder())
     }
   }
 }
