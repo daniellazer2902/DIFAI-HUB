@@ -27,7 +27,8 @@ function makeSnippet(text: string, at: number, len: number, pad = 50): string {
 /**
  * Recherche un terme dans le transcript brut (JSONL) d'une session Claude.
  * Ne considère que les messages `user` (prompts) et `assistant` (réponses).
- * Renvoie au plus `limit` occurrences (une par message), insensible à la casse.
+ * Renvoie au plus `limit` occurrences — UNE PAR MATCH (plusieurs par message
+ * possibles, comme un Ctrl+F de navigateur), insensible à la casse.
  */
 export function searchTranscript(raw: string, query: string, limit = 100): TranscriptMatch[] {
   const q = query.trim().toLowerCase()
@@ -40,10 +41,13 @@ export function searchTranscript(raw: string, query: string, limit = 100): Trans
     if (obj.type !== 'user' && obj.type !== 'assistant') continue
     const text = textOf(obj)
     if (!text) continue
-    const at = text.toLowerCase().indexOf(q)
-    if (at === -1) continue
-    out.push({ role: obj.type, snippet: makeSnippet(text, at, q.length) })
-    if (out.length >= limit) break
+    const lower = text.toLowerCase()
+    let at = lower.indexOf(q)
+    while (at !== -1) {
+      out.push({ role: obj.type, snippet: makeSnippet(text, at, q.length) })
+      if (out.length >= limit) return out
+      at = lower.indexOf(q, at + q.length)
+    }
   }
   return out
 }

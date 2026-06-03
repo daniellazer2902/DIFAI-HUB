@@ -39,6 +39,12 @@ describe('searchTranscript', () => {
     expect(r[0].snippet.endsWith('…')).toBe(true)
   })
 
+  it('remonte plusieurs occurrences dans un même message', () => {
+    const raw = line({ type: 'assistant', message: { content: [{ type: 'text', text: 'escale, couloir, escalier, escalade' }] } })
+    // "escal" matche escale, escalier, escalade => 3 occurrences
+    expect(searchTranscript(raw, 'escal')).toHaveLength(3)
+  })
+
   it('respecte la limite de résultats', () => {
     const raw = Array.from({ length: 10 }, () => line({ type: 'user', message: { content: 'mot' } })).join('\n')
     expect(searchTranscript(raw, 'mot', 3)).toHaveLength(3)
