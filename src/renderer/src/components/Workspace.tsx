@@ -7,13 +7,13 @@ import { Rail } from './Rail'
 import { SearchPanel } from './SearchPanel'
 
 export function Workspace(): React.JSX.Element {
-  const tabs = useHub((s) => s.tabs)
-  const activeTabId = useHub((s) => s.activeTabId)
+  const groups = useHub((s) => s.groups)
+  const activeGroupId = useHub((s) => s.activeGroupId)
+  const activeItemId = useHub((s) => s.activeItemId)
   const toggleRail = useHub((s) => s.toggleRail)
   const consoleWidth = useHub((s) => s.consoleWidth)
   const setConsoleWidth = useHub((s) => s.setConsoleWidth)
 
-  // Glisser la poignée : à gauche = console plus large, à droite = plus étroite.
   function startResize(e: React.MouseEvent): void {
     e.preventDefault()
     const startX = e.clientX
@@ -28,26 +28,30 @@ export function Workspace(): React.JSX.Element {
     document.addEventListener('mouseup', up)
   }
 
+  // Onglets = items VIVANTS du groupe actif.
+  const activeGroup = groups.find((g) => g.id === activeGroupId)
+  const liveItems = (activeGroup?.items ?? []).filter((i) => i.tabId)
+
   return (
     <div id="workspace">
-      {tabs.map((t) => (
-        <div key={t.id} className="tabpane" style={{ display: t.id === activeTabId ? 'block' : 'none' }}>
+      {liveItems.map((it) => (
+        <div key={it.id} className="tabpane" style={{ display: it.id === activeItemId ? 'block' : 'none' }}>
           <div className="term-wrap">
             <div className="term-area">
-              <button className="rails-toggle" onClick={() => toggleRail(t.id)}>
-                {t.railCollapsed ? '› Rails' : '‹ Rails'}
+              <button className="rails-toggle" onClick={() => toggleRail(it.id)}>
+                {it.railCollapsed ? '› Rails' : '‹ Rails'}
               </button>
-              <Terminal tabId={t.id} />
+              <Terminal tabId={it.tabId as string} />
             </div>
-            {(t.searchOpen || t.openAgentId) && (
+            {(it.searchOpen || it.openAgentId) && (
               <>
                 <div className="splitter" title="Redimensionner le panneau" onMouseDown={startResize} />
                 <div className="console-host" style={{ width: consoleWidth }}>
-                  {t.searchOpen ? <SearchPanel tabId={t.id} /> : <Console tabId={t.id} />}
+                  {it.searchOpen ? <SearchPanel itemId={it.id} /> : <Console itemId={it.id} />}
                 </div>
               </>
             )}
-            {!t.railCollapsed && <Rail tabId={t.id} />}
+            {!it.railCollapsed && <Rail itemId={it.id} />}
           </div>
         </div>
       ))}
