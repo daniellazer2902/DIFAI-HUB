@@ -13,6 +13,8 @@ const hub: HubApi = {
   sendInput: (tabId, data) => ipcRenderer.send(IPC.SessionInput, tabId, data),
   resize: (tabId, cols, rows) => ipcRenderer.send(IPC.SessionResize, tabId, cols, rows),
   killSession: (tabId) => ipcRenderer.send(IPC.SessionKill, tabId),
+  pickFolder: () => ipcRenderer.invoke(IPC.PickFolder),
+  defaultCwd: () => ipcRenderer.invoke(IPC.DefaultCwd),
   onData: (cb) => on(IPC.PtyData, (tabId, data) => cb(tabId as string, data as string)),
   onExit: (cb) => on(IPC.PtyExit, (tabId, code) => cb(tabId as string, code as number)),
   onSessionState: (cb) => on(IPC.SessionState, (tabId, state) => cb(tabId as string, state as SessionState)),
