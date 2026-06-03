@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs'
 import { IPC } from '../../shared/ipc'
 import { searchTranscript } from '../transcriptSearch'
 import type { AppContext, HubModule } from '../AppContext'
+import { loadWorkspace, saveWorkspace } from '../workspaceStore'
+import type { WorkspaceTree } from '../../shared/ipc'
 
 /** Cycle de vie du terminal : création de session, I/O, resize, kill, et flux pty -> renderer. */
 export function createSessionModule(): HubModule {
@@ -37,6 +39,8 @@ export function createSessionModule(): HubModule {
           return []
         }
       })
+      ctx.ipc.handle(IPC.LoadWorkspace, () => loadWorkspace(ctx.userDataDir))
+      ctx.ipc.on(IPC.SaveWorkspace, (_e, tree: WorkspaceTree) => saveWorkspace(ctx.userDataDir, tree))
     }
   }
 }
