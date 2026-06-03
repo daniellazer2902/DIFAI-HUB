@@ -13,7 +13,7 @@ export function Rail({ tabId }: { tabId: string }): React.JSX.Element | null {
         <div
           key={a.id}
           className={`agent${a.id === tab.openAgentId ? ' sel' : ''}${a.done ? ' done' : ''}`}
-          onClick={() => open(tabId, a.id)}
+          onClick={() => open(tabId, a.id === tab.openAgentId ? null : a.id)}
         >
           <span className="aclose" title="Retirer" onClick={(e) => { e.stopPropagation(); remove(tabId, a.id) }}>✕</span>
           <div className="type">{a.done ? '✓' : '▸'} {a.type}</div>

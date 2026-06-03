@@ -33,10 +33,14 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
       if (e.type !== 'keydown' || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return true
       const key = e.key.toLowerCase()
       if (key === 'v') {
+        // preventDefault coupe le collage natif du navigateur (sinon double-collage :
+        // notre term.paste + l'insertion native via l'événement `paste`).
+        e.preventDefault()
         navigator.clipboard.readText().then((t) => { if (t) term.paste(t) }).catch(() => {})
         return false
       }
       if (key === 'c' && term.hasSelection()) {
+        e.preventDefault()
         navigator.clipboard.writeText(term.getSelection()).catch(() => {})
         return false
       }
