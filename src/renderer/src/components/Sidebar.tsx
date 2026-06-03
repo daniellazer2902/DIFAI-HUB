@@ -114,7 +114,7 @@ export function Sidebar(): React.JSX.Element {
       <div className="sidebar-scroll">
         {groups.map((g) => (
           <div key={g.id} className={`group${g.id === activeGroupId ? ' active-group' : ''}`}>
-            <div className="group-head">
+            <div className="group-head" onContextMenu={(e) => { e.preventDefault(); setMenu(g.id) }}>
               <span className="group-chevron" onClick={() => useHub.getState().toggleGroupCollapsed(g.id)}>{g.collapsed ? '▸' : '▾'}</span>
               <span className="group-name-wrap" onClick={() => useHub.getState().setActiveGroup(g.id)}>{nameOrEditor('group', g.id, g.name, 'group-name')}</span>
               <span className="group-actions">
@@ -133,6 +133,7 @@ export function Sidebar(): React.JSX.Element {
                 key={it.id}
                 className={`item${it.id === activeItemId ? ' active-item' : g.id === activeGroupId ? ' active-group-item' : ''}`}
                 onClick={() => onItemClick(it)}
+                onContextMenu={(e) => { e.preventDefault(); setMenu(it.id) }}
               >
                 <span className="item-ic"><TerminalIcon /></span>
                 {nameOrEditor('item', it.id, it.name, 'item-name')}
