@@ -24,7 +24,8 @@ export function TabBar(): React.JSX.Element {
     }
     useHub.getState().addItem(gid, item)
   }
-  async function onDefault(): Promise<void> { openTab(await window.hub.defaultCwd()) }
+  // « Dossier par défaut » = dossier du groupe actif s'il est défini, sinon le cwd global.
+  async function onDefault(): Promise<void> { openTab(group?.defaultCwd ?? (await window.hub.defaultCwd())) }
   async function onPick(): Promise<void> { const f = await window.hub.pickFolder(); if (f) openTab(f); else setMenuOpen(false) }
 
   function close(e: React.MouseEvent, it: Item): void {
