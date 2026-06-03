@@ -1,95 +1,96 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useHub } from '../src/renderer/src/store'
+import type { Item } from '../src/renderer/src/store'
 
-const mkTab = (id: string) => ({
-  id, title: id, cwd: 'C:/' + id, state: 'starting' as const,
-  agents: [], openAgentId: null, railCollapsed: false, searchOpen: false, searchQuery: ''
+const mkItem = (id: string, over: Partial<Item> = {}): Item => ({
+  id, name: id, cwd: 'C:/' + id, pinned: false, tabId: 't-' + id,
+  state: 'starting', agents: [], openAgentId: null, railCollapsed: false, searchOpen: false, searchQuery: '', ...over
 })
 
-describe('store multi-onglets', () => {
+describe('store groupes/items', () => {
   beforeEach(() => useHub.getState().reset())
 
-  it('addTab ajoute et active l\'onglet', () => {
-    useHub.getState().addTab(mkTab('t1'))
-    expect(useHub.getState().tabs).toHaveLength(1)
-    expect(useHub.getState().activeTabId).toBe('t1')
+  it('addGroup ajoute et active le groupe', () => {
+    const id = useHub.getState().addGroup('Messika')
+    expect(useHub.getState().groups.map((g) => g.name)).toContain('Messika')
+    expect(useHub.getState().activeGroupId).toBe(id)
   })
 
-  it('addTab ignore un doublon d\'id', () => {
-    useHub.getState().addTab(mkTab('t1'))
-    useHub.getState().addTab(mkTab('t1'))
-    expect(useHub.getState().tabs).toHaveLength(1)
+  it('addItem range dans le groupe et l\'active', () => {
+    const g = useHub.getState().addGroup('Messika')
+    useHub.getState().addItem(g, mkItem('i1'))
+    expect(useHub.getState().groups.find((x) => x.id === g)!.items).toHaveLength(1)
+    expect(useHub.getState().activeItemId).toBe('i1')
   })
 
-  it('removeTab réassigne activeTabId au dernier onglet restant', () => {
-    useHub.getState().addTab(mkTab('t1'))
-    useHub.getState().addTab(mkTab('t2'))
-    useHub.getState().removeTab('t2')
-    expect(useHub.getState().tabs).toHaveLength(1)
-    expect(useHub.getState().activeTabId).toBe('t1')
+  it('removeItem retire l\'item', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('i1'))
+    useHub.getState().removeItem('i1')
+    expect(useHub.getState().groups.find((x) => x.id === g)!.items).toHaveLength(0)
   })
 
-  it('removeTab du dernier onglet => activeTabId null', () => {
-    useHub.getState().addTab(mkTab('t1'))
-    useHub.getState().removeTab('t1')
-    expect(useHub.getState().activeTabId).toBeNull()
+  it('togglePin bascule l\'épingle', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('i1'))
+    useHub.getState().togglePin('i1')
+    expect(useHub.getState().itemById('i1')!.pinned).toBe(true)
   })
 
-  it('setTabState modifie le bon onglet', () => {
-    useHub.getState().addTab(mkTab('t1'))
-    useHub.getState().addTab(mkTab('t2'))
-    useHub.getState().setTabState('t2', 'waiting')
-    expect(useHub.getState().tabs.find((t) => t.id === 't2')!.state).toBe('waiting')
-    expect(useHub.getState().tabs.find((t) => t.id === 't1')!.state).toBe('starting')
+  it('clearSession éteint l\'item (tabId null, agents vidés)', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('i1', { pinned: true }))
+    useHub.getState().clearSession('i1')
+    expect(useHub.getState().itemById('i1')!.tabId).toBeNull()
+    expect(useHub.getState().itemById('i1')!.agents).toEqual([])
   })
 
-  it('addAgent / appendLines ciblent le bon onglet', () => {
-    useHub.getState().addTab(mkTab('t1'))
-    useHub.getState().addAgent('t1', { id: 'a1', type: 'Explore', desc: '', lines: [], done: false })
-    useHub.getState().appendLines('t1', 'a1', [{ kind: 'tool', text: 'Glob' }])
-    expect(useHub.getState().tabs[0].agents[0].lines).toEqual([{ kind: 'tool', text: 'Glob' }])
+  it('closeSession : non épinglé => supprime ; épinglé => éteint', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('eph', { pinned: false }))
+    useHub.getState().addItem(g, mkItem('pin', { pinned: true }))
+    useHub.getState().closeSession('eph')
+    useHub.getState().closeSession('pin')
+    expect(useHub.getState().itemById('eph')).toBeUndefined()
+    expect(useHub.getState().itemById('pin')!.tabId).toBeNull()
   })
 
-  it('setAgentDone marque l\'agent comme terminé', () => {
-    useHub.getState().addTab(mkTab('t1'))
-    useHub.getState().addAgent('t1', { id: 'a1', type: 'x', desc: '', lines: [], done: false })
-    useHub.getState().setAgentDone('t1', 'a1')
-    expect(useHub.getState().tabs[0].agents[0].done).toBe(true)
+  it('événements par tabId : setItemState/addAgent ciblent le bon item', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('i1'))
+    useHub.getState().setItemState('t-i1', 'waiting')
+    useHub.getState().addAgent('t-i1', { id: 'a1', type: 'x', desc: '', lines: [], done: false })
+    expect(useHub.getState().itemById('i1')!.state).toBe('waiting')
+    expect(useHub.getState().itemById('i1')!.agents).toHaveLength(1)
   })
 
-  it('removeAgent ferme la console si l\'agent ouvert est retiré', () => {
-    useHub.getState().addTab(mkTab('t1'))
-    useHub.getState().addAgent('t1', { id: 'a1', type: 'x', desc: '', lines: [], done: false })
-    useHub.getState().openAgent('t1', 'a1')
-    useHub.getState().removeAgent('t1', 'a1')
-    expect(useHub.getState().tabs[0].agents).toHaveLength(0)
-    expect(useHub.getState().tabs[0].openAgentId).toBeNull()
+  it('moveItem réordonne dans le groupe', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('a'))
+    useHub.getState().addItem(g, mkItem('b'))
+    useHub.getState().moveItem('b', 0)
+    expect(useHub.getState().groups.find((x) => x.id === g)!.items.map((i) => i.id)).toEqual(['b', 'a'])
   })
 
-  it('toggleRail bascule railCollapsed et ferme la console au repli', () => {
-    useHub.getState().addTab(mkTab('t1'))
-    useHub.getState().addAgent('t1', { id: 'a1', type: 'x', desc: '', lines: [], done: false })
-    useHub.getState().openAgent('t1', 'a1')
-    useHub.getState().toggleRail('t1')
-    expect(useHub.getState().tabs[0].railCollapsed).toBe(true)
-    expect(useHub.getState().tabs[0].openAgentId).toBeNull()
+  it('toPersistable : ne garde que groupes + items épinglés (config seule)', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('pin', { pinned: true, name: 'api', cwd: 'C:/api' }))
+    useHub.getState().addItem(g, mkItem('eph', { pinned: false }))
+    expect(useHub.getState().toPersistable().groups[0].items).toEqual([{ id: 'pin', name: 'api', cwd: 'C:/api' }])
   })
 
-  it('toggleRail qui déplie ne touche pas la console', () => {
-    useHub.getState().addTab(mkTab('t1'))
-    useHub.getState().toggleRail('t1') // replie
-    useHub.getState().addAgent('t1', { id: 'a1', type: 'x', desc: '', lines: [], done: false })
-    useHub.getState().toggleRail('t1') // déplie
-    expect(useHub.getState().tabs[0].railCollapsed).toBe(false)
+  it('loadWorkspace recrée les groupes/items (éteints, épinglés)', () => {
+    useHub.getState().loadWorkspace({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'M', collapsed: false, items: [{ id: 'i1', name: 'api', cwd: 'C:/api' }] }] })
+    expect(useHub.getState().groups).toHaveLength(1)
+    const it = useHub.getState().itemById('i1')!
+    expect(it.pinned).toBe(true)
+    expect(it.tabId).toBeNull()
   })
 
-  it('setSoundEnabled met à jour l\'état', () => {
+  it('setSoundEnabled / setConsoleWidth conservés', () => {
     useHub.getState().setSoundEnabled(false)
-    expect(useHub.getState().soundEnabled).toBe(false)
-  })
-
-  it('setConsoleWidth met à jour la largeur de console', () => {
     useHub.getState().setConsoleWidth(420)
+    expect(useHub.getState().soundEnabled).toBe(false)
     expect(useHub.getState().consoleWidth).toBe(420)
   })
 })
