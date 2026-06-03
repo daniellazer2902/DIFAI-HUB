@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'node:path'
 import { PtyManager } from './PtyManager'
 import { nodePtySpawner } from './ptyFactory'
@@ -24,7 +24,12 @@ const ctx: AppContext = {
   pty: ptyManager,
   registry,
   hookServer,
-  hooksSettingsPath: () => hooksSettingsPath
+  hooksSettingsPath: () => hooksSettingsPath,
+  defaultCwd: process.cwd(),
+  pickFolder: async () => {
+    const r = await dialog.showOpenDialog({ properties: ['openDirectory'] })
+    return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
+  }
 }
 
 const modules: HubModule[] = [createSessionModule(), createAgentsModule()]

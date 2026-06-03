@@ -15,7 +15,9 @@ function fakeCtx() {
     pty: { onData: vi.fn(() => () => {}), onExit: vi.fn(() => () => {}), create: vi.fn(() => 'tab-1'), write: vi.fn(), resize: vi.fn(), kill: vi.fn() },
     registry: { register: vi.fn(), setState: vi.fn() },
     hookServer: { port: 4242 },
-    hooksSettingsPath: () => 'C:/settings.json'
+    hooksSettingsPath: () => 'C:/settings.json',
+    defaultCwd: 'C:/def',
+    pickFolder: vi.fn(async () => 'C:/picked')
   } as unknown as AppContext
   return { ctx, handlers, ons }
 }
@@ -38,5 +40,17 @@ describe('sessionModule', () => {
     createSessionModule().register(ctx)
     ons.get(IPC.SessionInput)!({}, 'tab-1', 'ls')
     expect(ctx.pty.write).toHaveBeenCalledWith('tab-1', 'ls')
+  })
+
+  it('default-cwd renvoie ctx.defaultCwd', async () => {
+    const { ctx, handlers } = fakeCtx()
+    createSessionModule().register(ctx)
+    expect(await handlers.get(IPC.DefaultCwd)!({})).toBe('C:/def')
+  })
+
+  it('pick-folder délègue à ctx.pickFolder', async () => {
+    const { ctx, handlers } = fakeCtx()
+    createSessionModule().register(ctx)
+    expect(await handlers.get(IPC.PickFolder)!({})).toBe('C:/picked')
   })
 })
