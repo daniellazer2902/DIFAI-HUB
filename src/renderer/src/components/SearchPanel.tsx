@@ -22,7 +22,6 @@ function highlight(text: string, q: string): React.ReactNode {
 
 export function SearchPanel({ tabId }: { tabId: string }): React.JSX.Element {
   const setSearch = useHub((s) => s.setSearch)
-  const toggleSearch = useHub((s) => s.toggleSearch)
   const setSearchQuery = useHub((s) => s.setSearchQuery)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -63,12 +62,7 @@ export function SearchPanel({ tabId }: { tabId: string }): React.JSX.Element {
           value={query}
           placeholder="Rechercher dans la conversation…"
           onChange={(e) => runSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') { e.preventDefault(); setSearch(tabId, false) }
-            else if (e.key.toLowerCase() === 'f' && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
-              e.preventDefault(); toggleSearch(tabId) // Ctrl+F bascule aussi depuis le champ
-            }
-          }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setSearch(tabId, false) } }}
         />
         <button className="search-close" title="Fermer (Échap)" onClick={() => setSearch(tabId, false)}>✕</button>
       </div>

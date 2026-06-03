@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
-import { useHub } from '../store'
 
 export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -38,16 +37,11 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     window.addEventListener('resize', doFit)
 
     // Menu Electron retiré → on gère le clavier nous-mêmes.
-    // Ctrl/Cmd+F : ouvre la recherche (panneau latéral) · Ctrl/Cmd+V : colle (une seule
-    // source) · Ctrl/Cmd+C : copie si sélection (sinon laisser passer le SIGINT).
+    // (Ctrl/Cmd+F est géré globalement dans App, en phase capture.)
+    // Ctrl/Cmd+V : colle (une seule source) · Ctrl/Cmd+C : copie si sélection (sinon SIGINT).
     term.attachCustomKeyEventHandler((e): boolean => {
       if (e.type !== 'keydown' || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return true
       const key = e.key.toLowerCase()
-      if (key === 'f') {
-        e.preventDefault()
-        useHub.getState().toggleSearch(tabId)
-        return false
-      }
       if (key === 'v') {
         e.preventDefault()
         navigator.clipboard.readText().then((t) => { if (t) term.paste(t) }).catch(() => {})
