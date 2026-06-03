@@ -23,6 +23,7 @@ interface HubState {
   tabs: TabState[]
   activeTabId: string | null
   soundEnabled: boolean
+  consoleWidth: number
   addTab: (tab: TabState) => void
   removeTab: (id: string) => void
   setActiveTab: (id: string) => void
@@ -34,13 +35,15 @@ interface HubState {
   openAgent: (id: string, agentId: string | null) => void
   toggleRail: (id: string) => void
   setSoundEnabled: (v: boolean) => void
+  setConsoleWidth: (w: number) => void
   reset: () => void
 }
 
 const initial = {
   tabs: [] as TabState[],
   activeTabId: null as string | null,
-  soundEnabled: true
+  soundEnabled: true,
+  consoleWidth: 380
 }
 
 function patch(tabs: TabState[], id: string, fn: (t: TabState) => TabState): TabState[] {
@@ -97,5 +100,6 @@ export const useHub = create<HubState>((set) => ({
       })
     })),
   setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
+  setConsoleWidth: (consoleWidth) => set({ consoleWidth }),
   reset: () => set({ ...initial })
 }))

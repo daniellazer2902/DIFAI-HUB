@@ -3,13 +3,14 @@ import { useHub } from './store'
 import { Header } from './components/Header'
 import { TabBar } from './components/TabBar'
 import { Workspace } from './components/Workspace'
-import { basename } from './util'
+import { basename, readConsoleWidth } from './util'
 import { soundForTransition, playSound, readSoundEnabled } from './sound'
 import type { Unsub } from '../../shared/ipc'
 
 export function App(): React.JSX.Element {
   useEffect(() => {
     useHub.getState().setSoundEnabled(readSoundEnabled())
+    useHub.getState().setConsoleWidth(readConsoleWidth())
 
     const unsubs: Unsub[] = []
     unsubs.push(window.hub.onSessionState((tid, state) => {

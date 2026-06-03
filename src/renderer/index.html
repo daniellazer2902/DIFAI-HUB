@@ -46,7 +46,10 @@
       .term-area { flex: 1; min-width: 0; position: relative; display: flex; }
       .rails-toggle { position: absolute; top: 6px; right: 20px; z-index: 3; background: #1e1e1e; color: #888; border: 1px solid #444; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-family: inherit; font-size: 11px; }
 
-      .console { flex: 1; min-width: 0; border-left: 1px solid #333; overflow-y: auto; font-size: 12px; }
+      .splitter { flex: none; width: 5px; cursor: col-resize; background: #2a2a2a; }
+      .splitter:hover { background: #c80; }
+      .console-host { flex: none; min-width: 0; display: flex; }
+      .console { flex: 1; min-width: 0; overflow-y: auto; font-size: 12px; }
       .rail { width: 150px; border-left: 1px solid #333; overflow-y: auto; background: #181818; }
       .agent { position: relative; padding: 6px 8px; border-bottom: 1px solid #2a2a2a; cursor: pointer; font-size: 11px; }
       .agent:hover { background: #242424; }
