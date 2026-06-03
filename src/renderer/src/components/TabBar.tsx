@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useHub, type Item } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon } from './icons'
+import { TerminalIcon, FolderIcon } from './icons'
 import { basename } from '../util'
 
 export function TabBar(): React.JSX.Element {
@@ -63,8 +63,8 @@ export function TabBar(): React.JSX.Element {
         <button title="Nouvel onglet" onClick={() => setMenuOpen((o) => !o)}>＋</button>
         {menuOpen && (
           <div className="tab-new-menu">
-            <div onClick={onDefault}>📂 Dossier par défaut</div>
-            <div onClick={onPick}>🗂 Choisir un dossier…</div>
+            <div onClick={onDefault}><FolderIcon /> Dossier par défaut</div>
+            <div onClick={onPick}><FolderIcon /> Choisir un dossier…</div>
           </div>
         )}
       </div>
