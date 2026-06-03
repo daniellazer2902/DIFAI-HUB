@@ -17,6 +17,7 @@ export interface TabState {
   agents: AgentView[]
   openAgentId: string | null
   railCollapsed: boolean
+  searchOpen: boolean
 }
 
 interface HubState {
@@ -34,6 +35,7 @@ interface HubState {
   setAgentDone: (id: string, agentId: string) => void
   openAgent: (id: string, agentId: string | null) => void
   toggleRail: (id: string) => void
+  setSearch: (id: string, open: boolean) => void
   setSoundEnabled: (v: boolean) => void
   setConsoleWidth: (w: number) => void
   reset: () => void
@@ -91,13 +93,22 @@ export const useHub = create<HubState>((set) => ({
         agents: t.agents.map((a) => (a.id === agentId ? { ...a, done: true } : a))
       }))
     })),
-  openAgent: (id, agentId) => set((s) => ({ tabs: patch(s.tabs, id, (t) => ({ ...t, openAgentId: agentId })) })),
+  openAgent: (id, agentId) =>
+    set((s) => ({
+      // Ouvrir une console agent ferme la recherche (exclusifs dans le split de droite).
+      tabs: patch(s.tabs, id, (t) => ({ ...t, openAgentId: agentId, searchOpen: agentId ? false : t.searchOpen }))
+    })),
   toggleRail: (id) =>
     set((s) => ({
       tabs: patch(s.tabs, id, (t) => {
         const railCollapsed = !t.railCollapsed
         return { ...t, railCollapsed, openAgentId: railCollapsed ? null : t.openAgentId }
       })
+    })),
+  setSearch: (id, open) =>
+    set((s) => ({
+      // Ouvrir la recherche ferme la console agent (exclusifs dans le split de droite).
+      tabs: patch(s.tabs, id, (t) => ({ ...t, searchOpen: open, openAgentId: open ? null : t.openAgentId }))
     })),
   setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
   setConsoleWidth: (consoleWidth) => set({ consoleWidth }),

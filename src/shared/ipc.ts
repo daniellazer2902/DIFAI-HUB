@@ -26,10 +26,11 @@ export interface ConsoleLine {
 
 export type SessionState = 'starting' | 'active' | 'waiting' | 'done'
 
-/** Une occurrence trouvée dans le transcript d'une session (recherche conversation). */
+/** Un message du transcript contenant le terme recherché (texte entier + nb d'occurrences). */
 export interface TranscriptMatch {
   role: 'user' | 'assistant'
-  snippet: string
+  text: string
+  count: number
 }
 
 /** Fonction de désabonnement renvoyée par tous les `on*` (évite les fuites de listeners). */

@@ -4,6 +4,7 @@ import { clampConsoleWidth, writeConsoleWidth } from '../util'
 import { Terminal } from './Terminal'
 import { Console } from './Console'
 import { Rail } from './Rail'
+import { SearchPanel } from './SearchPanel'
 
 export function Workspace(): React.JSX.Element {
   const tabs = useHub((s) => s.tabs)
@@ -38,11 +39,11 @@ export function Workspace(): React.JSX.Element {
               </button>
               <Terminal tabId={t.id} />
             </div>
-            {t.openAgentId && (
+            {(t.searchOpen || t.openAgentId) && (
               <>
-                <div className="splitter" title="Redimensionner la console" onMouseDown={startResize} />
+                <div className="splitter" title="Redimensionner le panneau" onMouseDown={startResize} />
                 <div className="console-host" style={{ width: consoleWidth }}>
-                  <Console tabId={t.id} />
+                  {t.searchOpen ? <SearchPanel tabId={t.id} /> : <Console tabId={t.id} />}
                 </div>
               </>
             )}
