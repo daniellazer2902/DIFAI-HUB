@@ -26,12 +26,17 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     requestAnimationFrame(doFit)
     window.addEventListener('resize', doFit)
 
-    // Ctrl/Cmd+C : copier UNIQUEMENT s'il y a une sélection (sinon laisser passer le SIGINT).
-    // Ctrl/Cmd+V : non géré ici — xterm gère le collage via l'événement `paste` natif
-    // (le gérer ici en plus provoquait un double-collage).
+    // Le menu Electron (et son rôle "paste" natif) est retiré → on gère nous-mêmes le
+    // collage. Ctrl/Cmd+V : colle le presse-papier (une seule source, pas de double).
+    // Ctrl/Cmd+C : copie UNIQUEMENT s'il y a une sélection (sinon laisser passer le SIGINT).
     term.attachCustomKeyEventHandler((e): boolean => {
-      if (e.type !== 'keydown' || !(e.ctrlKey || e.metaKey)) return true
-      if (e.key.toLowerCase() === 'c' && term.hasSelection()) {
+      if (e.type !== 'keydown' || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return true
+      const key = e.key.toLowerCase()
+      if (key === 'v') {
+        navigator.clipboard.readText().then((t) => { if (t) term.paste(t) }).catch(() => {})
+        return false
+      }
+      if (key === 'c' && term.hasSelection()) {
         navigator.clipboard.writeText(term.getSelection()).catch(() => {})
         return false
       }
