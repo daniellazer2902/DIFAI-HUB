@@ -18,6 +18,10 @@ export function createAgentsModule(): HubModule {
         const s = ctx.registry.get(tabId)
         if (s) ctx.sender.send(IPC.SessionState, tabId, s.state)
 
+        if (event.hook_event_name === 'SubagentStop' && event.agent_id) {
+          ctx.sender.send(IPC.AgentDone, tabId, event.agent_id)
+        }
+
         if (event.hook_event_name === 'SessionStart' && s?.sessionId && s.transcriptPath && !watchers.has(tabId)) {
           const w = new TranscriptWatcher({
             onAgentAdded: (agentId, meta) =>

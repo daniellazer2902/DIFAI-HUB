@@ -21,10 +21,13 @@ export function App(): React.JSX.Element {
       }
     }))
     unsubs.push(window.hub.onAgentAdded((tid, agentId, type, desc) => {
-      useHub.getState().addAgent(tid, { id: agentId, type, desc, lines: [] })
+      useHub.getState().addAgent(tid, { id: agentId, type, desc, lines: [], done: false })
     }))
     unsubs.push(window.hub.onAgentLines((tid, agentId, lines) => {
       useHub.getState().appendLines(tid, agentId, lines)
+    }))
+    unsubs.push(window.hub.onAgentDone((tid, agentId) => {
+      useHub.getState().setAgentDone(tid, agentId)
     }))
 
     let active = true

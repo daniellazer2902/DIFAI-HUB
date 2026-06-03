@@ -38,7 +38,7 @@ export function TabBar(): React.JSX.Element {
         <div key={t.id} className={`tab${t.id === activeTabId ? ' act' : ''}`} onClick={() => setActiveTab(t.id)}>
           <StateDot state={t.state} />
           <span className="tab-title">{t.title}</span>
-          <span className="tab-agents">· {t.agents.length} agents</span>
+          <span className="tab-agents">· {t.agents.filter((a) => !a.done).length} agents</span>
           <span className="tab-close" title="Fermer l'onglet" onClick={(e) => close(e, t.id)}>✕</span>
         </div>
       ))}

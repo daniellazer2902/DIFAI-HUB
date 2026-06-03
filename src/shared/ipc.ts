@@ -13,7 +13,8 @@ export const IPC = {
   PtyExit: 'pty:exit',
   SessionState: 'session:state',
   AgentAdded: 'agent:added',
-  AgentLines: 'agent:lines'
+  AgentLines: 'agent:lines',
+  AgentDone: 'agent:done'
 } as const
 
 export type ConsoleLineKind = 'prompt' | 'text' | 'tool' | 'result'
@@ -40,4 +41,5 @@ export interface HubApi {
   onSessionState(cb: (tabId: string, state: SessionState) => void): Unsub
   onAgentAdded(cb: (tabId: string, agentId: string, agentType: string, description: string) => void): Unsub
   onAgentLines(cb: (tabId: string, agentId: string, lines: ConsoleLine[]) => void): Unsub
+  onAgentDone(cb: (tabId: string, agentId: string) => void): Unsub
 }
