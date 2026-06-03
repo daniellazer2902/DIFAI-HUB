@@ -11,7 +11,6 @@ import type { AppContext, HubModule } from './AppContext'
 import { createSessionModule } from './modules/sessionModule'
 import { createAgentsModule } from './modules/agentsModule'
 
-let mainWindow: BrowserWindow | null = null
 let hooksSettingsPath = ''
 
 const registry = new SessionRegistry()
@@ -44,11 +43,10 @@ function createWindow(): void {
     }
   })
 
-  mainWindow = win
   sender.setWindow(win)
 
   win.on('ready-to-show', () => win.show())
-  win.on('closed', () => { mainWindow = null; sender.setWindow(null) })
+  win.on('closed', () => { sender.setWindow(null) })
 
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(process.env.ELECTRON_RENDERER_URL)

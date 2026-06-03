@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { IPC, type HubApi, type Unsub } from '../shared/ipc'
+import { IPC, type HubApi, type Unsub, type SessionState, type ConsoleLine } from '../shared/ipc'
 
 /** Abonne un canal et renvoie un désabonnement (retire le bon listener). */
 function on(channel: string, handler: (...args: unknown[]) => void): Unsub {
@@ -15,12 +15,12 @@ const hub: HubApi = {
   killSession: (tabId) => ipcRenderer.send(IPC.SessionKill, tabId),
   onData: (cb) => on(IPC.PtyData, (tabId, data) => cb(tabId as string, data as string)),
   onExit: (cb) => on(IPC.PtyExit, (tabId, code) => cb(tabId as string, code as number)),
-  onSessionState: (cb) => on(IPC.SessionState, (tabId, state) => cb(tabId as string, state as never)),
+  onSessionState: (cb) => on(IPC.SessionState, (tabId, state) => cb(tabId as string, state as SessionState)),
   onAgentAdded: (cb) =>
     on(IPC.AgentAdded, (tabId, agentId, type, desc) =>
       cb(tabId as string, agentId as string, type as string, desc as string)),
   onAgentLines: (cb) =>
-    on(IPC.AgentLines, (tabId, agentId, lines) => cb(tabId as string, agentId as string, lines as never))
+    on(IPC.AgentLines, (tabId, agentId, lines) => cb(tabId as string, agentId as string, lines as ConsoleLine[]))
 }
 
 contextBridge.exposeInMainWorld('hub', hub)
