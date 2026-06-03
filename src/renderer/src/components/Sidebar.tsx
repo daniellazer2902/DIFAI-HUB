@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useHub, type Item } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, PinIcon } from './icons'
+import { TerminalIcon, PinIcon, EditIcon, TrashIcon } from './icons'
 import { basename } from '../util'
 
 /** Ouvre une session pour un item éteint et la lie. */
@@ -10,15 +10,48 @@ async function launch(item: Item): Promise<void> {
   useHub.getState().bindSession(item.id, tabId)
 }
 
-function activeAgents(item: Item): number {
-  return item.agents.filter((a) => !a.done).length
+function isBusy(item: Item): boolean {
+  return !!item.tabId && (item.state === 'active' || item.state === 'starting' || item.agents.some((a) => !a.done))
 }
+
+type Editing = { kind: 'group' | 'item'; id: string }
 
 export function Sidebar(): React.JSX.Element {
   const groups = useHub((s) => s.groups)
   const activeItemId = useHub((s) => s.activeItemId)
   const activeGroupId = useHub((s) => s.activeGroupId)
   const [menu, setMenu] = useState<string | null>(null)
+  const [editing, setEditing] = useState<Editing | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const editRef = useRef<HTMLInputElement>(null)
+
+  // Ferme le menu ··· au clic extérieur.
+  useEffect(() => {
+    if (!menu) return
+    const onDown = (e: MouseEvent): void => {
+      const t = e.target as HTMLElement
+      if (!t.closest('.ctx-menu') && !t.closest('.menu-btn')) setMenu(null)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [menu])
+
+  useEffect(() => {
+    if (editing) { editRef.current?.focus(); editRef.current?.select() }
+  }, [editing])
+
+  function startRename(kind: 'group' | 'item', id: string, current: string): void {
+    setMenu(null)
+    setEditValue(current)
+    setEditing({ kind, id })
+  }
+  function commitRename(): void {
+    if (editing && editValue.trim()) {
+      if (editing.kind === 'group') useHub.getState().renameGroup(editing.id, editValue.trim())
+      else useHub.getState().renameItem(editing.id, editValue.trim())
+    }
+    setEditing(null)
+  }
 
   async function onItemClick(item: Item): Promise<void> {
     useHub.getState().setActiveItem(item.id)
@@ -36,19 +69,14 @@ export function Sidebar(): React.JSX.Element {
     useHub.getState().addItem(groupId, item)
   }
 
-  function rename(kind: 'group' | 'item', id: string, current: string): void {
-    const name = window.prompt('Renommer :', current)
-    setMenu(null)
-    if (name && name.trim()) {
-      if (kind === 'group') useHub.getState().renameGroup(id, name.trim())
-      else useHub.getState().renameItem(id, name.trim())
-    }
+  function addGroup(): void {
+    const id = useHub.getState().addGroup('Nouveau groupe')
+    startRename('group', id, 'Nouveau groupe') // édition inline immédiate
   }
 
   function removeItem(item: Item): void {
     setMenu(null)
-    const busy = item.tabId && (item.state === 'active' || item.state === 'starting' || activeAgents(item) > 0)
-    if (busy && !window.confirm(`Supprimer « ${item.name} » ? Une session est active.`)) return
+    if (isBusy(item) && !window.confirm(`Supprimer « ${item.name} » ? Une session est active.`)) return
     if (item.tabId) window.hub.killSession(item.tabId)
     useHub.getState().removeItem(item.id)
   }
@@ -61,23 +89,42 @@ export function Sidebar(): React.JSX.Element {
     useHub.getState().removeGroup(groupId)
   }
 
+  function nameOrEditor(kind: 'group' | 'item', id: string, name: string, cls: string): React.JSX.Element {
+    if (editing && editing.kind === kind && editing.id === id) {
+      return (
+        <input
+          ref={editRef}
+          className="inline-edit"
+          value={editValue}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={commitRename}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commitRename() }
+            else if (e.key === 'Escape') { e.preventDefault(); setEditing(null) }
+          }}
+        />
+      )
+    }
+    return <span className={cls}>{name}</span>
+  }
+
   return (
     <div id="sidebar">
-      <div className="sidebar-brand">DIFAI-IDE</div>
       <div className="sidebar-scroll">
         {groups.map((g) => (
           <div key={g.id} className={`group${g.id === activeGroupId ? ' active-group' : ''}`}>
             <div className="group-head">
               <span className="group-chevron" onClick={() => useHub.getState().toggleGroupCollapsed(g.id)}>{g.collapsed ? '▸' : '▾'}</span>
-              <span className="group-name" onClick={() => useHub.getState().setActiveGroup(g.id)}>{g.name}</span>
+              <span className="group-name-wrap" onClick={() => useHub.getState().setActiveGroup(g.id)}>{nameOrEditor('group', g.id, g.name, 'group-name')}</span>
               <span className="group-actions">
                 <span className="ic-btn" title="Ajouter un Claude" onClick={() => addItemTo(g.id)}>＋</span>
-                <span className="ic-btn" title="Menu" onClick={() => setMenu(menu === g.id ? null : g.id)}>···</span>
+                <span className="ic-btn menu-btn" title="Menu" onClick={() => setMenu(menu === g.id ? null : g.id)}>···</span>
               </span>
               {menu === g.id && (
                 <div className="ctx-menu">
-                  <div onClick={() => rename('group', g.id, g.name)}>✎ Renommer</div>
-                  <div onClick={() => removeGroup(g.id, g.name)}>🗑 Supprimer</div>
+                  <div onClick={() => startRename('group', g.id, g.name)}><EditIcon /> Renommer</div>
+                  <div className="danger" onClick={() => removeGroup(g.id, g.name)}><TrashIcon /> Supprimer</div>
                 </div>
               )}
             </div>
@@ -88,24 +135,22 @@ export function Sidebar(): React.JSX.Element {
                 onClick={() => onItemClick(it)}
               >
                 <span className="item-ic"><TerminalIcon /></span>
-                <span className="item-name">{it.name}</span>
-                {it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>}
-                <span className="item-actions">
-                  {it.pinned && <span className="pin on" title="Épinglé"><PinIcon /></span>}
-                  <span className="ic-btn" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}>···</span>
-                </span>
+                {nameOrEditor('item', it.id, it.name, 'item-name')}
+                <span className="item-pin">{it.pinned && <PinIcon />}</span>
+                <span className="item-state">{it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>}</span>
+                <span className="ic-btn menu-btn item-menu" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}>···</span>
                 {menu === it.id && (
-                  <div className="ctx-menu">
-                    <div onClick={(e) => { e.stopPropagation(); rename('item', it.id, it.name) }}>✎ Renommer</div>
-                    <div onClick={(e) => { e.stopPropagation(); useHub.getState().togglePin(it.id); setMenu(null) }}>📌 {it.pinned ? 'Désépingler' : 'Épingler'}</div>
-                    <div onClick={(e) => { e.stopPropagation(); removeItem(it) }}>🗑 Supprimer</div>
+                  <div className="ctx-menu" onClick={(e) => e.stopPropagation()}>
+                    <div onClick={() => startRename('item', it.id, it.name)}><EditIcon /> Renommer</div>
+                    <div onClick={() => { useHub.getState().togglePin(it.id); setMenu(null) }}><PinIcon /> {it.pinned ? 'Désépingler' : 'Épingler'}</div>
+                    <div className="danger" onClick={() => removeItem(it)}><TrashIcon /> Supprimer</div>
                   </div>
                 )}
               </div>
             ))}
           </div>
         ))}
-        <div className="new-group" onClick={() => { const n = window.prompt('Nom du groupe :'); if (n && n.trim()) useHub.getState().addGroup(n.trim()) }}>＋ Nouveau groupe</div>
+        <div className="new-group" onClick={addGroup}>＋ Nouveau groupe</div>
       </div>
     </div>
   )
