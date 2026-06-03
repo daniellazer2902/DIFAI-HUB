@@ -6,23 +6,23 @@ function icon(kind: ConsoleLineKind): string {
   return kind === 'tool' ? '🔧' : kind === 'prompt' ? '›' : kind === 'result' ? '⮑' : '·'
 }
 
-export function Console(): React.JSX.Element | null {
-  const openAgentId = useHub((s) => s.openAgentId)
-  const agent = useHub((s) => s.agents.find((a) => a.id === s.openAgentId) ?? null)
+export function Console({ tabId }: { tabId: string }): React.JSX.Element | null {
+  const tab = useHub((s) => s.tabs.find((t) => t.id === tabId))
   const close = useHub((s) => s.openAgent)
   const bodyRef = useRef<HTMLDivElement>(null)
+  const agent = tab?.agents.find((a) => a.id === tab.openAgentId) ?? null
 
   useEffect(() => {
     if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight
   }, [agent?.lines.length])
 
-  if (!openAgentId || !agent) return null
+  if (!tab || !agent) return null
 
   return (
-    <div id="console" className="open">
+    <div className="console">
       <div className="console-header">
         <span>▸ {agent.type} — {agent.desc.slice(0, 50)}</span>
-        <span className="cclose" title="Fermer la console" onClick={() => close(null)}>✕</span>
+        <span className="cclose" title="Fermer la console" onClick={() => close(tabId, null)}>✕</span>
       </div>
       <div className="console-body" ref={bodyRef}>
         {agent.lines.map((l, i) => (
