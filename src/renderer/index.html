@@ -6,16 +6,47 @@
     <title>DIFAI-HUB</title>
     <style>
       html, body, #app { margin: 0; height: 100%; background: #1e1e1e; color: #ddd; font-family: Consolas, monospace; }
-      #row { display: flex; height: 100%; }
-      #term { flex: 1; min-width: 0; }
-      #console { flex: 1; min-width: 0; border-left: 1px solid #333; overflow-y: auto; padding: 0; font-size: 12px; display: none; }
-      #console.open { display: block; }
-      #rail { width: 150px; border-left: 1px solid #333; overflow-y: auto; background: #181818; }
-      .agent { padding: 6px 8px; border-bottom: 1px solid #2a2a2a; cursor: pointer; font-size: 11px; }
+      #app-root { display: flex; flex-direction: column; height: 100%; }
+
+      #header { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #121212; border-bottom: 1px solid #333; }
+      #header .brand { font-weight: bold; color: #7fd; }
+      .sound-toggle { background: none; border: 1px solid #444; border-radius: 6px; color: #ddd; cursor: pointer; padding: 2px 8px; font-family: inherit; }
+
+      .tabbar { display: flex; align-items: flex-end; gap: 5px; padding: 6px 8px 0; background: #181818; border-bottom: 1px solid #333; position: relative; min-height: 34px; }
+      .tab { display: flex; align-items: center; gap: 6px; padding: 4px 9px; background: #1e1e1e; border: 1px solid #333; border-bottom: none; border-radius: 6px 6px 0 0; cursor: pointer; white-space: nowrap; font-size: 12px; }
+      .tab.act { background: #23262b; border-color: #c80; }
+      .tab-title { color: #ddd; }
+      .tab-agents { color: #888; font-size: 11px; }
+      .tab-close { color: #888; }
+      .tab-close:hover { color: #f66; }
+      .tab-new { position: relative; }
+      .tab-new button { background: none; border: 1px dashed #444; border-radius: 6px; color: #9c9; cursor: pointer; padding: 3px 9px; font-family: inherit; }
+      .tab-new-menu { position: absolute; top: 30px; left: 0; background: #202227; border: 1px solid #3a3d44; border-radius: 6px; overflow: hidden; width: 220px; z-index: 5; }
+      .tab-new-menu div { padding: 6px 10px; cursor: pointer; }
+      .tab-new-menu div:hover { background: #2a2d33; }
+
+      .statedot { font-size: 10px; }
+      @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+      .blink { animation: blink 1s ease-in-out infinite; }
+      @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+      .pulse { animation: pulse 1.4s ease-in-out infinite; }
+
+      #workspace { flex: 1; min-height: 0; }
+      .tabpane { height: 100%; }
+      .term-wrap { display: flex; height: 100%; min-width: 0; }
+      .term-area { flex: 1; min-width: 0; position: relative; display: flex; }
+      .rails-toggle { position: absolute; top: 6px; right: 8px; z-index: 3; background: #1e1e1e; color: #888; border: 1px solid #444; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-family: inherit; font-size: 11px; }
+
+      .console { flex: 1; min-width: 0; border-left: 1px solid #333; overflow-y: auto; font-size: 12px; }
+      .rail { width: 150px; border-left: 1px solid #333; overflow-y: auto; background: #181818; }
+      .agent { position: relative; padding: 6px 8px; border-bottom: 1px solid #2a2a2a; cursor: pointer; font-size: 11px; }
       .agent:hover { background: #242424; }
       .agent.sel { background: #33291a; outline: 1px solid #c80; }
       .agent .type { color: #7fd; }
-      .agent.done .type { color: #888; }
+      .agent .desc { color: #aaa; }
+      .aclose { position: absolute; top: 4px; right: 6px; font-size: 10px; opacity: 0; cursor: pointer; color: #888; user-select: none; }
+      .agent:hover .aclose { opacity: 1; }
+      .aclose:hover { color: #f66; }
       .cline { white-space: pre-wrap; line-height: 1.4; }
       .cline.tool { color: #fb7; }
       .cline.text { color: #cde; }
@@ -23,12 +54,8 @@
       .cline.result { color: #888; }
       .console-header { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 8px; background: #1e1e1e; border-bottom: 1px solid #333; color: #7fd; font-size: 11px; }
       .console-body { padding: 6px 8px; }
-      .cclose, .aclose { cursor: pointer; color: #888; user-select: none; }
-      .cclose:hover, .aclose:hover { color: #f66; }
-      .agent { position: relative; }
-      .agent .desc { color: #aaa; }
-      .aclose { position: absolute; top: 4px; right: 6px; font-size: 10px; opacity: 0; }
-      .agent:hover .aclose { opacity: 1; }
+      .cclose { cursor: pointer; color: #888; user-select: none; }
+      .cclose:hover { color: #f66; }
     </style>
   </head>
   <body>
