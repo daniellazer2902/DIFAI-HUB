@@ -15,6 +15,7 @@ const hub: HubApi = {
   killSession: (tabId) => ipcRenderer.send(IPC.SessionKill, tabId),
   pickFolder: () => ipcRenderer.invoke(IPC.PickFolder),
   defaultCwd: () => ipcRenderer.invoke(IPC.DefaultCwd),
+  searchTranscript: (tabId, query) => ipcRenderer.invoke(IPC.SearchTranscript, tabId, query),
   onData: (cb) => on(IPC.PtyData, (tabId, data) => cb(tabId as string, data as string)),
   onExit: (cb) => on(IPC.PtyExit, (tabId, code) => cb(tabId as string, code as number)),
   onSessionState: (cb) => on(IPC.SessionState, (tabId, state) => cb(tabId as string, state as SessionState)),
