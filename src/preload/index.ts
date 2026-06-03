@@ -1,22 +1,26 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { IPC, type HubApi, type Unsub } from '../shared/ipc'
 
-const hub = {
-  newSession: (cwd: string): Promise<string> => ipcRenderer.invoke('session:new', cwd),
-  sendInput: (tabId: string, data: string): void => ipcRenderer.send('session:input', tabId, data),
-  resize: (tabId: string, cols: number, rows: number): void => ipcRenderer.send('session:resize', tabId, cols, rows),
-  onData: (cb: (tabId: string, data: string) => void): void => {
-    ipcRenderer.on('pty:data', (_e, tabId: string, data: string) => cb(tabId, data))
-  },
-  onExit: (cb: (tabId: string, code: number) => void): void => {
-    ipcRenderer.on('pty:exit', (_e, tabId: string, code: number) => cb(tabId, code))
-  },
-  onAgentAdded: (cb: (tabId: string, agentId: string, agentType: string, description: string) => void): void => {
-    ipcRenderer.on('agent:added', (_e, tabId, agentId, agentType, description) => cb(tabId, agentId, agentType, description))
-  },
-  onAgentLines: (cb: (tabId: string, agentId: string, lines: { kind: string; text: string }[]) => void): void => {
-    ipcRenderer.on('agent:lines', (_e, tabId, agentId, lines) => cb(tabId, agentId, lines))
-  }
+/** Abonne un canal et renvoie un désabonnement (retire le bon listener). */
+function on(channel: string, handler: (...args: unknown[]) => void): Unsub {
+  const listener = (_e: IpcRendererEvent, ...args: unknown[]): void => handler(...args)
+  ipcRenderer.on(channel, listener)
+  return () => { ipcRenderer.removeListener(channel, listener) }
+}
+
+const hub: HubApi = {
+  newSession: (cwd) => ipcRenderer.invoke(IPC.SessionNew, cwd),
+  sendInput: (tabId, data) => ipcRenderer.send(IPC.SessionInput, tabId, data),
+  resize: (tabId, cols, rows) => ipcRenderer.send(IPC.SessionResize, tabId, cols, rows),
+  killSession: (tabId) => ipcRenderer.send(IPC.SessionKill, tabId),
+  onData: (cb) => on(IPC.PtyData, (tabId, data) => cb(tabId as string, data as string)),
+  onExit: (cb) => on(IPC.PtyExit, (tabId, code) => cb(tabId as string, code as number)),
+  onSessionState: (cb) => on(IPC.SessionState, (tabId, state) => cb(tabId as string, state as never)),
+  onAgentAdded: (cb) =>
+    on(IPC.AgentAdded, (tabId, agentId, type, desc) =>
+      cb(tabId as string, agentId as string, type as string, desc as string)),
+  onAgentLines: (cb) =>
+    on(IPC.AgentLines, (tabId, agentId, lines) => cb(tabId as string, agentId as string, lines as never))
 }
 
 contextBridge.exposeInMainWorld('hub', hub)
-export type Hub = typeof hub
