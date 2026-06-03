@@ -15,7 +15,8 @@ let hooksSettingsPath = ''
 const registry = new SessionRegistry()
 const watchers = new Map<string, TranscriptWatcher>()
 
-const hookServer = new HookServer((e) => {
+const hookServer = new HookServer()
+hookServer.onEvent((e) => {
   const event = e as HookEvent
   applyHookEvent(registry, event)
   const tabId = event.tabId
