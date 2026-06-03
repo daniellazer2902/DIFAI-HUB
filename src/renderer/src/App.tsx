@@ -8,6 +8,20 @@ import { soundForTransition, playSound, readSoundEnabled } from './sound'
 import type { Unsub } from '../../shared/ipc'
 
 export function App(): React.JSX.Element {
+  // Raccourci global Ctrl/Cmd+F : bascule la recherche de l'onglet actif, quel que soit
+  // le focus (terminal, champ de recherche, zone de résultats…). En phase capture pour
+  // intercepter avant xterm. Source unique du Ctrl+F.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
+        const { activeTabId, toggleSearch } = useHub.getState()
+        if (activeTabId) { e.preventDefault(); e.stopPropagation(); toggleSearch(activeTabId) }
+      }
+    }
+    document.addEventListener('keydown', onKey, true)
+    return () => document.removeEventListener('keydown', onKey, true)
+  }, [])
+
   useEffect(() => {
     useHub.getState().setSoundEnabled(readSoundEnabled())
     useHub.getState().setConsoleWidth(readConsoleWidth())
