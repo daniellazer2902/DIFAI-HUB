@@ -9,6 +9,8 @@ export const IPC = {
   PickFolder: 'dialog:pick-folder',
   DefaultCwd: 'session:default-cwd',
   SearchTranscript: 'transcript:search',
+  LoadWorkspace: 'workspace:load',
+  SaveWorkspace: 'workspace:save',
   // main -> renderer
   PtyData: 'pty:data',
   PtyExit: 'pty:exit',
@@ -33,6 +35,12 @@ export interface TranscriptMatch {
   count: number
 }
 
+/** Sous-ensemble persistable d'un item (config, sans état runtime de session). */
+export interface PersistItem { id: string; name: string; cwd: string }
+export interface PersistGroup { id: string; name: string; collapsed: boolean; items: PersistItem[] }
+/** Arborescence persistée sur disque (groupes + items épinglés). */
+export interface WorkspaceTree { activeGroupId: string | null; groups: PersistGroup[] }
+
 /** Fonction de désabonnement renvoyée par tous les `on*` (évite les fuites de listeners). */
 export type Unsub = () => void
 
@@ -45,6 +53,8 @@ export interface HubApi {
   pickFolder(): Promise<string | null>
   defaultCwd(): Promise<string>
   searchTranscript(tabId: string, query: string): Promise<TranscriptMatch[]>
+  loadWorkspace(): Promise<WorkspaceTree>
+  saveWorkspace(tree: WorkspaceTree): void
   onData(cb: (tabId: string, data: string) => void): Unsub
   onExit(cb: (tabId: string, code: number) => void): Unsub
   onSessionState(cb: (tabId: string, state: SessionState) => void): Unsub
