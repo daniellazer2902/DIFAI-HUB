@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { PtyManager } from '../src/main/PtyManager'
+import { PtyManager, type PtyProcess, type SpawnOptions } from '../src/main/PtyManager'
 
 function fakePty() {
   const handlers: { data: ((d: string) => void)[]; exit: ((e: { exitCode: number }) => void)[] } = { data: [], exit: [] }
@@ -13,6 +13,43 @@ function fakePty() {
     _emitExit: (code: number) => handlers.exit.forEach((h) => h({ exitCode: code }))
   }
 }
+
+function fakeSpawn() {
+  const handlers: { data?: (d: string) => void; exit?: (e: { exitCode: number }) => void } = {}
+  const proc: PtyProcess = {
+    write: vi.fn(), resize: vi.fn(), kill: vi.fn(),
+    onData: (cb) => { handlers.data = cb },
+    onExit: (cb) => { handlers.exit = cb }
+  }
+  const spawn = (_f: string, _a: string[], _o: SpawnOptions): PtyProcess => proc
+  return { spawn, handlers }
+}
+
+describe('PtyManager multi-listeners', () => {
+  it('diffuse onExit à TOUS les abonnés', () => {
+    const { spawn, handlers } = fakeSpawn()
+    const m = new PtyManager({ spawn, claudePath: 'claude' })
+    const a = vi.fn(); const b = vi.fn()
+    m.onExit(a); m.onExit(b)
+    m.create('C:/x')
+    handlers.exit?.({ exitCode: 0 })
+    expect(a).toHaveBeenCalledTimes(1)
+    expect(b).toHaveBeenCalledTimes(1)
+  })
+
+  it('onData renvoie un Unsub qui retire le listener', () => {
+    const { spawn, handlers } = fakeSpawn()
+    const m = new PtyManager({ spawn, claudePath: 'claude' })
+    const a = vi.fn()
+    const unsub = m.onData(a)
+    m.create('C:/x')
+    handlers.data?.('hello')
+    unsub()
+    handlers.data?.('world')
+    expect(a).toHaveBeenCalledTimes(1)
+    expect(a).toHaveBeenCalledWith(expect.any(String), 'hello')
+  })
+})
 
 describe('PtyManager', () => {
   it('crée une session : spawner reçoit claudePath, args et cwd + DIFAI_HUB_TAB', () => {
