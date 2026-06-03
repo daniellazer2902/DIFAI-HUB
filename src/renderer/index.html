@@ -30,8 +30,8 @@
       .tab-agents { color: #888; font-size: 11px; }
       .tab-close { color: #888; }
       .tab-close:hover { color: #f66; }
-      .tab-new { position: relative; }
-      .tab-new button { background: none; border: 1px dashed #444; border-radius: 6px; color: #9c9; cursor: pointer; padding: 3px 9px; font-family: inherit; }
+      .tab-new { position: relative; align-self: center; }
+      .tab-new button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px dashed #444; border-radius: 6px; color: #9c9; cursor: pointer; padding: 3px 9px; font-family: inherit; line-height: 1; }
       .tab-new-menu { position: absolute; top: 30px; left: 0; background: #202227; border: 1px solid #3a3d44; border-radius: 6px; overflow: hidden; width: 220px; z-index: 5; }
       .tab-new-menu div { padding: 6px 10px; cursor: pointer; }
       .tab-new-menu div:hover { background: #2a2d33; }
@@ -43,7 +43,7 @@
       .pulse { animation: pulse 1.4s ease-in-out infinite; }
 
       #sidebar { width: 230px; min-width: 230px; background: #161616; border-right: 1px solid #333; display: flex; flex-direction: column; }
-      .sidebar-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 0 8px; }
+      .sidebar-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
       .group-head { position: relative; display: flex; align-items: center; gap: 4px; padding: 6px 8px; color: #9aa; font-size: 12px; }
       .group.active-group > .group-head { color: #cfe; background: #202020; }
       .group-chevron { cursor: pointer; width: 12px; flex: none; }
@@ -64,9 +64,9 @@
       .item:hover { background: #202020; }
       .item.active-group-item { background: #1d1d1d; }
       .item.active-group-item:hover { background: #232323; }
-      .item.active-item { background: #2a2a2a; border-left: 3px solid #c80; padding-left: 19px; }
+      .item.active-item { background: #2a2a2a; box-shadow: inset 3px 0 0 #c80; }
       .inline-edit { flex: 1; min-width: 0; background: #0d0d0d; border: 1px solid #c80; border-radius: 3px; color: #ddd; font-family: inherit; font-size: 12px; padding: 1px 4px; outline: none; }
-      .new-group { padding: 8px; color: #9c9; cursor: pointer; border-top: 1px solid #2a2a2a; margin-top: 6px; }
+      .new-group { padding: 8px; color: #9c9; cursor: pointer; border-top: 1px solid #2a2a2a; margin-top: auto; }
       .new-group:hover { color: #cfc; }
       .ctx-menu { position: absolute; top: 24px; right: 6px; z-index: 20; background: #202227; border: 1px solid #3a3d44; border-radius: 6px; overflow: hidden; min-width: 160px; }
       .ctx-menu div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; color: #ddd; }
