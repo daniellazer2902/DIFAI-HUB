@@ -6,6 +6,10 @@ import type { AppContext, HubModule } from '../AppContext'
 /** Corrélation session via hooks, démarrage des watchers, et flux agents -> renderer. */
 export function createAgentsModule(): HubModule {
   const watchers = new Map<string, TranscriptWatcher>()
+  // sessionId actuellement surveillé par onglet : si la session est reprise (resume /
+  // clear / compaction) son sessionId change, et les nouveaux subagents vont dans un autre
+  // dossier `<sessionId>/subagents` — il faut alors re-pointer le watcher.
+  const watchedSession = new Map<string, string>()
 
   return {
     name: 'agents',
@@ -22,21 +26,29 @@ export function createAgentsModule(): HubModule {
           ctx.sender.send(IPC.AgentDone, tabId, event.agent_id)
         }
 
-        if (event.hook_event_name === 'SessionStart' && s?.sessionId && s.transcriptPath && !watchers.has(tabId)) {
-          const w = new TranscriptWatcher({
-            onAgentAdded: (agentId, meta) =>
-              ctx.sender.send(IPC.AgentAdded, tabId, agentId, meta.agentType, meta.description),
-            onAgentLines: (agentId, lines) =>
-              ctx.sender.send(IPC.AgentLines, tabId, agentId, lines)
-          })
+        // (Re)démarre le watcher quand la session est corrélée ET que le sessionId surveillé
+        // a changé (1er démarrage ou reprise). Couvre SessionStart mais aussi tout autre
+        // event survenant après une reprise.
+        if (s?.sessionId && s.transcriptPath && watchedSession.get(tabId) !== s.sessionId) {
+          let w = watchers.get(tabId)
+          if (!w) {
+            w = new TranscriptWatcher({
+              onAgentAdded: (agentId, meta) =>
+                ctx.sender.send(IPC.AgentAdded, tabId, agentId, meta.agentType, meta.description),
+              onAgentLines: (agentId, lines) =>
+                ctx.sender.send(IPC.AgentLines, tabId, agentId, lines)
+            })
+            watchers.set(tabId, w)
+          }
           w.watch(s.transcriptPath, s.sessionId)
-          watchers.set(tabId, w)
+          watchedSession.set(tabId, s.sessionId)
         }
       })
 
       ctx.pty.onExit((tabId) => {
         watchers.get(tabId)?.stop()
         watchers.delete(tabId)
+        watchedSession.delete(tabId)
       })
     }
   }
