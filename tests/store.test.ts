@@ -87,4 +87,9 @@ describe('store multi-onglets', () => {
     useHub.getState().setSoundEnabled(false)
     expect(useHub.getState().soundEnabled).toBe(false)
   })
+
+  it('setConsoleWidth met à jour la largeur de console', () => {
+    useHub.getState().setConsoleWidth(420)
+    expect(useHub.getState().consoleWidth).toBe(420)
+  })
 })
