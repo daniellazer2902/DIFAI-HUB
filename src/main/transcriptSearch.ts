@@ -16,21 +16,24 @@ function textOf(line: RawLine): string {
   return ''
 }
 
-/** Extrait lisible autour du match (espaces normalisés, ellipses si tronqué). */
-function makeSnippet(text: string, at: number, len: number, pad = 50): string {
-  const start = Math.max(0, at - pad)
-  const end = Math.min(text.length, at + len + pad)
-  const core = text.slice(start, end).replace(/\s+/g, ' ').trim()
-  return (start > 0 ? '…' : '') + core + (end < text.length ? '…' : '')
+/** Nombre d'occurrences (non chevauchantes) de `q` (déjà en minuscules) dans `lower`. */
+function countOccurrences(lower: string, q: string): number {
+  let count = 0
+  let at = lower.indexOf(q)
+  while (at !== -1) {
+    count++
+    at = lower.indexOf(q, at + q.length)
+  }
+  return count
 }
 
 /**
  * Recherche un terme dans le transcript brut (JSONL) d'une session Claude.
  * Ne considère que les messages `user` (prompts) et `assistant` (réponses).
- * Renvoie au plus `limit` occurrences — UNE PAR MATCH (plusieurs par message
- * possibles, comme un Ctrl+F de navigateur), insensible à la casse.
+ * Renvoie UN résultat par message contenant le terme — avec le texte ENTIER du message
+ * et son nombre d'occurrences — au plus `limit` messages, insensible à la casse.
  */
-export function searchTranscript(raw: string, query: string, limit = 100): TranscriptMatch[] {
+export function searchTranscript(raw: string, query: string, limit = 200): TranscriptMatch[] {
   const q = query.trim().toLowerCase()
   if (!q) return []
   const out: TranscriptMatch[] = []
@@ -41,13 +44,10 @@ export function searchTranscript(raw: string, query: string, limit = 100): Trans
     if (obj.type !== 'user' && obj.type !== 'assistant') continue
     const text = textOf(obj)
     if (!text) continue
-    const lower = text.toLowerCase()
-    let at = lower.indexOf(q)
-    while (at !== -1) {
-      out.push({ role: obj.type, snippet: makeSnippet(text, at, q.length) })
-      if (out.length >= limit) return out
-      at = lower.indexOf(q, at + q.length)
-    }
+    const count = countOccurrences(text.toLowerCase(), q)
+    if (count === 0) continue
+    out.push({ role: obj.type, text, count })
+    if (out.length >= limit) break
   }
   return out
 }

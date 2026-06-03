@@ -13,7 +13,7 @@ export function TabBar(): React.JSX.Element {
 
   async function openTab(cwd: string): Promise<void> {
     const id = await window.hub.newSession(cwd)
-    const tab: TabState = { id, title: basename(cwd), cwd, state: 'starting', agents: [], openAgentId: null, railCollapsed: false }
+    const tab: TabState = { id, title: basename(cwd), cwd, state: 'starting', agents: [], openAgentId: null, railCollapsed: false, searchOpen: false }
     addTab(tab)
     setMenuOpen(false)
   }

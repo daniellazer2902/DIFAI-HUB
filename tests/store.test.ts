@@ -3,7 +3,7 @@ import { useHub } from '../src/renderer/src/store'
 
 const mkTab = (id: string) => ({
   id, title: id, cwd: 'C:/' + id, state: 'starting' as const,
-  agents: [], openAgentId: null, railCollapsed: false
+  agents: [], openAgentId: null, railCollapsed: false, searchOpen: false
 })
 
 describe('store multi-onglets', () => {
