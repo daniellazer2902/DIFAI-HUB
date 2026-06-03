@@ -27,6 +27,14 @@ describe('agentsModule', () => {
     const { ctx, fire } = fakeCtx()
     createAgentsModule().register(ctx)
     fire({ hook_event_name: 'SessionStart', tabId: 't1', session_id: 's1', transcript_path: 'C:/p/s1.jsonl' })
+    expect(ctx.sender.send).toHaveBeenCalledWith(IPC.SessionState, 't1', 'waiting')
+  })
+
+  it('UserPromptSubmit => état active poussé au renderer', () => {
+    const { ctx, fire } = fakeCtx()
+    createAgentsModule().register(ctx)
+    fire({ hook_event_name: 'SessionStart', tabId: 't1', session_id: 's1', transcript_path: 'C:/p/s1.jsonl' })
+    fire({ hook_event_name: 'UserPromptSubmit', tabId: 't1' })
     expect(ctx.sender.send).toHaveBeenCalledWith(IPC.SessionState, 't1', 'active')
   })
 
