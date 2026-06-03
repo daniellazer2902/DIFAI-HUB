@@ -1,12 +1,13 @@
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-/** Construit l'objet settings de hooks (4 events) pointant vers le script forward. */
+/** Construit l'objet settings de hooks pointant vers le script forward. */
 export function buildHooksConfig(forwardScriptPath: string): object {
   const entry = [{ hooks: [{ type: 'command', command: `node "${forwardScriptPath}"` }] }]
   return {
     hooks: {
       SessionStart: entry,
+      UserPromptSubmit: entry,
       Stop: entry,
       Notification: entry,
       SubagentStop: entry

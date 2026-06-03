@@ -3,8 +3,8 @@ import type { SessionState } from '../../../shared/ipc'
 
 const META: Record<SessionState, { color: string; cls: string; glyph: string; label: string }> = {
   starting: { color: '#9cf', cls: 'pulse', glyph: '●', label: 'Démarrage…' },
-  active: { color: '#7fd', cls: '', glyph: '●', label: 'Active' },
-  waiting: { color: '#fb3', cls: 'blink', glyph: '●', label: 'Waiting' },
+  active: { color: '#fb3', cls: 'blink', glyph: '●', label: 'Travaille…' },
+  waiting: { color: '#7fd', cls: '', glyph: '●', label: 'Prêt' },
   done: { color: '#777', cls: '', glyph: '○', label: 'Terminée' }
 }
 

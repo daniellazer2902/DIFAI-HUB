@@ -3,7 +3,7 @@ import { SessionRegistry } from '../src/main/SessionRegistry'
 import { applyHookEvent } from '../src/main/hookEvents'
 
 describe('applyHookEvent', () => {
-  it('SessionStart corrèle et passe en active', () => {
+  it('SessionStart corrèle et passe en waiting (prêt)', () => {
     const reg = new SessionRegistry()
     reg.register('tab1', 'C:\\p')
     applyHookEvent(reg, {
@@ -11,6 +11,13 @@ describe('applyHookEvent', () => {
       session_id: 'sess-1', transcript_path: 'C:\\t.jsonl'
     })
     expect(reg.get('tab1')?.sessionId).toBe('sess-1')
+    expect(reg.get('tab1')?.state).toBe('waiting')
+  })
+
+  it('UserPromptSubmit passe la session en active (mouline)', () => {
+    const reg = new SessionRegistry()
+    reg.register('tab1', 'C:\\p')
+    applyHookEvent(reg, { hook_event_name: 'UserPromptSubmit', tabId: 'tab1' })
     expect(reg.get('tab1')?.state).toBe('active')
   })
 
