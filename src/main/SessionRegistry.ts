@@ -1,4 +1,5 @@
-export type SessionState = 'starting' | 'active' | 'waiting' | 'done'
+import type { SessionState } from '../shared/ipc'
+export type { SessionState }
 
 export interface SessionInfo {
   tabId: string
