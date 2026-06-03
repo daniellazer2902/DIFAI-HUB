@@ -6,6 +6,8 @@ export const IPC = {
   SessionInput: 'session:input',
   SessionResize: 'session:resize',
   SessionKill: 'session:kill',
+  PickFolder: 'dialog:pick-folder',
+  DefaultCwd: 'session:default-cwd',
   // main -> renderer
   PtyData: 'pty:data',
   PtyExit: 'pty:exit',
@@ -31,6 +33,8 @@ export interface HubApi {
   sendInput(tabId: string, data: string): void
   resize(tabId: string, cols: number, rows: number): void
   killSession(tabId: string): void
+  pickFolder(): Promise<string | null>
+  defaultCwd(): Promise<string>
   onData(cb: (tabId: string, data: string) => void): Unsub
   onExit(cb: (tabId: string, code: number) => void): Unsub
   onSessionState(cb: (tabId: string, state: SessionState) => void): Unsub
