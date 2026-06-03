@@ -1,5 +1,5 @@
-export type ConsoleLineKind = 'prompt' | 'text' | 'tool' | 'result'
-export interface ConsoleLine { kind: ConsoleLineKind; text: string }
+import type { ConsoleLine, ConsoleLineKind } from '../shared/ipc'
+export type { ConsoleLine, ConsoleLineKind }
 
 interface ContentItem { type?: string; text?: string; name?: string; content?: unknown }
 interface RawLine { type?: string; message?: { content?: unknown } }
