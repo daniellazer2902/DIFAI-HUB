@@ -17,6 +17,10 @@ export interface AppContext {
   hookServer: HookServer
   /** Chemin du settings de hooks (lu paresseusement : connu seulement après app.whenReady). */
   hooksSettingsPath: () => string
+  /** Dossier par défaut des nouvelles sessions. */
+  defaultCwd: string
+  /** Ouvre le sélecteur de dossier natif ; renvoie le chemin choisi ou null. */
+  pickFolder: () => Promise<string | null>
 }
 
 /** Une feature autonome qui câble ses services + ses canaux IPC. */

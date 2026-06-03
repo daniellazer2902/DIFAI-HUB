@@ -13,6 +13,9 @@ const hub: HubApi = {
   sendInput: (tabId, data) => ipcRenderer.send(IPC.SessionInput, tabId, data),
   resize: (tabId, cols, rows) => ipcRenderer.send(IPC.SessionResize, tabId, cols, rows),
   killSession: (tabId) => ipcRenderer.send(IPC.SessionKill, tabId),
+  pickFolder: () => ipcRenderer.invoke(IPC.PickFolder),
+  defaultCwd: () => ipcRenderer.invoke(IPC.DefaultCwd),
+  searchTranscript: (tabId, query) => ipcRenderer.invoke(IPC.SearchTranscript, tabId, query),
   onData: (cb) => on(IPC.PtyData, (tabId, data) => cb(tabId as string, data as string)),
   onExit: (cb) => on(IPC.PtyExit, (tabId, code) => cb(tabId as string, code as number)),
   onSessionState: (cb) => on(IPC.SessionState, (tabId, state) => cb(tabId as string, state as SessionState)),
@@ -20,7 +23,8 @@ const hub: HubApi = {
     on(IPC.AgentAdded, (tabId, agentId, type, desc) =>
       cb(tabId as string, agentId as string, type as string, desc as string)),
   onAgentLines: (cb) =>
-    on(IPC.AgentLines, (tabId, agentId, lines) => cb(tabId as string, agentId as string, lines as ConsoleLine[]))
+    on(IPC.AgentLines, (tabId, agentId, lines) => cb(tabId as string, agentId as string, lines as ConsoleLine[])),
+  onAgentDone: (cb) => on(IPC.AgentDone, (tabId, agentId) => cb(tabId as string, agentId as string))
 }
 
 contextBridge.exposeInMainWorld('hub', hub)

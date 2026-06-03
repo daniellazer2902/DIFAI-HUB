@@ -6,44 +6,123 @@ export interface AgentView {
   type: string
   desc: string
   lines: ConsoleLine[]
+  done: boolean
+}
+
+export interface TabState {
+  id: string
+  title: string
+  cwd: string
+  state: SessionState
+  agents: AgentView[]
+  openAgentId: string | null
+  railCollapsed: boolean
+  searchOpen: boolean
+  searchQuery: string
 }
 
 interface HubState {
-  tabId: string | null
-  sessionState: SessionState
-  agents: AgentView[]
-  openAgentId: string | null
-  setTab: (tabId: string) => void
-  setSessionState: (state: SessionState) => void
-  addAgent: (agent: AgentView) => void
-  appendLines: (agentId: string, lines: ConsoleLine[]) => void
-  removeAgent: (agentId: string) => void
-  openAgent: (agentId: string | null) => void
+  tabs: TabState[]
+  activeTabId: string | null
+  soundEnabled: boolean
+  consoleWidth: number
+  addTab: (tab: TabState) => void
+  removeTab: (id: string) => void
+  setActiveTab: (id: string) => void
+  setTabState: (id: string, state: SessionState) => void
+  addAgent: (id: string, agent: AgentView) => void
+  appendLines: (id: string, agentId: string, lines: ConsoleLine[]) => void
+  removeAgent: (id: string, agentId: string) => void
+  setAgentDone: (id: string, agentId: string) => void
+  openAgent: (id: string, agentId: string | null) => void
+  toggleRail: (id: string) => void
+  setSearch: (id: string, open: boolean) => void
+  toggleSearch: (id: string) => void
+  setSearchQuery: (id: string, query: string) => void
+  setSoundEnabled: (v: boolean) => void
+  setConsoleWidth: (w: number) => void
   reset: () => void
 }
 
 const initial = {
-  tabId: null as string | null,
-  sessionState: 'starting' as SessionState,
-  agents: [] as AgentView[],
-  openAgentId: null as string | null
+  tabs: [] as TabState[],
+  activeTabId: null as string | null,
+  soundEnabled: true,
+  consoleWidth: 380
+}
+
+function patch(tabs: TabState[], id: string, fn: (t: TabState) => TabState): TabState[] {
+  return tabs.map((t) => (t.id === id ? fn(t) : t))
 }
 
 export const useHub = create<HubState>((set) => ({
   ...initial,
-  setTab: (tabId) => set({ tabId }),
-  setSessionState: (sessionState) => set({ sessionState }),
-  addAgent: (agent) =>
-    set((s) => (s.agents.some((a) => a.id === agent.id) ? s : { agents: [...s.agents, agent] })),
-  appendLines: (agentId, lines) =>
+  addTab: (tab) =>
+    set((s) => (s.tabs.some((t) => t.id === tab.id) ? s : { tabs: [...s.tabs, tab], activeTabId: tab.id })),
+  removeTab: (id) =>
+    set((s) => {
+      const tabs = s.tabs.filter((t) => t.id !== id)
+      const activeTabId =
+        s.activeTabId === id ? (tabs.length ? tabs[tabs.length - 1].id : null) : s.activeTabId
+      return { tabs, activeTabId }
+    }),
+  setActiveTab: (activeTabId) => set({ activeTabId }),
+  setTabState: (id, state) => set((s) => ({ tabs: patch(s.tabs, id, (t) => ({ ...t, state })) })),
+  addAgent: (id, agent) =>
     set((s) => ({
-      agents: s.agents.map((a) => (a.id === agentId ? { ...a, lines: [...a.lines, ...lines] } : a))
+      tabs: patch(s.tabs, id, (t) =>
+        t.agents.some((a) => a.id === agent.id) ? t : { ...t, agents: [...t.agents, agent] }
+      )
     })),
-  removeAgent: (agentId) =>
+  appendLines: (id, agentId, lines) =>
     set((s) => ({
-      agents: s.agents.filter((a) => a.id !== agentId),
-      openAgentId: s.openAgentId === agentId ? null : s.openAgentId
+      tabs: patch(s.tabs, id, (t) => ({
+        ...t,
+        agents: t.agents.map((a) => (a.id === agentId ? { ...a, lines: [...a.lines, ...lines] } : a))
+      }))
     })),
-  openAgent: (openAgentId) => set({ openAgentId }),
+  removeAgent: (id, agentId) =>
+    set((s) => ({
+      tabs: patch(s.tabs, id, (t) => ({
+        ...t,
+        agents: t.agents.filter((a) => a.id !== agentId),
+        openAgentId: t.openAgentId === agentId ? null : t.openAgentId
+      }))
+    })),
+  setAgentDone: (id, agentId) =>
+    set((s) => ({
+      tabs: patch(s.tabs, id, (t) => ({
+        ...t,
+        agents: t.agents.map((a) => (a.id === agentId ? { ...a, done: true } : a))
+      }))
+    })),
+  openAgent: (id, agentId) =>
+    set((s) => ({
+      // Ouvrir une console agent ferme la recherche (exclusifs dans le split de droite).
+      tabs: patch(s.tabs, id, (t) => ({ ...t, openAgentId: agentId, searchOpen: agentId ? false : t.searchOpen }))
+    })),
+  toggleRail: (id) =>
+    set((s) => ({
+      tabs: patch(s.tabs, id, (t) => {
+        const railCollapsed = !t.railCollapsed
+        return { ...t, railCollapsed, openAgentId: railCollapsed ? null : t.openAgentId }
+      })
+    })),
+  setSearch: (id, open) =>
+    set((s) => ({
+      // Ouvrir la recherche ferme la console agent (exclusifs dans le split de droite).
+      // Fermer NE vide PAS searchQuery (mémorisée par onglet).
+      tabs: patch(s.tabs, id, (t) => ({ ...t, searchOpen: open, openAgentId: open ? null : t.openAgentId }))
+    })),
+  toggleSearch: (id) =>
+    set((s) => ({
+      tabs: patch(s.tabs, id, (t) => {
+        const searchOpen = !t.searchOpen
+        return { ...t, searchOpen, openAgentId: searchOpen ? null : t.openAgentId }
+      })
+    })),
+  setSearchQuery: (id, searchQuery) => set((s) => ({ tabs: patch(s.tabs, id, (t) => ({ ...t, searchQuery })) })),
+  setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
+  setConsoleWidth: (consoleWidth) => set({ consoleWidth }),
   reset: () => set({ ...initial })
 }))
