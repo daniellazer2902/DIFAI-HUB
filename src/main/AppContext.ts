@@ -21,6 +21,8 @@ export interface AppContext {
   defaultCwd: string
   /** Ouvre le sélecteur de dossier natif ; renvoie le chemin choisi ou null. */
   pickFolder: () => Promise<string | null>
+  /** Dossier userData (pour la persistance du workspace). */
+  userDataDir: string
 }
 
 /** Une feature autonome qui câble ses services + ses canaux IPC. */
