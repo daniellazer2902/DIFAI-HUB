@@ -8,6 +8,7 @@ export const IPC = {
   SessionKill: 'session:kill',
   PickFolder: 'dialog:pick-folder',
   DefaultCwd: 'session:default-cwd',
+  SearchTranscript: 'transcript:search',
   // main -> renderer
   PtyData: 'pty:data',
   PtyExit: 'pty:exit',
@@ -25,6 +26,12 @@ export interface ConsoleLine {
 
 export type SessionState = 'starting' | 'active' | 'waiting' | 'done'
 
+/** Une occurrence trouvée dans le transcript d'une session (recherche conversation). */
+export interface TranscriptMatch {
+  role: 'user' | 'assistant'
+  snippet: string
+}
+
 /** Fonction de désabonnement renvoyée par tous les `on*` (évite les fuites de listeners). */
 export type Unsub = () => void
 
@@ -36,6 +43,7 @@ export interface HubApi {
   killSession(tabId: string): void
   pickFolder(): Promise<string | null>
   defaultCwd(): Promise<string>
+  searchTranscript(tabId: string, query: string): Promise<TranscriptMatch[]>
   onData(cb: (tabId: string, data: string) => void): Unsub
   onExit(cb: (tabId: string, code: number) => void): Unsub
   onSessionState(cb: (tabId: string, state: SessionState) => void): Unsub

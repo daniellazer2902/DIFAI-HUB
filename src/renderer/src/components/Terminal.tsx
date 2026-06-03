@@ -1,25 +1,33 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
-import { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
+import type { TranscriptMatch } from '../../../shared/ipc'
 
-const SEARCH_OPTS = {
-  decorations: {
-    matchBackground: '#664400',
-    matchOverviewRuler: '#664400',
-    activeMatchBackground: '#cc8800',
-    activeMatchColorOverviewRuler: '#fb3'
+/** Surligne les occurrences de `q` dans `text` (insensible à la casse). */
+function highlight(text: string, q: string): React.ReactNode {
+  const ql = q.toLowerCase()
+  const tl = text.toLowerCase()
+  const parts: React.ReactNode[] = []
+  let i = 0
+  let key = 0
+  for (;;) {
+    const at = tl.indexOf(ql, i)
+    if (at === -1) { parts.push(text.slice(i)); break }
+    if (at > i) parts.push(text.slice(i, at))
+    parts.push(<mark key={key++}>{text.slice(at, at + q.length)}</mark>)
+    i = at + q.length
   }
+  return parts
 }
 
 export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
-  const searchRef = useRef<SearchAddon | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState({ index: -1, count: 0 })
+  const [matches, setMatches] = useState<TranscriptMatch[]>([])
 
   useEffect(() => {
     const container = containerRef.current
@@ -27,13 +35,8 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
 
     const term = new XTerm({ fontFamily: 'Consolas, monospace', fontSize: 13, cursorBlink: true, scrollback: 5000 })
     const fit = new FitAddon()
-    const search = new SearchAddon()
     term.loadAddon(fit)
-    term.loadAddon(search)
-    searchRef.current = search
     term.open(container)
-
-    const offResults = search.onDidChangeResults((r) => setResults({ index: r.resultIndex, count: r.resultCount }))
 
     let lastCols = 0
     let lastRows = 0
@@ -57,8 +60,8 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     window.addEventListener('resize', doFit)
 
     // Menu Electron retiré → on gère le clavier nous-mêmes.
-    // Ctrl/Cmd+F : ouvre la recherche · Ctrl/Cmd+V : colle (une seule source) ·
-    // Ctrl/Cmd+C : copie si sélection (sinon laisser passer le SIGINT).
+    // Ctrl/Cmd+F : ouvre la recherche (dans le transcript) · Ctrl/Cmd+V : colle (une seule
+    // source) · Ctrl/Cmd+C : copie si sélection (sinon laisser passer le SIGINT).
     term.attachCustomKeyEventHandler((e): boolean => {
       if (e.type !== 'keydown' || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return true
       const key = e.key.toLowerCase()
@@ -84,13 +87,11 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     const onInput = term.onData((data) => window.hub.sendInput(tabId, data))
 
     return () => {
-      offResults.dispose()
       offData()
       onInput.dispose()
       ro.disconnect()
       window.removeEventListener('resize', doFit)
       term.dispose()
-      searchRef.current = null
     }
   }, [tabId])
 
@@ -98,42 +99,52 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     if (searchOpen) inputRef.current?.focus()
   }, [searchOpen])
 
-  function runSearch(q: string, prev = false): void {
+  // Recherche dans le transcript de la session, debouncée (lecture fichier côté main).
+  function runSearch(q: string): void {
     setQuery(q)
-    if (!q) {
-      searchRef.current?.clearDecorations()
-      setResults({ index: -1, count: 0 })
-      return
-    }
-    if (prev) searchRef.current?.findPrevious(q, SEARCH_OPTS)
-    else searchRef.current?.findNext(q, SEARCH_OPTS)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!q.trim()) { setMatches([]); return }
+    debounceRef.current = setTimeout(() => {
+      window.hub.searchTranscript(tabId, q).then(setMatches).catch(() => setMatches([]))
+    }, 180)
   }
 
   function closeSearch(): void {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     setSearchOpen(false)
     setQuery('')
-    searchRef.current?.clearDecorations()
-    setResults({ index: -1, count: 0 })
+    setMatches([])
   }
 
   return (
     <div className="term-host">
       {searchOpen && (
-        <div className="term-search">
-          <input
-            ref={inputRef}
-            value={query}
-            placeholder="Rechercher…"
-            onChange={(e) => runSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') { e.preventDefault(); runSearch(query, e.shiftKey) }
-              else if (e.key === 'Escape') { e.preventDefault(); closeSearch() }
-            }}
-          />
-          <span className="term-search-count">{results.count ? `${results.index + 1}/${results.count}` : '0/0'}</span>
-          <button title="Précédent (Maj+Entrée)" onClick={() => runSearch(query, true)}>▲</button>
-          <button title="Suivant (Entrée)" onClick={() => runSearch(query)}>▼</button>
-          <button title="Fermer (Échap)" onClick={closeSearch}>✕</button>
+        <div className="term-search-panel">
+          <div className="term-search">
+            <input
+              ref={inputRef}
+              value={query}
+              placeholder="Rechercher dans la conversation…"
+              onChange={(e) => runSearch(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); closeSearch() } }}
+            />
+            <span className="term-search-count">{query.trim() ? `${matches.length}` : ''}</span>
+            <button title="Fermer (Échap)" onClick={closeSearch}>✕</button>
+          </div>
+          {query.trim() && (
+            <div className="term-results">
+              {matches.length === 0 ? (
+                <div className="term-result empty">Aucun résultat</div>
+              ) : (
+                matches.map((m, i) => (
+                  <div className="term-result" key={i}>
+                    <span className={`role ${m.role}`}>{m.role === 'user' ? 'toi' : 'Claude'}</span>
+                    <span className="snippet">{highlight(m.snippet, query.trim())}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       )}
       <div ref={containerRef} className="term-screen" />
