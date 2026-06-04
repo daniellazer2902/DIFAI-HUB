@@ -65,9 +65,6 @@ export function Workspace(): React.JSX.Element {
 
   return (
     <div id="panes">
-      {group && dragId && leftTabs.length === 0 && (
-        <div className="drop-zone" onDragOver={(e) => e.preventDefault()} onDrop={() => dropTo(1)}>← Déposer à gauche</div>
-      )}
       {group && leftTabs.length > 0 && (
         <Pane side="left" group={group} tabs={leftTabs} activeRef={group.leftActiveTab} width={consoleWidth} hasOther={rightTabs.length > 0} dragId={dragId} setDragId={setDragId} />
       )}
@@ -77,7 +74,7 @@ export function Workspace(): React.JSX.Element {
       {group && rightTabs.length > 0 && (
         <Pane side="right" group={group} tabs={rightTabs} activeRef={group.rightActiveTab} width={consoleWidth} hasOther={leftTabs.length > 0} dragId={dragId} setDragId={setDragId} />
       )}
-      {group && dragId && rightTabs.length === 0 && (
+      {group && dragId && rightTabs.length === 0 && leftTabs.length >= 2 && (
         <div className="drop-zone" onDragOver={(e) => e.preventDefault()} onDrop={() => dropTo(2)}>Déposer à droite →</div>
       )}
     </div>

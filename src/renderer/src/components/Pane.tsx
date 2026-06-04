@@ -116,7 +116,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.stopPropagation(); onDropTab(t.item.id) }}
                 onClick={() => useHub.getState().selectTab(side, t.ref)}
-                onContextMenu={(e) => { e.preventDefault(); setCtxFor(t.item.id) }}
+                onContextMenu={(e) => { e.preventDefault(); setCtxFor(ctxFor === t.item.id ? null : t.item.id) }}
               >
                 <span className="tab-ic"><TerminalIcon /></span>
                 <StateDot state={t.item.state} />
@@ -140,14 +140,15 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                 <span
                   className="tab-agents"
                   title="Ouvrir les agents"
-                  onClick={(e) => { e.stopPropagation(); useHub.getState().openAgentsTab(t.item.id) }}
-                  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setCtxFor(t.item.id) }}
+                  onClick={(e) => { e.stopPropagation(); useHub.getState().toggleAgentsTab(t.item.id) }}
+                  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setCtxFor(ctxFor === t.item.id ? null : t.item.id) }}
                 >· {t.item.agents.filter((a) => !a.done).length} agents</span>
                 <span className="tab-close" title="Fermer l'onglet" onClick={(e) => closeSession(e, t.item.id, t.item.tabId)}>✕</span>
                 {ctxFor === t.item.id && (
                   <div className="ctx-menu tab-ctx" onClick={(e) => e.stopPropagation()}>
                     <div onClick={() => startRename(t.item.id, t.item.name)}><EditIcon /> Renommer</div>
                     <div onClick={() => { useHub.getState().togglePin(t.item.id); setCtxFor(null) }}><PinIcon /> {t.item.pinned ? 'Désépingler' : 'Épingler'}</div>
+                    <div onClick={() => { if (t.item.agentsOpen) useHub.getState().closeAgentsTab(t.item.id); else useHub.getState().openAgentsTab(t.item.id); setCtxFor(null) }}><TerminalIcon /> {t.item.agentsOpen ? 'Cacher Agents' : 'Afficher Agents'}</div>
                     <div className="danger" onClick={(e) => { closeSession(e, t.item.id, t.item.tabId); setCtxFor(null) }}><TrashIcon /> Supprimer</div>
                   </div>
                 )}

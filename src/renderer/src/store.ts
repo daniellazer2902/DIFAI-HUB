@@ -80,6 +80,7 @@ interface HubState {
   closeFind: (itemId: string) => void
   openAgentsTab: (itemId: string) => void
   closeAgentsTab: (itemId: string) => void
+  toggleAgentsTab: (itemId: string) => void
   selectTab: (pane: Pane, ref: string) => void
   setFocusedPane: (pane: Pane) => void
   setSearchQuery: (itemId: string, query: string) => void
@@ -318,6 +319,20 @@ export const useHub = create<HubState>((set, get) => ({
       return { groups: normalizeAll(groups), focusedPane: auxPane }
     }),
   closeAgentsTab: (itemId) => set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, agentsOpen: false }))) })),
+  toggleAgentsTab: (itemId) =>
+    set((s) => {
+      const grp = s.groups.find((g) => g.items.some((i) => i.id === itemId))
+      const item = grp?.items.find((i) => i.id === itemId)
+      if (!grp || !item) return s
+      const auxPane = auxPaneOf(item.split)
+      const activeRef = auxPane === 'left' ? grp.leftActiveTab : grp.rightActiveTab
+      // Onglet Agents déjà actif => on le ferme ; sinon on l'ouvre/active.
+      if (item.agentsOpen && activeRef === tabRef('agents', itemId)) {
+        return { groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, agentsOpen: false }))) }
+      }
+      const groups = setPaneActive(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, agentsOpen: true })), itemId, auxPane, tabRef('agents', itemId))
+      return { groups: normalizeAll(groups), focusedPane: auxPane }
+    }),
   selectTab: (pane, ref) =>
     set((s) => {
       const { itemId } = parseRef(ref)
