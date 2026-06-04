@@ -112,17 +112,20 @@ export function parseRef(ref: string): { kind: TabKind; itemId: string } {
   return { kind, itemId }
 }
 
-/** Refs ordonnés des onglets d'un volet pour un groupe (sessions live + auxiliaires à droite). */
+/** Volet opposé à celui de la session (Find/Agents s'y ouvrent → split garanti). */
+function auxPaneOf(split: 1 | 2): Pane {
+  return split === 1 ? 'right' : 'left'
+}
+
+/** Refs ordonnés des onglets d'un volet : sessions de ce volet + auxiliaires des sessions du volet OPPOSÉ. */
 function paneRefs(group: Group, pane: Pane): string[] {
   const refs: string[] = []
+  const sessionSplit = pane === 'left' ? 1 : 2
+  const auxOwnerSplit = pane === 'left' ? 2 : 1
   for (const i of group.items) {
-    if (pane === 'left') {
-      if (i.split === 1 && i.tabId) refs.push(tabRef('session', i.id))
-    } else {
-      if (i.split === 2 && i.tabId) refs.push(tabRef('session', i.id))
-      if (i.findOpen) refs.push(tabRef('find', i.id))
-      if (i.agentsOpen) refs.push(tabRef('agents', i.id))
-    }
+    if (i.split === sessionSplit && i.tabId) refs.push(tabRef('session', i.id))
+    if (i.split === auxOwnerSplit && i.findOpen) refs.push(tabRef('find', i.id))
+    if (i.split === auxOwnerSplit && i.agentsOpen) refs.push(tabRef('agents', i.id))
   }
   return refs
 }
@@ -300,15 +303,19 @@ export const useHub = create<HubState>((set, get) => ({
       const item = s.groups.flatMap((g) => g.items).find((i) => i.id === itemId)
       if (!item) return s
       const open = !item.findOpen
+      const auxPane = auxPaneOf(item.split)
       let groups = mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, findOpen: open }))
-      if (open) groups = setPaneActive(groups, itemId, 'right', tabRef('find', itemId))
-      return { groups: normalizeAll(groups), focusedPane: open ? 'right' : s.focusedPane }
+      if (open) groups = setPaneActive(groups, itemId, auxPane, tabRef('find', itemId))
+      return { groups: normalizeAll(groups), focusedPane: open ? auxPane : s.focusedPane }
     }),
   closeFind: (itemId) => set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, findOpen: false }))) })),
   openAgentsTab: (itemId) =>
     set((s) => {
-      const groups = setPaneActive(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, agentsOpen: true })), itemId, 'right', tabRef('agents', itemId))
-      return { groups: normalizeAll(groups), focusedPane: 'right' }
+      const item = s.groups.flatMap((g) => g.items).find((i) => i.id === itemId)
+      if (!item) return s
+      const auxPane = auxPaneOf(item.split)
+      const groups = setPaneActive(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, agentsOpen: true })), itemId, auxPane, tabRef('agents', itemId))
+      return { groups: normalizeAll(groups), focusedPane: auxPane }
     }),
   closeAgentsTab: (itemId) => set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, agentsOpen: false }))) })),
   selectTab: (pane, ref) =>

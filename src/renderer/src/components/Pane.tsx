@@ -104,7 +104,14 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                 key={t.ref}
                 className={`tab${sel ? ' act' : ''}`}
                 draggable={editingId !== t.item.id}
-                onDragStart={() => { setMenuOpen(false); setCtxFor(null); setDragId(t.item.id) }}
+                onDragStart={(e) => {
+                  setMenuOpen(false); setCtxFor(null)
+                  e.dataTransfer.effectAllowed = 'move'
+                  e.dataTransfer.setData('text/plain', t.item.id)
+                  // Différé : sinon le re-render (zones de dépôt) pendant dragstart annule le drag (Chromium).
+                  const id = t.item.id
+                  setTimeout(() => setDragId(id), 0)
+                }}
                 onDragEnd={() => setDragId(null)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.stopPropagation(); onDropTab(t.item.id) }}
@@ -134,6 +141,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                   className="tab-agents"
                   title="Ouvrir les agents"
                   onClick={(e) => { e.stopPropagation(); useHub.getState().openAgentsTab(t.item.id) }}
+                  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setCtxFor(t.item.id) }}
                 >· {t.item.agents.filter((a) => !a.done).length} agents</span>
                 <span className="tab-close" title="Fermer l'onglet" onClick={(e) => closeSession(e, t.item.id, t.item.tabId)}>✕</span>
                 {ctxFor === t.item.id && (
