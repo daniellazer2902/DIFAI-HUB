@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useHub, paneTabs } from '../store'
 import { clampConsoleWidth, writeConsoleWidth } from '../util'
 import { Pane } from './Pane'
+
+const VP_KEY = 'difai.consoleWidthViewport'
 
 export function Workspace(): React.JSX.Element {
   const groups = useHub((s) => s.groups)
@@ -28,6 +30,7 @@ export function Workspace(): React.JSX.Element {
       document.removeEventListener('mousemove', move)
       document.removeEventListener('mouseup', up)
       writeConsoleWidth(useHub.getState().consoleWidth)
+      try { localStorage.setItem(VP_KEY, String(window.innerWidth)) } catch { /* ignore */ }
     }
     document.addEventListener('mousemove', move)
     document.addEventListener('mouseup', up)
@@ -36,6 +39,24 @@ export function Workspace(): React.JSX.Element {
   const group = groups.find((g) => g.id === activeGroupId)
   const leftTabs = group ? paneTabs(group, 'left') : []
   const rightTabs = group ? paneTabs(group, 'right') : []
+  const splitOpen = leftTabs.length > 0 && rightTabs.length > 0
+
+  // À l'ouverture du split : si la fenêtre a changé de taille depuis le dernier réglage,
+  // on (re)met le volet à 50 % de la largeur courante.
+  const prevSplit = useRef(false)
+  useEffect(() => {
+    if (splitOpen && !prevSplit.current) {
+      let vp = 0
+      try { vp = Number(localStorage.getItem(VP_KEY) || '0') } catch { /* ignore */ }
+      if (vp !== window.innerWidth) {
+        const half = clampConsoleWidth(Math.round(window.innerWidth / 2))
+        setConsoleWidth(half)
+        writeConsoleWidth(half)
+        try { localStorage.setItem(VP_KEY, String(window.innerWidth)) } catch { /* ignore */ }
+      }
+    }
+    prevSplit.current = splitOpen
+  }, [splitOpen, setConsoleWidth])
 
   function dropTo(split: 1 | 2): void {
     if (dragId) useHub.getState().setSplit(dragId, split)
