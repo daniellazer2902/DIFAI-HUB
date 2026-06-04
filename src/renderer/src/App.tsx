@@ -4,7 +4,8 @@ import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { Workspace } from './components/Workspace'
 import { ConfirmHost } from './components/ConfirmHost'
-import { basename, readConsoleWidth } from './util'
+import { basename, readConsoleWidth, hasBusySession, isBusy } from './util'
+import { confirm } from './confirm'
 import { soundForTransition, playSound, readSoundEnabled } from './sound'
 import { readConfirmOnClose, readGlobalDefaultCwd } from './settings'
 import type { Unsub } from '../../shared/ipc'
@@ -55,6 +56,17 @@ export function App(): React.JSX.Element {
       if (it) useHub.getState().clearSession(it.id)
     }))
     return () => unsubs.forEach((u) => u())
+  }, [])
+
+  // Fermeture propre : le main demande, on décide (réglage + sessions occupées).
+  useEffect(() => {
+    return window.hub.onCloseRequest(async () => {
+      const s = useHub.getState()
+      if (!s.confirmOnClose || !hasBusySession(s.groups)) { window.hub.confirmClose(); return }
+      const busy = s.groups.flatMap((g) => g.items).filter(isBusy).map((i) => i.name)
+      const ok = await confirm({ title: 'Quitter DIFAI-HUB ?', message: 'Des sessions sont en cours :', items: busy, confirmLabel: 'Quitter', danger: true })
+      if (ok) window.hub.confirmClose()
+    })
   }, [])
 
   // Boot : charger l'arborescence, relancer les items épinglés dans leurs dossiers.

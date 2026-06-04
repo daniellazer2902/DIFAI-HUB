@@ -65,5 +65,9 @@ export class PtyManager {
     pty.kill()
     this.ptys.delete(tabId)
   }
+  killAll(): void {
+    for (const pty of this.ptys.values()) pty.kill()
+    this.ptys.clear()
+  }
   has(tabId: string): boolean { return this.ptys.has(tabId) }
 }
