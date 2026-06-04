@@ -6,6 +6,7 @@ import { Workspace } from './components/Workspace'
 import { ConfirmHost } from './components/ConfirmHost'
 import { basename, readConsoleWidth } from './util'
 import { soundForTransition, playSound, readSoundEnabled } from './sound'
+import { readConfirmOnClose, readGlobalDefaultCwd } from './settings'
 import type { Unsub } from '../../shared/ipc'
 
 function makeItem(id: string, cwd: string, tabId: string, pinned: boolean): Item {
@@ -33,6 +34,8 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     useHub.getState().setSoundEnabled(readSoundEnabled())
     useHub.getState().setConsoleWidth(readConsoleWidth())
+    useHub.getState().setConfirmOnClose(readConfirmOnClose())
+    useHub.getState().setGlobalDefaultCwd(readGlobalDefaultCwd())
 
     const unsubs: Unsub[] = []
     unsubs.push(window.hub.onSessionState((tid, state) => {
@@ -62,7 +65,7 @@ export function App(): React.JSX.Element {
       useHub.getState().loadWorkspace(tree)
       const hasItem = tree.groups.some((g) => g.items.length > 0)
       if (!hasItem) {
-        const cwd = await window.hub.defaultCwd()
+        const cwd = useHub.getState().globalDefaultCwd ?? (await window.hub.defaultCwd())
         const gid = useHub.getState().activeGroupId ?? useHub.getState().addGroup('Sessions')
         const tabId = await window.hub.newSession(cwd)
         useHub.getState().addItem(gid, makeItem(crypto.randomUUID(), cwd, tabId, false))
