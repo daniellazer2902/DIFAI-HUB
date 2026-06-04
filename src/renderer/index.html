@@ -7,7 +7,7 @@
     <style>
       html, body, #app { margin: 0; height: 100%; background: #1e1e1e; color: #ddd; font-family: Consolas, monospace; }
       #app-root { display: flex; flex-direction: column; height: 100%; }
-      #body { flex: 1; min-height: 0; display: flex; border-top: 1px solid #333; }
+      #body { flex: 1; min-height: 0; min-width: 0; display: flex; overflow: hidden; border-top: 1px solid #333; }
       #main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
       /* Scrollbars fines et épurées (Chromium/Electron), accordées au thème sombre */
@@ -87,7 +87,7 @@
       .tab-new-menu div { display: flex; align-items: center; gap: 8px; }
       .tab-new-menu div svg { color: #9ab; flex: none; }
       .sound-toggle { display: inline-flex; align-items: center; justify-content: center; }
-      #panes { flex: 1; min-height: 0; display: flex; }
+      #panes { flex: 1; min-height: 0; min-width: 0; display: flex; overflow: hidden; }
       .pane { display: flex; flex-direction: column; min-width: 0; height: 100%; }
       .pane-tabstrip { display: flex; align-items: flex-end; gap: 5px; padding: 6px 8px 0; background: #181818; border-bottom: 1px solid #333; min-height: 34px; }
       .tab-row { flex: 1; min-width: 0; display: flex; align-items: flex-end; gap: 5px; overflow: hidden; }
