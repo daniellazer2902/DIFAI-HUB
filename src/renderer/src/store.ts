@@ -113,6 +113,7 @@ export function tabRef(kind: TabKind, itemId: string): string {
 }
 export function parseRef(ref: string): { kind: TabKind; itemId: string } {
   const i = ref.indexOf(':')
+  if (i < 0) return { kind: 'session', itemId: ref }
   const p = ref.slice(0, i)
   const itemId = ref.slice(i + 1)
   const kind: TabKind = p === 's' ? 'session' : p === 'f' ? 'find' : 'agents'
