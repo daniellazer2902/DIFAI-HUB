@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react'
-import { useHub, type Item } from './store'
+import { useHub, parseRef, type Item } from './store'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
-import { TabBar } from './components/TabBar'
 import { Workspace } from './components/Workspace'
 import { basename, readConsoleWidth } from './util'
 import { soundForTransition, playSound, readSoundEnabled } from './sound'
@@ -13,12 +12,15 @@ function makeItem(id: string, cwd: string, tabId: string, pinned: boolean): Item
 }
 
 export function App(): React.JSX.Element {
-  // Ctrl/Cmd+F : bascule la recherche de l'item actif (raccourci global, capture).
+  // Ctrl/Cmd+F : bascule l'onglet Find de l'item courant (propriétaire de l'onglet actif du volet focus).
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
-        const { activeItemId, toggleSearch } = useHub.getState()
-        if (activeItemId) { e.preventDefault(); e.stopPropagation(); toggleSearch(activeItemId) }
+        const s = useHub.getState()
+        const g = s.groups.find((x) => x.id === s.activeGroupId)
+        const ref = s.focusedPane === 'right' ? g?.rightActiveTab : g?.leftActiveTab
+        const targetId = ref ? parseRef(ref).itemId : s.activeItemId
+        if (targetId) { e.preventDefault(); e.stopPropagation(); s.toggleFind(targetId) }
       }
     }
     document.addEventListener('keydown', onKey, true)
@@ -91,7 +93,6 @@ export function App(): React.JSX.Element {
       <div id="body">
         <Sidebar />
         <div id="main">
-          <TabBar />
           <Workspace />
         </div>
       </div>

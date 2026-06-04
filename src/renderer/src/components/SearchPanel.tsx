@@ -21,7 +21,7 @@ function highlight(text: string, q: string): React.ReactNode {
 
 export function SearchPanel({ itemId }: { itemId: string }): React.JSX.Element {
   const item = useHub((s) => s.groups.flatMap((g) => g.items).find((i) => i.id === itemId))
-  const setSearch = useHub((s) => s.setSearch)
+  const closeFind = useHub((s) => s.closeFind)
   const setSearchQuery = useHub((s) => s.setSearchQuery)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -62,9 +62,9 @@ export function SearchPanel({ itemId }: { itemId: string }): React.JSX.Element {
           value={query}
           placeholder="Rechercher dans la conversation…"
           onChange={(e) => runSearch(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setSearch(itemId, false) } }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); closeFind(itemId) } }}
         />
-        <button className="search-close" title="Fermer (Échap)" onClick={() => setSearch(itemId, false)}>✕</button>
+        <button className="search-close" title="Fermer (Échap)" onClick={() => closeFind(itemId)}>✕</button>
       </div>
       {q && (
         <div className="search-summary">
