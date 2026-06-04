@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon } from './icons'
+import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, PaletteIcon } from './icons'
+import { GroupColorModal } from './GroupColorModal'
+import { darken, textOn } from '../color'
 import { basename, isBusy } from '../util'
 import { confirm } from '../confirm'
 
@@ -18,6 +20,7 @@ export function Sidebar(): React.JSX.Element {
   const activeItemId = useHub((s) => s.activeItemId)
   const activeGroupId = useHub((s) => s.activeGroupId)
   const [menu, setMenu] = useState<string | null>(null)
+  const [colorFor, setColorFor] = useState<string | null>(null)
   const [editing, setEditing] = useState<Editing | null>(null)
   const [editValue, setEditValue] = useState('')
   const editRef = useRef<HTMLInputElement>(null)
@@ -117,7 +120,11 @@ export function Sidebar(): React.JSX.Element {
     <div id="sidebar">
       <div className="sidebar-scroll">
         {groups.map((g) => (
-          <div key={g.id} className={`group${g.id === activeGroupId ? ' active-group' : ''}`}>
+          <div
+            key={g.id}
+            className={`group${g.id === activeGroupId ? ' active-group' : ''}`}
+            style={g.color ? ({ '--gc': g.color, '--gcd': darken(g.color), '--gt': textOn(g.color), '--gtd': textOn(darken(g.color)) } as React.CSSProperties) : undefined}
+          >
             <div className="group-head" onContextMenu={(e) => { e.preventDefault(); setMenu(g.id) }}>
               <span className="group-chevron" onClick={() => useHub.getState().toggleGroupCollapsed(g.id)}>{g.collapsed ? '▸' : '▾'}</span>
               <span className="group-name-wrap" onClick={() => useHub.getState().setActiveGroup(g.id)}>{nameOrEditor('group', g.id, g.name, 'group-name')}</span>
@@ -129,6 +136,7 @@ export function Sidebar(): React.JSX.Element {
                 <div className="ctx-menu">
                   <div onClick={() => startRename('group', g.id, g.name)}><EditIcon /> Renommer</div>
                   <div onClick={() => setGroupDefault(g.id)}><FolderIcon /> Dossier par défaut…</div>
+                  <div onClick={() => { setMenu(null); setColorFor(g.id) }}><PaletteIcon /> Attribuer une couleur</div>
                   <div className="danger" onClick={() => removeGroup(g.id, g.name)}><TrashIcon /> Supprimer</div>
                 </div>
               )}
@@ -157,6 +165,13 @@ export function Sidebar(): React.JSX.Element {
           </div>
         ))}
         <div className="new-group" onClick={addGroup}>＋ Nouveau groupe</div>
+        {colorFor && (
+          <GroupColorModal
+            current={groups.find((x) => x.id === colorFor)?.color ?? null}
+            onPick={(c) => useHub.getState().setGroupColor(colorFor, c)}
+            onClose={() => setColorFor(null)}
+          />
+        )}
       </div>
     </div>
   )

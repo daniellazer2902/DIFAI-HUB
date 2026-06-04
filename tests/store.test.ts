@@ -194,4 +194,18 @@ describe('store groupes/items', () => {
     expect(useHub.getState().confirmOnClose).toBe(false)
     expect(useHub.getState().globalDefaultCwd).toBe('C:/projets')
   })
+
+  it('setGroupColor + persistance + remise à null', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().setGroupColor(g, '#3a7bd0')
+    expect(useHub.getState().groups[0].color).toBe('#3a7bd0')
+    expect(useHub.getState().toPersistable().groups[0].color).toBe('#3a7bd0')
+    useHub.getState().setGroupColor(g, null)
+    expect(useHub.getState().groups[0].color).toBeNull()
+  })
+
+  it('loadWorkspace restaure color', () => {
+    useHub.getState().loadWorkspace({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'M', collapsed: false, defaultCwd: null, color: '#b5413b', items: [] }] })
+    expect(useHub.getState().groups[0].color).toBe('#b5413b')
+  })
 })
