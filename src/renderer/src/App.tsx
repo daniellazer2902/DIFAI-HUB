@@ -8,7 +8,7 @@ import { soundForTransition, playSound, readSoundEnabled } from './sound'
 import type { Unsub } from '../../shared/ipc'
 
 function makeItem(id: string, cwd: string, tabId: string, pinned: boolean): Item {
-  return { id, name: basename(cwd), cwd, pinned, tabId, state: 'starting', agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '', railCollapsed: false, searchOpen: false }
+  return { id, name: basename(cwd), cwd, pinned, tabId, state: 'starting', agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '' }
 }
 
 export function App(): React.JSX.Element {

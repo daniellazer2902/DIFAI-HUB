@@ -25,9 +25,6 @@ export interface Item {
   findOpen: boolean
   agentsOpen: boolean
   searchQuery: string
-  // Anciens champs (retirés en Tâche 4, conservés ici pour compat UI) :
-  railCollapsed: boolean
-  searchOpen: boolean
 }
 
 export interface Group {
@@ -88,11 +85,6 @@ interface HubState {
   setSearchQuery: (itemId: string, query: string) => void
   leftTabs: () => PaneTab[]
   rightTabs: () => PaneTab[]
-
-  // Anciens (retirés en Tâche 4) :
-  toggleRail: (itemId: string) => void
-  setSearch: (itemId: string, open: boolean) => void
-  toggleSearch: (itemId: string) => void
 
   setSoundEnabled: (v: boolean) => void
   setConsoleWidth: (w: number) => void
@@ -259,7 +251,7 @@ export const useHub = create<HubState>((set, get) => ({
     set((s) => ({
       groups: normalizeAll(
         mapItems(s.groups, (i) => i.id === itemId, (i) => ({
-          ...i, tabId: null, state: 'done', agents: [], openAgentId: null, findOpen: false, agentsOpen: false, searchOpen: false
+          ...i, tabId: null, state: 'done', agents: [], openAgentId: null, findOpen: false, agentsOpen: false
         }))
       )
     })),
@@ -327,24 +319,6 @@ export const useHub = create<HubState>((set, get) => ({
     return g ? paneTabs(g, 'right') : []
   },
 
-  // --- Anciens (retirés en Tâche 4) ---
-  toggleRail: (itemId) =>
-    set((s) => ({
-      groups: mapItems(s.groups, (i) => i.id === itemId, (i) => {
-        const railCollapsed = !i.railCollapsed
-        return { ...i, railCollapsed, openAgentId: railCollapsed ? null : i.openAgentId }
-      })
-    })),
-  setSearch: (itemId, open) =>
-    set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, searchOpen: open, openAgentId: open ? null : i.openAgentId })) })),
-  toggleSearch: (itemId) =>
-    set((s) => ({
-      groups: mapItems(s.groups, (i) => i.id === itemId, (i) => {
-        const searchOpen = !i.searchOpen
-        return { ...i, searchOpen, openAgentId: searchOpen ? null : i.openAgentId }
-      })
-    })),
-
   setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
   setConsoleWidth: (consoleWidth) => set({ consoleWidth }),
 
@@ -368,7 +342,7 @@ export const useHub = create<HubState>((set, get) => ({
           id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd ?? null, leftActiveTab: null, rightActiveTab: null,
           items: g.items.map((i) => ({
             id: i.id, name: i.name, cwd: i.cwd, pinned: true, tabId: null, state: 'done', agents: [], openAgentId: null,
-            split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: '', railCollapsed: false, searchOpen: false
+            split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: ''
           }))
         }))
       )
