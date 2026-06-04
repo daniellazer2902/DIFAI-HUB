@@ -3,6 +3,7 @@ import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
 import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon } from './icons'
 import { basename, isBusy } from '../util'
+import { confirm } from '../confirm'
 
 /** Ouvre une session pour un item éteint et la lie. */
 async function launch(item: Item): Promise<void> {
@@ -77,16 +78,16 @@ export function Sidebar(): React.JSX.Element {
     startRename('group', id, 'Nouveau groupe') // édition inline immédiate
   }
 
-  function removeItem(item: Item): void {
+  async function removeItem(item: Item): Promise<void> {
     setMenu(null)
-    if (isBusy(item) && !window.confirm(`Supprimer « ${item.name} » ? Une session est active.`)) return
+    if (isBusy(item) && !(await confirm({ title: `Supprimer « ${item.name} » ?`, message: 'Une session est active.', confirmLabel: 'Supprimer', danger: true }))) return
     if (item.tabId) window.hub.killSession(item.tabId)
     useHub.getState().removeItem(item.id)
   }
 
-  function removeGroup(groupId: string, name: string): void {
+  async function removeGroup(groupId: string, name: string): Promise<void> {
     setMenu(null)
-    if (!window.confirm(`Supprimer le groupe « ${name} » et ses sessions ?`)) return
+    if (!(await confirm({ title: `Supprimer le groupe « ${name} » ?`, message: 'Ses sessions seront fermées.', confirmLabel: 'Supprimer', danger: true }))) return
     const g = useHub.getState().groups.find((x) => x.id === groupId)
     g?.items.forEach((i) => { if (i.tabId) window.hub.killSession(i.tabId) })
     useHub.getState().removeGroup(groupId)

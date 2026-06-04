@@ -142,6 +142,19 @@
       .console-body { padding: 6px 8px; }
       .cclose { cursor: pointer; color: #888; user-select: none; }
       .cclose:hover { color: #f66; }
+      .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+      .modal { background: #1e1e1e; border: 1px solid #3a3d44; border-radius: 10px; min-width: 360px; max-width: 520px; max-height: 80vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+      .modal-title { padding: 12px 16px; font-weight: bold; color: #cfe; border-bottom: 1px solid #333; }
+      .modal-body { padding: 14px 16px; color: #ddd; font-size: 13px; }
+      .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px; border-top: 1px solid #333; }
+      .modal-msg { margin: 0 0 8px; color: #bbb; }
+      .modal-list { margin: 6px 0 0; padding-left: 18px; color: #fc8; }
+      .modal-list li { margin: 2px 0; }
+      .btn { background: #2a2d33; border: 1px solid #444; border-radius: 6px; color: #ddd; cursor: pointer; padding: 5px 12px; font-family: inherit; font-size: 12px; }
+      .btn:hover { background: #33373e; }
+      .btn.primary { border-color: #c80; color: #fc8; }
+      .btn.danger { border-color: #a33; color: #f88; }
+      .btn.danger:hover { background: #3a2020; }
     </style>
   </head>
   <body>
