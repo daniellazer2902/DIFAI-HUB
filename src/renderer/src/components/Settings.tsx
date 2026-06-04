@@ -24,7 +24,7 @@ export function Settings({ onClose }: { onClose: () => void }): React.JSX.Elemen
         <button className={`toggle${soundEnabled ? ' on' : ''}`} onClick={toggleSound}>{soundEnabled ? 'Activé' : 'Coupé'}</button>
       </div>
       <div className="setting-row">
-        <span className="setting-label">Confirmer à la fermeture si une session est active</span>
+        <span className="setting-label">Confirmer avant de quitter l'application</span>
         <button className={`toggle${confirmOnClose ? ' on' : ''}`} onClick={toggleConfirm}>{confirmOnClose ? 'Oui' : 'Non'}</button>
       </div>
       <div className="setting-row">

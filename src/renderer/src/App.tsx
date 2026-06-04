@@ -4,7 +4,7 @@ import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { Workspace } from './components/Workspace'
 import { ConfirmHost } from './components/ConfirmHost'
-import { basename, readConsoleWidth, hasBusySession, isBusy } from './util'
+import { basename, readConsoleWidth, isBusy } from './util'
 import { confirm } from './confirm'
 import { soundForTransition, playSound, readSoundEnabled } from './sound'
 import { readConfirmOnClose, readGlobalDefaultCwd } from './settings'
@@ -58,13 +58,19 @@ export function App(): React.JSX.Element {
     return () => unsubs.forEach((u) => u())
   }, [])
 
-  // Fermeture propre : le main demande, on décide (réglage + sessions occupées).
+  // Fermeture propre : si la confirmation est activée, on demande TOUJOURS (et on indique les sessions en cours).
   useEffect(() => {
     return window.hub.onCloseRequest(async () => {
       const s = useHub.getState()
-      if (!s.confirmOnClose || !hasBusySession(s.groups)) { window.hub.confirmClose(); return }
+      if (!s.confirmOnClose) { window.hub.confirmClose(); return }
       const busy = s.groups.flatMap((g) => g.items).filter(isBusy).map((i) => i.name)
-      const ok = await confirm({ title: 'Quitter DIFAI-IDE ?', message: 'Des sessions sont en cours :', items: busy, confirmLabel: 'Quitter', danger: true })
+      const ok = await confirm({
+        title: 'Quitter DIFAI-IDE ?',
+        message: busy.length ? 'Des sessions sont en cours :' : 'Aucune session active.',
+        items: busy.length ? busy : undefined,
+        confirmLabel: 'Quitter',
+        danger: busy.length > 0
+      })
       if (ok) window.hub.confirmClose()
     })
   }, [])
