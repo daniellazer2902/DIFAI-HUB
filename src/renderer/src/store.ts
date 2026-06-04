@@ -35,6 +35,7 @@ export interface Group {
   items: Item[]
   leftActiveTab: string | null
   rightActiveTab: string | null
+  color: string | null
 }
 
 export interface PaneTab { ref: string; kind: TabKind; item: Item }
@@ -57,6 +58,7 @@ interface HubState {
   removeGroup: (groupId: string) => void
   toggleGroupCollapsed: (groupId: string) => void
   setGroupDefaultCwd: (groupId: string, cwd: string) => void
+  setGroupColor: (groupId: string, color: string | null) => void
   setActiveGroup: (groupId: string) => void
 
   addItem: (groupId: string, item: Item) => void
@@ -185,7 +187,7 @@ export const useHub = create<HubState>((set, get) => ({
   addGroup: (name) => {
     const id = uid('g')
     set((s) => ({
-      groups: [...s.groups, { id, name, collapsed: false, defaultCwd: null, items: [], leftActiveTab: null, rightActiveTab: null }],
+      groups: [...s.groups, { id, name, collapsed: false, defaultCwd: null, color: null, items: [], leftActiveTab: null, rightActiveTab: null }],
       activeGroupId: id
     }))
     return id
@@ -199,6 +201,7 @@ export const useHub = create<HubState>((set, get) => ({
     }),
   toggleGroupCollapsed: (groupId) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, collapsed: !g.collapsed } : g)) })),
   setGroupDefaultCwd: (groupId, cwd) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, defaultCwd: cwd } : g)) })),
+  setGroupColor: (groupId, color) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, color } : g)) })),
   setActiveGroup: (groupId) =>
     set((s) => {
       const g = s.groups.find((x) => x.id === groupId)
@@ -350,7 +353,7 @@ export const useHub = create<HubState>((set, get) => ({
     return {
       activeGroupId: s.activeGroupId,
       groups: s.groups.map((g) => ({
-        id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd,
+        id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd, color: g.color,
         items: g.items.filter((i) => i.pinned).map((i) => ({ id: i.id, name: i.name, cwd: i.cwd, split: i.split }))
       }))
     }
@@ -362,7 +365,7 @@ export const useHub = create<HubState>((set, get) => ({
       focusedPane: 'left',
       groups: normalizeAll(
         tree.groups.map((g) => ({
-          id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd ?? null, leftActiveTab: null, rightActiveTab: null,
+          id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd ?? null, color: g.color ?? null, leftActiveTab: null, rightActiveTab: null,
           items: g.items.map((i) => ({
             id: i.id, name: i.name, cwd: i.cwd, pinned: true, tabId: null, state: 'done', agents: [], openAgentId: null,
             split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: ''

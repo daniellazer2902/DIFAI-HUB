@@ -36,6 +36,11 @@ describe('workspaceStore (pur)', () => {
     expect(parsed.groups[0].items[1].split).toBeUndefined()
   })
 
+  it('parseWorkspace : color conservée (round-trip)', () => {
+    const tree: WorkspaceTree = { activeGroupId: 'g1', groups: [{ id: 'g1', name: 'X', collapsed: false, defaultCwd: null, color: '#3a9d5d', items: [] }] }
+    expect(parseWorkspace(serializeWorkspace(tree)).groups[0].color).toBe('#3a9d5d')
+  })
+
   it('serializeWorkspace : round-trip stable', () => {
     const tree: WorkspaceTree = { activeGroupId: 'g1', groups: [{ id: 'g1', name: 'X', collapsed: true, defaultCwd: null, items: [] }] }
     expect(parseWorkspace(serializeWorkspace(tree))).toEqual(tree)
