@@ -20,7 +20,7 @@ export function TabBar(): React.JSX.Element {
     const tabId = await window.hub.newSession(cwd)
     const item: Item = {
       id: crypto.randomUUID(), name: basename(cwd), cwd, pinned: false, tabId,
-      state: 'starting', agents: [], openAgentId: null, railCollapsed: false, searchOpen: false, searchQuery: ''
+      state: 'starting', agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '', railCollapsed: false, searchOpen: false
     }
     useHub.getState().addItem(gid, item)
   }
