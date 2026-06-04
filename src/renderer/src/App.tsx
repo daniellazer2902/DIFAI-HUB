@@ -3,6 +3,7 @@ import { useHub, parseRef, type Item } from './store'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { Workspace } from './components/Workspace'
+import { ConfirmHost } from './components/ConfirmHost'
 import { basename, readConsoleWidth } from './util'
 import { soundForTransition, playSound, readSoundEnabled } from './sound'
 import type { Unsub } from '../../shared/ipc'
@@ -97,6 +98,7 @@ export function App(): React.JSX.Element {
           <Workspace />
         </div>
       </div>
+      <ConfirmHost />
     </div>
   )
 }
