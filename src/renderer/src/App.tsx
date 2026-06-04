@@ -64,7 +64,7 @@ export function App(): React.JSX.Element {
       const s = useHub.getState()
       if (!s.confirmOnClose || !hasBusySession(s.groups)) { window.hub.confirmClose(); return }
       const busy = s.groups.flatMap((g) => g.items).filter(isBusy).map((i) => i.name)
-      const ok = await confirm({ title: 'Quitter DIFAI-HUB ?', message: 'Des sessions sont en cours :', items: busy, confirmLabel: 'Quitter', danger: true })
+      const ok = await confirm({ title: 'Quitter DIFAI-IDE ?', message: 'Des sessions sont en cours :', items: busy, confirmLabel: 'Quitter', danger: true })
       if (ok) window.hub.confirmClose()
     })
   }, [])
