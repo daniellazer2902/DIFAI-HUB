@@ -54,8 +54,16 @@ function createWindow(): void {
 
   sender.setWindow(win)
 
-  win.on('ready-to-show', () => win.show())
-  win.on('closed', () => { sender.setWindow(null) })
+  // Révèle la fenêtre dès que possible. `ready-to-show` ne se déclenche pas toujours :
+  // on double avec `did-finish-load` + un filet de sécurité par timeout.
+  const reveal = (): void => { if (!win.isDestroyed() && !win.isVisible()) { win.show(); win.focus() } }
+  win.once('ready-to-show', reveal)
+  win.webContents.once('did-finish-load', reveal)
+  const safety = setTimeout(reveal, 3000)
+  win.on('show', () => clearTimeout(safety))
+  win.on('closed', () => { clearTimeout(safety); sender.setWindow(null) })
+  win.webContents.on('did-fail-load', (_e, code, desc, url) =>
+    console.error('[hub] échec chargement renderer', code, desc, url))
 
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(process.env.ELECTRON_RENDERER_URL)
