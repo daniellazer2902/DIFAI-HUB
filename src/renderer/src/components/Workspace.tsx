@@ -1,16 +1,14 @@
-import React from 'react'
-import { useHub } from '../store'
+import React, { useState } from 'react'
+import { useHub, paneTabs } from '../store'
 import { clampConsoleWidth, writeConsoleWidth } from '../util'
-import { Terminal } from './Terminal'
-import { Console } from './Console'
-import { SearchPanel } from './SearchPanel'
+import { Pane } from './Pane'
 
 export function Workspace(): React.JSX.Element {
   const groups = useHub((s) => s.groups)
   const activeGroupId = useHub((s) => s.activeGroupId)
-  const activeItemId = useHub((s) => s.activeItemId)
   const consoleWidth = useHub((s) => s.consoleWidth)
   const setConsoleWidth = useHub((s) => s.setConsoleWidth)
+  const [dragId, setDragId] = useState<string | null>(null)
 
   function startResize(e: React.MouseEvent): void {
     e.preventDefault()
@@ -26,29 +24,21 @@ export function Workspace(): React.JSX.Element {
     document.addEventListener('mouseup', up)
   }
 
-  // Onglets = items VIVANTS du groupe actif.
-  const activeGroup = groups.find((g) => g.id === activeGroupId)
-  const liveItems = (activeGroup?.items ?? []).filter((i) => i.tabId)
+  const group = groups.find((g) => g.id === activeGroupId)
+  const leftTabs = group ? paneTabs(group, 'left') : []
+  const rightTabs = group ? paneTabs(group, 'right') : []
 
   return (
-    <div id="workspace">
-      {liveItems.map((it) => (
-        <div key={it.id} className="tabpane" style={{ display: it.id === activeItemId ? 'block' : 'none' }}>
-          <div className="term-wrap">
-            <div className="term-area">
-              <Terminal tabId={it.tabId as string} />
-            </div>
-            {(it.searchOpen || it.openAgentId) && (
-              <>
-                <div className="splitter" title="Redimensionner le panneau" onMouseDown={startResize} />
-                <div className="console-host" style={{ width: consoleWidth }}>
-                  {it.searchOpen ? <SearchPanel itemId={it.id} /> : <Console itemId={it.id} />}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      ))}
+    <div id="panes">
+      {group && leftTabs.length > 0 && (
+        <Pane side="left" group={group} tabs={leftTabs} activeRef={group.leftActiveTab} width={consoleWidth} hasOther={rightTabs.length > 0} dragId={dragId} setDragId={setDragId} />
+      )}
+      {group && leftTabs.length > 0 && rightTabs.length > 0 && (
+        <div className="splitter" title="Redimensionner" onMouseDown={startResize} />
+      )}
+      {group && rightTabs.length > 0 && (
+        <Pane side="right" group={group} tabs={rightTabs} activeRef={group.rightActiveTab} width={consoleWidth} hasOther={leftTabs.length > 0} dragId={dragId} setDragId={setDragId} />
+      )}
     </div>
   )
 }
