@@ -187,4 +187,11 @@ describe('store groupes/items', () => {
     expect(useHub.getState().itemById('i1')!.split).toBe(2)
     expect(useHub.getState().itemById('i2')!.split).toBe(1)
   })
+
+  it('setConfirmOnClose / setGlobalDefaultCwd', () => {
+    useHub.getState().setConfirmOnClose(false)
+    useHub.getState().setGlobalDefaultCwd('C:/projets')
+    expect(useHub.getState().confirmOnClose).toBe(false)
+    expect(useHub.getState().globalDefaultCwd).toBe('C:/projets')
+  })
 })
