@@ -18,6 +18,7 @@ interface Props {
   setDragId: (id: string | null) => void
 }
 
+type Pos = { x: number; y: number }
 type Ctx = { id: string; x: number; y: number }
 
 function tabLabel(t: PaneTab): string {
@@ -25,7 +26,7 @@ function tabLabel(t: PaneTab): string {
 }
 
 export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, setDragId }: Props): React.JSX.Element {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [addMenu, setAddMenu] = useState<Pos | null>(null)
   const [overflowOpen, setOverflowOpen] = useState(false)
   const [overflowing, setOverflowing] = useState(false)
   const [ctx, setCtx] = useState<Ctx | null>(null)
@@ -37,7 +38,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
   const active = activeRef ? parseRef(activeRef) : null
   const ctxItem = ctx ? group.items.find((i) => i.id === ctx.id) : undefined
 
-  // Détecte le débordement du bandeau d'onglets (trop d'onglets pour la largeur).
+  // Détecte le débordement du bandeau (onglets + bouton ＋ ne tiennent plus).
   useEffect(() => {
     const el = rowRef.current
     if (!el) return
@@ -50,16 +51,16 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
 
   // Ferme les menus (＋, débordement, contextuel) au clic extérieur.
   useEffect(() => {
-    if (!menuOpen && !overflowOpen && !ctx) return
+    if (!addMenu && !overflowOpen && !ctx) return
     const onDown = (e: MouseEvent): void => {
       const t = e.target as HTMLElement
-      if (!t.closest('.tab-new')) setMenuOpen(false)
+      if (!t.closest('.tab-new') && !t.closest('.add-menu')) setAddMenu(null)
       if (!t.closest('.tab-overflow')) setOverflowOpen(false)
       if (!t.closest('.tab-ctx') && !t.closest('.tab')) setCtx(null)
     }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
-  }, [menuOpen, overflowOpen, ctx])
+  }, [addMenu, overflowOpen, ctx])
 
   useEffect(() => {
     if (editingId) { editRef.current?.focus(); editRef.current?.select() }
@@ -75,9 +76,10 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
     setEditingId(null)
   }
 
+  function closeMenus(): void { setAddMenu(null); setOverflowOpen(false) }
+
   async function openTab(cwd: string): Promise<void> {
-    setMenuOpen(false)
-    setOverflowOpen(false)
+    closeMenus()
     const tabId = await window.hub.newSession(cwd)
     const id = crypto.randomUUID()
     useHub.getState().addItem(group.id, {
@@ -86,7 +88,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
     })
   }
   async function onDefault(): Promise<void> { openTab(group.defaultCwd ?? (await window.hub.defaultCwd())) }
-  async function onPick(): Promise<void> { const f = await window.hub.pickFolder(); if (f) openTab(f); else { setMenuOpen(false); setOverflowOpen(false) } }
+  async function onPick(): Promise<void> { const f = await window.hub.pickFolder(); if (f) openTab(f); else closeMenus() }
 
   function closeSession(e: React.MouseEvent, itemId: string, tabId: string | null): void {
     e.stopPropagation()
@@ -128,7 +130,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                   className={`tab${sel ? ' act' : ''}`}
                   draggable={editingId !== t.item.id}
                   onDragStart={(e) => {
-                    setMenuOpen(false); setCtx(null)
+                    setAddMenu(null); setCtx(null)
                     e.dataTransfer.effectAllowed = 'move'
                     e.dataTransfer.setData('text/plain', t.item.id)
                     const id = t.item.id
@@ -172,9 +174,12 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
               </div>
             )
           })}
+          <div className="tab-new">
+            <button title="Nouvel onglet" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setAddMenu(addMenu ? null : { x: r.left, y: r.bottom + 2 }) }}>＋</button>
+          </div>
         </div>
-        <div className="tab-controls">
-          {overflowing && (
+        {overflowing && (
+          <div className="tab-controls">
             <div className="tab-overflow">
               <button title="Tous les onglets" onClick={() => setOverflowOpen((o) => !o)}>▾</button>
               {overflowOpen && (
@@ -186,21 +191,13 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                       onClick={() => { useHub.getState().selectTab(side, t.ref); setOverflowOpen(false) }}
                     >{tabLabel(t)}</div>
                   ))}
-                  <div className="ovf-add" onClick={onDefault}><FolderIcon /> ＋ Nouvel onglet</div>
+                  <div className="ovf-add" onClick={onDefault}><FolderIcon /> ＋ Dossier par défaut</div>
+                  <div className="ovf-add" onClick={onPick}><FolderIcon /> Choisir un dossier…</div>
                 </div>
               )}
             </div>
-          )}
-          <div className="tab-new">
-            <button title="Nouvel onglet" onClick={() => setMenuOpen((o) => !o)}>＋</button>
-            {menuOpen && (
-              <div className="tab-new-menu">
-                <div onClick={onDefault}><FolderIcon /> Dossier par défaut</div>
-                <div onClick={onPick}><FolderIcon /> Choisir un dossier…</div>
-              </div>
-            )}
           </div>
-        </div>
+        )}
       </div>
       <div className="pane-body">
         {sessions.map((t) => (
@@ -211,6 +208,12 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
         {active?.kind === 'find' && <SearchPanel itemId={active.itemId} />}
         {active?.kind === 'agents' && <Console itemId={active.itemId} />}
       </div>
+      {addMenu && (
+        <div className="tab-new-menu add-menu" style={{ position: 'fixed', left: addMenu.x, top: addMenu.y }}>
+          <div onClick={onDefault}><FolderIcon /> Dossier par défaut</div>
+          <div onClick={onPick}><FolderIcon /> Choisir un dossier…</div>
+        </div>
+      )}
       {ctx && ctxItem && (
         <div className="ctx-menu tab-ctx" style={{ position: 'fixed', left: ctx.x, top: ctx.y, right: 'auto' }} onClick={(e) => e.stopPropagation()}>
           <div onClick={() => startRename(ctxItem.id, ctxItem.name)}><EditIcon /> Renommer</div>
