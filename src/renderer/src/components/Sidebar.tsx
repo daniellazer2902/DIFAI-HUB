@@ -2,16 +2,12 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
 import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon } from './icons'
-import { basename } from '../util'
+import { basename, isBusy } from '../util'
 
 /** Ouvre une session pour un item éteint et la lie. */
 async function launch(item: Item): Promise<void> {
   const tabId = await window.hub.newSession(item.cwd)
   useHub.getState().bindSession(item.id, tabId)
-}
-
-function isBusy(item: Item): boolean {
-  return !!item.tabId && (item.state === 'active' || item.state === 'starting' || item.agents.some((a) => !a.done))
 }
 
 type Editing = { kind: 'group' | 'item'; id: string }
