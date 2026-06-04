@@ -5,10 +5,11 @@ export function basename(p: string): string {
   return parts[parts.length - 1] || p
 }
 
-/** Borne une largeur de console (px) entre un min et la largeur fenêtre moins une marge. */
+/** Borne une largeur de console (px) : le volet droit ne dépasse jamais 50 % de la fenêtre. */
 export function clampConsoleWidth(w: number, viewport = window.innerWidth): number {
-  const max = Math.max(260, viewport - 360)
-  return Math.min(Math.max(w, 260), max)
+  const max = Math.floor(viewport / 2)
+  const min = Math.min(260, max)
+  return Math.min(Math.max(w, min), max)
 }
 
 const CONSOLE_WIDTH_KEY = 'difai.consoleWidth'
