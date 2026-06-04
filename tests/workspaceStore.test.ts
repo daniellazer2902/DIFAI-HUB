@@ -29,6 +29,13 @@ describe('workspaceStore (pur)', () => {
     expect(parseWorkspace('{"groups": "oops"}').groups[0].name).toBe('Sessions')
   })
 
+  it('parseWorkspace : split conservé (round-trip)', () => {
+    const tree: WorkspaceTree = { activeGroupId: 'g1', groups: [{ id: 'g1', name: 'X', collapsed: false, defaultCwd: null, items: [{ id: 'i1', name: 'api', cwd: 'C:/p', split: 2 }, { id: 'i2', name: 'b', cwd: 'C:/b' }] }] }
+    const parsed = parseWorkspace(serializeWorkspace(tree))
+    expect(parsed.groups[0].items[0].split).toBe(2)
+    expect(parsed.groups[0].items[1].split).toBeUndefined()
+  })
+
   it('serializeWorkspace : round-trip stable', () => {
     const tree: WorkspaceTree = { activeGroupId: 'g1', groups: [{ id: 'g1', name: 'X', collapsed: true, defaultCwd: null, items: [] }] }
     expect(parseWorkspace(serializeWorkspace(tree))).toEqual(tree)

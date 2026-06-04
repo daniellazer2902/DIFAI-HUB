@@ -18,7 +18,7 @@ export function App(): React.JSX.Element {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
         const s = useHub.getState()
         const g = s.groups.find((x) => x.id === s.activeGroupId)
-        const ref = s.focusedPane === 'right' ? g?.rightActiveTab : g?.leftActiveTab
+        const ref = (s.focusedPane === 'right' ? g?.rightActiveTab : g?.leftActiveTab) ?? g?.rightActiveTab ?? g?.leftActiveTab
         const targetId = ref ? parseRef(ref).itemId : s.activeItemId
         if (targetId) { e.preventDefault(); e.stopPropagation(); s.toggleFind(targetId) }
       }
