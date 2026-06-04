@@ -11,11 +11,14 @@ export function Workspace(): React.JSX.Element {
   const consoleWidth = useHub((s) => s.consoleWidth)
   const setConsoleWidth = useHub((s) => s.setConsoleWidth)
   const [dragId, setDragId] = useState<string | null>(null)
+  const panesRef = useRef<HTMLDivElement>(null)
 
-  // Re-borne la largeur du volet droit au redimensionnement de la fenêtre
-  // (évite un volet figé à la taille d'une fenêtre précédemment plus large).
+  // Largeur de référence = zone des volets (fenêtre HORS sidebar), pas la fenêtre entière.
+  const availWidth = (): number => panesRef.current?.clientWidth || window.innerWidth - 230
+
+  // Re-borne la largeur du volet droit au redimensionnement de la fenêtre (max 50 % de la zone volets).
   useEffect(() => {
-    const onResize = (): void => setConsoleWidth(clampConsoleWidth(useHub.getState().consoleWidth))
+    const onResize = (): void => setConsoleWidth(clampConsoleWidth(useHub.getState().consoleWidth, availWidth()))
     window.addEventListener('resize', onResize)
     onResize()
     return () => window.removeEventListener('resize', onResize)
@@ -25,7 +28,8 @@ export function Workspace(): React.JSX.Element {
     e.preventDefault()
     const startX = e.clientX
     const startW = consoleWidth
-    const move = (ev: MouseEvent): void => setConsoleWidth(clampConsoleWidth(startW - (ev.clientX - startX)))
+    const avail = availWidth()
+    const move = (ev: MouseEvent): void => setConsoleWidth(clampConsoleWidth(startW - (ev.clientX - startX), avail))
     const up = (): void => {
       document.removeEventListener('mousemove', move)
       document.removeEventListener('mouseup', up)
@@ -42,14 +46,15 @@ export function Workspace(): React.JSX.Element {
   const splitOpen = leftTabs.length > 0 && rightTabs.length > 0
 
   // À l'ouverture du split : si la fenêtre a changé de taille depuis le dernier réglage,
-  // on (re)met le volet à 50 % de la largeur courante.
+  // on (re)met le volet à 50 % de la zone des volets.
   const prevSplit = useRef(false)
   useEffect(() => {
     if (splitOpen && !prevSplit.current) {
       let vp = 0
       try { vp = Number(localStorage.getItem(VP_KEY) || '0') } catch { /* ignore */ }
       if (vp !== window.innerWidth) {
-        const half = clampConsoleWidth(Math.round(window.innerWidth / 2))
+        const avail = availWidth()
+        const half = clampConsoleWidth(Math.round(avail / 2), avail)
         setConsoleWidth(half)
         writeConsoleWidth(half)
         try { localStorage.setItem(VP_KEY, String(window.innerWidth)) } catch { /* ignore */ }
@@ -64,7 +69,7 @@ export function Workspace(): React.JSX.Element {
   }
 
   return (
-    <div id="panes">
+    <div id="panes" ref={panesRef}>
       {group && leftTabs.length > 0 && (
         <Pane side="left" group={group} tabs={leftTabs} activeRef={group.leftActiveTab} width={consoleWidth} hasOther={rightTabs.length > 0} dragId={dragId} setDragId={setDragId} />
       )}
@@ -74,7 +79,7 @@ export function Workspace(): React.JSX.Element {
       {group && rightTabs.length > 0 && (
         <Pane side="right" group={group} tabs={rightTabs} activeRef={group.rightActiveTab} width={consoleWidth} hasOther={leftTabs.length > 0} dragId={dragId} setDragId={setDragId} />
       )}
-      {group && dragId && rightTabs.length === 0 && leftTabs.length >= 2 && (
+      {group && dragId && rightTabs.length === 0 && (
         <div className="drop-zone" onDragOver={(e) => e.preventDefault()} onDrop={() => dropTo(2)}>Déposer à droite →</div>
       )}
     </div>

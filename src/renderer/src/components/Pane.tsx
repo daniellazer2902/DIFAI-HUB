@@ -137,12 +137,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                   <span className="tab-title">{t.item.name}</span>
                 )}
                 {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
-                <span
-                  className="tab-agents"
-                  title="Ouvrir les agents"
-                  onClick={(e) => { e.stopPropagation(); useHub.getState().toggleAgentsTab(t.item.id) }}
-                  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setCtxFor(ctxFor === t.item.id ? null : t.item.id) }}
-                >· {t.item.agents.filter((a) => !a.done).length} agents</span>
+                <span className="tab-agents">· {t.item.agents.filter((a) => !a.done).length} agents</span>
                 <span className="tab-close" title="Fermer l'onglet" onClick={(e) => closeSession(e, t.item.id, t.item.tabId)}>✕</span>
                 {ctxFor === t.item.id && (
                   <div className="ctx-menu tab-ctx" onClick={(e) => e.stopPropagation()}>
