@@ -140,7 +140,12 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => { e.stopPropagation(); onDropTab(t.item.id) }}
                   onClick={() => useHub.getState().selectTab(side, t.ref)}
-                  onContextMenu={(e) => { e.preventDefault(); setCtx(ctx?.id === t.item.id ? null : { id: t.item.id, x: e.clientX, y: e.clientY }) }}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    const x = Math.max(4, Math.min(e.clientX, window.innerWidth - 190))
+                    const y = Math.min(e.clientY, window.innerHeight - 150)
+                    setCtx(ctx?.id === t.item.id ? null : { id: t.item.id, x, y })
+                  }}
                 >
                   <span className="tab-ic"><TerminalIcon /></span>
                   <StateDot state={t.item.state} />
@@ -175,7 +180,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
             )
           })}
           <div className="tab-new">
-            <button title="Nouvel onglet" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setAddMenu(addMenu ? null : { x: r.left, y: r.bottom + 2 }) }}>＋</button>
+            <button title="Nouvel onglet" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setAddMenu(addMenu ? null : { x: Math.max(4, Math.min(r.left, window.innerWidth - 228)), y: r.bottom + 2 }) }}>＋</button>
           </div>
         </div>
         {overflowing && (
@@ -192,7 +197,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                     >{tabLabel(t)}</div>
                   ))}
                   <div className="ovf-add" onClick={onDefault}><FolderIcon /> ＋ Dossier par défaut</div>
-                  <div className="ovf-add" onClick={onPick}><FolderIcon /> Choisir un dossier…</div>
+                  <div className="ovf-add" onClick={onPick}><FolderIcon /> ＋ Choisir un dossier…</div>
                 </div>
               )}
             </div>
