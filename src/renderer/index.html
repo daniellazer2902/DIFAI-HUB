@@ -65,6 +65,15 @@
       .item.active-group-item { background: var(--gc, #202020); color: var(--gt, #ccc); }
       .item.active-group-item:hover { background: var(--gcd, #262626); color: var(--gtd, #ccc); }
       .item.active-item { background: var(--gcd, #2a2a2a); color: var(--gtd, #ccc); box-shadow: inset 3px 0 0 #c80; }
+      /* Icônes d'action et épingle : suivent la couleur de contraste sur fond coloré (fallback = styles neutres). */
+      .group-head .ic-btn { color: var(--gt, #888); }
+      .group-head .ic-btn:hover { color: var(--gt, #fff); }
+      .item.active-group-item .ic-btn { color: var(--gt, #888); }
+      .item.active-group-item .ic-btn:hover { color: var(--gt, #fff); }
+      .item.active-item .ic-btn { color: var(--gtd, #888); }
+      .item.active-item .ic-btn:hover { color: var(--gtd, #fff); }
+      .item.active-group-item .item-pin { color: var(--gt, #c80); }
+      .item.active-item .item-pin { color: var(--gtd, #c80); }
       .inline-edit { flex: 1; min-width: 0; background: #0d0d0d; border: 1px solid #c80; border-radius: 3px; color: #ddd; font-family: inherit; font-size: 12px; padding: 1px 4px; outline: none; }
       .new-group { padding: 8px; color: #9c9; cursor: pointer; border-top: 1px solid #2a2a2a; margin-top: auto; }
       .new-group:hover { color: #cfc; }
