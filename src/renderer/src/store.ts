@@ -190,7 +190,15 @@ export const useHub = create<HubState>((set, get) => ({
     }),
   toggleGroupCollapsed: (groupId) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, collapsed: !g.collapsed } : g)) })),
   setGroupDefaultCwd: (groupId, cwd) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, defaultCwd: cwd } : g)) })),
-  setActiveGroup: (activeGroupId) => set({ activeGroupId }),
+  setActiveGroup: (groupId) =>
+    set((s) => {
+      const g = s.groups.find((x) => x.id === groupId)
+      if (!g) return { activeGroupId: groupId }
+      // Recale le contexte sur le groupe : volet focus = gauche s'il a des onglets, sinon droite.
+      const pane: Pane = paneRefs(g, 'left').length > 0 ? 'left' : 'right'
+      const ref = pane === 'left' ? g.leftActiveTab : g.rightActiveTab
+      return { activeGroupId: groupId, focusedPane: pane, activeItemId: ref ? parseRef(ref).itemId : s.activeItemId }
+    }),
 
   addItem: (groupId, item) =>
     set((s) => {

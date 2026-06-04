@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useHub, parseRef, type Group, type PaneTab, type Pane as Side } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, FolderIcon } from './icons'
+import { TerminalIcon, FolderIcon, EditIcon, PinIcon, TrashIcon } from './icons'
 import { Terminal } from './Terminal'
 import { Console } from './Console'
 import { SearchPanel } from './SearchPanel'
@@ -20,18 +20,38 @@ interface Props {
 
 export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, setDragId }: Props): React.JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [ctxFor, setCtxFor] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const editRef = useRef<HTMLInputElement>(null)
   const sessions = tabs.filter((t) => t.kind === 'session')
   const active = activeRef ? parseRef(activeRef) : null
 
-  // Ferme le menu ＋ au clic extérieur (et donc aussi au démarrage d'un drag).
+  // Ferme le menu ＋ et le menu contextuel d'onglet au clic extérieur (et au début d'un drag).
   useEffect(() => {
-    if (!menuOpen) return
+    if (!menuOpen && !ctxFor) return
     const onDown = (e: MouseEvent): void => {
-      if (!(e.target as HTMLElement).closest('.tab-new')) setMenuOpen(false)
+      const t = e.target as HTMLElement
+      if (!t.closest('.tab-new')) setMenuOpen(false)
+      if (!t.closest('.tab-ctx') && !t.closest('.tab')) setCtxFor(null)
     }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
-  }, [menuOpen])
+  }, [menuOpen, ctxFor])
+
+  useEffect(() => {
+    if (editingId) { editRef.current?.focus(); editRef.current?.select() }
+  }, [editingId])
+
+  function startRename(itemId: string, current: string): void {
+    setCtxFor(null)
+    setEditValue(current)
+    setEditingId(itemId)
+  }
+  function commitRename(): void {
+    if (editingId && editValue.trim()) useHub.getState().renameItem(editingId, editValue.trim())
+    setEditingId(null)
+  }
 
   async function openTab(cwd: string): Promise<void> {
     setMenuOpen(false)
@@ -83,21 +103,46 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
               <div
                 key={t.ref}
                 className={`tab${sel ? ' act' : ''}`}
-                draggable
-                onDragStart={() => { setMenuOpen(false); setDragId(t.item.id) }}
+                draggable={editingId !== t.item.id}
+                onDragStart={() => { setMenuOpen(false); setCtxFor(null); setDragId(t.item.id) }}
+                onDragEnd={() => setDragId(null)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.stopPropagation(); onDropTab(t.item.id) }}
                 onClick={() => useHub.getState().selectTab(side, t.ref)}
+                onContextMenu={(e) => { e.preventDefault(); setCtxFor(t.item.id) }}
               >
                 <span className="tab-ic"><TerminalIcon /></span>
                 <StateDot state={t.item.state} />
-                <span className="tab-title">{t.item.name}</span>
+                {editingId === t.item.id ? (
+                  <input
+                    ref={editRef}
+                    className="inline-edit"
+                    value={editValue}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); commitRename() }
+                      else if (e.key === 'Escape') { e.preventDefault(); setEditingId(null) }
+                    }}
+                  />
+                ) : (
+                  <span className="tab-title">{t.item.name}</span>
+                )}
+                {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
                 <span
                   className="tab-agents"
                   title="Ouvrir les agents"
                   onClick={(e) => { e.stopPropagation(); useHub.getState().openAgentsTab(t.item.id) }}
                 >· {t.item.agents.filter((a) => !a.done).length} agents</span>
                 <span className="tab-close" title="Fermer l'onglet" onClick={(e) => closeSession(e, t.item.id, t.item.tabId)}>✕</span>
+                {ctxFor === t.item.id && (
+                  <div className="ctx-menu tab-ctx" onClick={(e) => e.stopPropagation()}>
+                    <div onClick={() => startRename(t.item.id, t.item.name)}><EditIcon /> Renommer</div>
+                    <div onClick={() => { useHub.getState().togglePin(t.item.id); setCtxFor(null) }}><PinIcon /> {t.item.pinned ? 'Désépingler' : 'Épingler'}</div>
+                    <div className="danger" onClick={(e) => { closeSession(e, t.item.id, t.item.tabId); setCtxFor(null) }}><TrashIcon /> Supprimer</div>
+                  </div>
+                )}
               </div>
             )
           }
