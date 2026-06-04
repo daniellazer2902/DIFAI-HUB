@@ -26,7 +26,9 @@ const hub: HubApi = {
       cb(tabId as string, agentId as string, type as string, desc as string)),
   onAgentLines: (cb) =>
     on(IPC.AgentLines, (tabId, agentId, lines) => cb(tabId as string, agentId as string, lines as ConsoleLine[])),
-  onAgentDone: (cb) => on(IPC.AgentDone, (tabId, agentId) => cb(tabId as string, agentId as string))
+  onAgentDone: (cb) => on(IPC.AgentDone, (tabId, agentId) => cb(tabId as string, agentId as string)),
+  onCloseRequest: (cb) => on(IPC.CloseRequest, () => cb()),
+  confirmClose: () => ipcRenderer.send(IPC.CloseConfirm)
 }
 
 contextBridge.exposeInMainWorld('hub', hub)

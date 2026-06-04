@@ -10,8 +10,10 @@ import { WindowSender } from './WindowSender'
 import type { AppContext, HubModule } from './AppContext'
 import { createSessionModule } from './modules/sessionModule'
 import { createAgentsModule } from './modules/agentsModule'
+import { IPC } from '../shared/ipc'
 
 let hooksSettingsPath = ''
+let quitting = false
 
 const registry = new SessionRegistry()
 const hookServer = new HookServer()
@@ -65,6 +67,12 @@ function createWindow(): void {
   win.webContents.on('did-fail-load', (_e, code, desc, url) =>
     console.error('[hub] échec chargement renderer', code, desc, url))
 
+  win.on('close', (e) => {
+    if (quitting) return
+    e.preventDefault()
+    win.webContents.send(IPC.CloseRequest)
+  })
+
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
@@ -82,6 +90,11 @@ app.whenReady().then(async () => {
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+  ipcMain.on(IPC.CloseConfirm, () => {
+    quitting = true
+    ptyManager.killAll()
+    BrowserWindow.getAllWindows().forEach((w) => w.destroy())
   })
 })
 

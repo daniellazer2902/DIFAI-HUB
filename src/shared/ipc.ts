@@ -11,7 +11,9 @@ export const IPC = {
   SearchTranscript: 'transcript:search',
   LoadWorkspace: 'workspace:load',
   SaveWorkspace: 'workspace:save',
+  CloseConfirm: 'app:close-confirm',
   // main -> renderer
+  CloseRequest: 'app:close-request',
   PtyData: 'pty:data',
   PtyExit: 'pty:exit',
   SessionState: 'session:state',
@@ -61,4 +63,6 @@ export interface HubApi {
   onAgentAdded(cb: (tabId: string, agentId: string, agentType: string, description: string) => void): Unsub
   onAgentLines(cb: (tabId: string, agentId: string, lines: ConsoleLine[]) => void): Unsub
   onAgentDone(cb: (tabId: string, agentId: string) => void): Unsub
+  onCloseRequest(cb: () => void): Unsub
+  confirmClose(): void
 }
