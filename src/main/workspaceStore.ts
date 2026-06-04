@@ -21,7 +21,8 @@ function normGroup(x: unknown): PersistGroup | null {
   if (typeof o.id !== 'string' || typeof o.name !== 'string') return null
   const items = Array.isArray(o.items) ? (o.items.map(normItem).filter(Boolean) as PersistItem[]) : []
   const defaultCwd = typeof o.defaultCwd === 'string' ? o.defaultCwd : null
-  return { id: o.id, name: o.name, collapsed: o.collapsed === true, defaultCwd, items }
+  const color = typeof o.color === 'string' ? o.color : undefined
+  return { id: o.id, name: o.name, collapsed: o.collapsed === true, defaultCwd, items, ...(color ? { color } : {}) }
 }
 
 /** Parse le contenu JSON ; renvoie l'arbre par défaut si invalide/incomplet. */
