@@ -3,14 +3,12 @@ import { useHub } from '../store'
 import { clampConsoleWidth, writeConsoleWidth } from '../util'
 import { Terminal } from './Terminal'
 import { Console } from './Console'
-import { Rail } from './Rail'
 import { SearchPanel } from './SearchPanel'
 
 export function Workspace(): React.JSX.Element {
   const groups = useHub((s) => s.groups)
   const activeGroupId = useHub((s) => s.activeGroupId)
   const activeItemId = useHub((s) => s.activeItemId)
-  const toggleRail = useHub((s) => s.toggleRail)
   const consoleWidth = useHub((s) => s.consoleWidth)
   const setConsoleWidth = useHub((s) => s.setConsoleWidth)
 
@@ -38,9 +36,6 @@ export function Workspace(): React.JSX.Element {
         <div key={it.id} className="tabpane" style={{ display: it.id === activeItemId ? 'block' : 'none' }}>
           <div className="term-wrap">
             <div className="term-area">
-              <button className="rails-toggle" onClick={() => toggleRail(it.id)}>
-                {it.railCollapsed ? '› Rails' : '‹ Rails'}
-              </button>
               <Terminal tabId={it.tabId as string} />
             </div>
             {(it.searchOpen || it.openAgentId) && (
@@ -51,7 +46,6 @@ export function Workspace(): React.JSX.Element {
                 </div>
               </>
             )}
-            {!it.railCollapsed && <Rail itemId={it.id} />}
           </div>
         </div>
       ))}
