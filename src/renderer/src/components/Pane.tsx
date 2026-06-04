@@ -87,7 +87,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
       split: side === 'right' ? 2 : 1, findOpen: false, agentsOpen: false, searchQuery: ''
     })
   }
-  async function onDefault(): Promise<void> { openTab(group.defaultCwd ?? (await window.hub.defaultCwd())) }
+  async function onDefault(): Promise<void> { openTab(group.defaultCwd ?? useHub.getState().globalDefaultCwd ?? (await window.hub.defaultCwd())) }
   async function onPick(): Promise<void> { const f = await window.hub.pickFolder(); if (f) openTab(f); else closeMenus() }
 
   function closeSession(e: React.MouseEvent, itemId: string, tabId: string | null): void {

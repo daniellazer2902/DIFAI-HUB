@@ -3,8 +3,11 @@ import { useHub, parseRef, type Item } from './store'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { Workspace } from './components/Workspace'
-import { basename, readConsoleWidth } from './util'
+import { ConfirmHost } from './components/ConfirmHost'
+import { basename, readConsoleWidth, hasBusySession, isBusy } from './util'
+import { confirm } from './confirm'
 import { soundForTransition, playSound, readSoundEnabled } from './sound'
+import { readConfirmOnClose, readGlobalDefaultCwd } from './settings'
 import type { Unsub } from '../../shared/ipc'
 
 function makeItem(id: string, cwd: string, tabId: string, pinned: boolean): Item {
@@ -32,6 +35,8 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     useHub.getState().setSoundEnabled(readSoundEnabled())
     useHub.getState().setConsoleWidth(readConsoleWidth())
+    useHub.getState().setConfirmOnClose(readConfirmOnClose())
+    useHub.getState().setGlobalDefaultCwd(readGlobalDefaultCwd())
 
     const unsubs: Unsub[] = []
     unsubs.push(window.hub.onSessionState((tid, state) => {
@@ -53,6 +58,17 @@ export function App(): React.JSX.Element {
     return () => unsubs.forEach((u) => u())
   }, [])
 
+  // Fermeture propre : le main demande, on décide (réglage + sessions occupées).
+  useEffect(() => {
+    return window.hub.onCloseRequest(async () => {
+      const s = useHub.getState()
+      if (!s.confirmOnClose || !hasBusySession(s.groups)) { window.hub.confirmClose(); return }
+      const busy = s.groups.flatMap((g) => g.items).filter(isBusy).map((i) => i.name)
+      const ok = await confirm({ title: 'Quitter DIFAI-IDE ?', message: 'Des sessions sont en cours :', items: busy, confirmLabel: 'Quitter', danger: true })
+      if (ok) window.hub.confirmClose()
+    })
+  }, [])
+
   // Boot : charger l'arborescence, relancer les items épinglés dans leurs dossiers.
   useEffect(() => {
     let active = true
@@ -61,7 +77,7 @@ export function App(): React.JSX.Element {
       useHub.getState().loadWorkspace(tree)
       const hasItem = tree.groups.some((g) => g.items.length > 0)
       if (!hasItem) {
-        const cwd = await window.hub.defaultCwd()
+        const cwd = useHub.getState().globalDefaultCwd ?? (await window.hub.defaultCwd())
         const gid = useHub.getState().activeGroupId ?? useHub.getState().addGroup('Sessions')
         const tabId = await window.hub.newSession(cwd)
         useHub.getState().addItem(gid, makeItem(crypto.randomUUID(), cwd, tabId, false))
@@ -97,6 +113,7 @@ export function App(): React.JSX.Element {
           <Workspace />
         </div>
       </div>
+      <ConfirmHost />
     </div>
   )
 }

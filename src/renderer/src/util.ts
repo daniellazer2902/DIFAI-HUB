@@ -1,3 +1,5 @@
+import type { SessionState } from '../../shared/ipc'
+
 /** Dernier segment d'un chemin (Windows ou POSIX), slash final ignoré. */
 export function basename(p: string): string {
   const cleaned = p.replace(/[\\/]+$/, '')
@@ -26,4 +28,17 @@ export function readConsoleWidth(): number {
 /** Persiste la largeur de console. */
 export function writeConsoleWidth(w: number): void {
   try { localStorage.setItem(CONSOLE_WIDTH_KEY, String(Math.round(w))) } catch { /* ignore */ }
+}
+
+/** Forme minimale d'un item pour juger de son activité. */
+export interface BusyLike { tabId: string | null; state: SessionState; agents: { done: boolean }[] }
+
+/** Une session est « occupée » si elle tourne et est active/au démarrage, ou a un agent en cours. */
+export function isBusy(item: BusyLike): boolean {
+  return !!item.tabId && (item.state === 'active' || item.state === 'starting' || item.agents.some((a) => !a.done))
+}
+
+/** Vrai si au moins une session occupée dans les groupes. */
+export function hasBusySession(groups: { items: BusyLike[] }[]): boolean {
+  return groups.some((g) => g.items.some(isBusy))
 }

@@ -104,4 +104,17 @@ describe('PtyManager', () => {
     expect(pty.kill).toHaveBeenCalled()
     expect(mgr.has(tabId)).toBe(false)
   })
+
+  it('killAll tue toutes les ptys et vide la map', () => {
+    const ptys = [fakePty(), fakePty()]
+    let i = 0
+    const mgr = new PtyManager({ spawn: () => ptys[i++], claudePath: 'c' })
+    const t1 = mgr.create('C:\\a')
+    const t2 = mgr.create('C:\\b')
+    mgr.killAll()
+    expect(ptys[0].kill).toHaveBeenCalled()
+    expect(ptys[1].kill).toHaveBeenCalled()
+    expect(mgr.has(t1)).toBe(false)
+    expect(mgr.has(t2)).toBe(false)
+  })
 })

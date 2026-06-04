@@ -46,6 +46,8 @@ interface HubState {
   focusedPane: Pane
   soundEnabled: boolean
   consoleWidth: number
+  confirmOnClose: boolean
+  globalDefaultCwd: string | null
 
   itemById: (itemId: string) => Item | undefined
   itemByTab: (tabId: string) => Item | undefined
@@ -88,6 +90,8 @@ interface HubState {
 
   setSoundEnabled: (v: boolean) => void
   setConsoleWidth: (w: number) => void
+  setConfirmOnClose: (v: boolean) => void
+  setGlobalDefaultCwd: (v: string | null) => void
   toPersistable: () => WorkspaceTree
   loadWorkspace: (tree: WorkspaceTree) => void
   reset: () => void
@@ -154,7 +158,9 @@ const initial = {
   activeItemId: null as string | null,
   focusedPane: 'left' as Pane,
   soundEnabled: true,
-  consoleWidth: 380
+  consoleWidth: 380,
+  confirmOnClose: true,
+  globalDefaultCwd: null as string | null
 }
 
 function mapItems(groups: Group[], match: (i: Item) => boolean, fn: (i: Item) => Item): Group[] {
@@ -336,6 +342,8 @@ export const useHub = create<HubState>((set, get) => ({
 
   setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
   setConsoleWidth: (consoleWidth) => set({ consoleWidth }),
+  setConfirmOnClose: (confirmOnClose) => set({ confirmOnClose }),
+  setGlobalDefaultCwd: (globalDefaultCwd) => set({ globalDefaultCwd }),
 
   toPersistable: () => {
     const s = get()
