@@ -11,7 +11,8 @@ function normItem(x: unknown): PersistItem | null {
   if (!x || typeof x !== 'object') return null
   const o = x as Record<string, unknown>
   if (typeof o.id !== 'string' || typeof o.name !== 'string' || typeof o.cwd !== 'string') return null
-  return { id: o.id, name: o.name, cwd: o.cwd }
+  const split: 1 | 2 | undefined = o.split === 2 ? 2 : o.split === 1 ? 1 : undefined
+  return { id: o.id, name: o.name, cwd: o.cwd, ...(split ? { split } : {}) }
 }
 
 function normGroup(x: unknown): PersistGroup | null {
