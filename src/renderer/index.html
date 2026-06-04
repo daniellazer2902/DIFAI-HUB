@@ -23,11 +23,10 @@
       #header .brand { font-weight: bold; color: #7fd; }
       .sound-toggle { background: none; border: 1px solid #444; border-radius: 6px; color: #ddd; cursor: pointer; padding: 2px 8px; font-family: inherit; -webkit-app-region: no-drag; }
 
-      .tab { position: relative; display: flex; align-items: center; gap: 6px; padding: 4px 9px; background: #1e1e1e; border: 1px solid #333; border-bottom: none; border-radius: 6px 6px 0 0; cursor: pointer; white-space: nowrap; font-size: 12px; }
+      .tab { position: relative; flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 9px; background: #1e1e1e; border: 1px solid #333; border-bottom: none; border-radius: 6px 6px 0 0; cursor: pointer; white-space: nowrap; font-size: 12px; min-width: 0; }
       .tab-pin { display: inline-flex; color: #c80; flex: none; }
-      .tab-ctx { top: 30px; left: 0; right: auto; }
       .tab.act { background: #23262b; border-color: #c80; margin-bottom: -1px; padding-bottom: 5px; position: relative; z-index: 1; }
-      .tab-title { color: #ddd; }
+      .tab-title { color: #ddd; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .tab-agents { color: #888; font-size: 11px; }
       .tab-close { color: #888; }
       .tab-close:hover { color: #f66; }
@@ -82,6 +81,16 @@
       #panes { flex: 1; min-height: 0; display: flex; }
       .pane { display: flex; flex-direction: column; min-width: 0; height: 100%; }
       .pane-tabstrip { display: flex; align-items: flex-end; gap: 5px; padding: 6px 8px 0; background: #181818; border-bottom: 1px solid #333; min-height: 34px; }
+      .tab-row { flex: 1; min-width: 0; display: flex; align-items: flex-end; gap: 5px; overflow: hidden; }
+      .tab-controls { flex: none; display: flex; align-items: flex-end; gap: 5px; }
+      .tab-overflow { position: relative; align-self: flex-end; margin-bottom: -1px; }
+      .tab-overflow button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid #444; border-bottom: unset; border-radius: 6px 6px 0 0; color: #9c9; cursor: pointer; padding: 5px 9px; font-family: inherit; font-size: 12px; line-height: 16px; }
+      .tab-overflow-menu { position: absolute; top: 30px; right: 0; background: #202227; border: 1px solid #3a3d44; border-radius: 6px; overflow-y: auto; max-height: 320px; min-width: 200px; z-index: 20; }
+      .tab-overflow-menu div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; color: #ddd; white-space: nowrap; }
+      .tab-overflow-menu div:hover { background: #2a2d33; }
+      .tab-overflow-menu div.sel { color: #fc8; }
+      .tab-overflow-menu .ovf-add { border-top: 1px solid #3a3d44; color: #9c9; }
+      .tab-overflow-menu .ovf-add svg { color: #9ab; flex: none; }
       .pane-body { flex: 1; min-height: 0; position: relative; display: flex; }
       .body-slot { position: absolute; inset: 0; }
       .tab.aux { background: #1a1d22; border-color: #2f3a44; color: #9cc; }
