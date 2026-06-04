@@ -65,7 +65,7 @@ export function Sidebar(): React.JSX.Element {
     const tabId = await window.hub.newSession(cwd)
     const item: Item = {
       id: crypto.randomUUID(), name: basename(cwd), cwd, pinned: false, tabId,
-      state: 'starting', agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '', railCollapsed: false, searchOpen: false
+      state: 'starting', agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: ''
     }
     useHub.getState().addItem(group.id, item)
   }

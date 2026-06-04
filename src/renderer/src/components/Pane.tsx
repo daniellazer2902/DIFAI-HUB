@@ -30,7 +30,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
     const id = crypto.randomUUID()
     useHub.getState().addItem(gid, {
       id, name: basename(cwd), cwd, pinned: false, tabId, state: 'starting', agents: [], openAgentId: null,
-      split: side === 'right' ? 2 : 1, findOpen: false, agentsOpen: false, searchQuery: '', railCollapsed: false, searchOpen: false
+      split: side === 'right' ? 2 : 1, findOpen: false, agentsOpen: false, searchQuery: ''
     })
   }
   async function onDefault(): Promise<void> { openTab(group.defaultCwd ?? (await window.hub.defaultCwd())) }

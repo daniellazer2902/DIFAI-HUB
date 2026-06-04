@@ -4,7 +4,7 @@ import type { Item } from '../src/renderer/src/store'
 
 const mkItem = (id: string, over: Partial<Item> = {}): Item => ({
   id, name: id, cwd: 'C:/' + id, pinned: false, tabId: 't-' + id,
-  state: 'starting', agents: [], openAgentId: null, railCollapsed: false, searchOpen: false,
+  state: 'starting', agents: [], openAgentId: null,
   split: 1, findOpen: false, agentsOpen: false, searchQuery: '', ...over
 })
 
