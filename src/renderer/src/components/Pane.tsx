@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useHub, parseRef, type Group, type PaneTab, type Pane as Side } from '../store'
 import { StateDot } from './StateDot'
 import { TerminalIcon, FolderIcon } from './icons'
@@ -22,6 +22,16 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
   const [menuOpen, setMenuOpen] = useState(false)
   const sessions = tabs.filter((t) => t.kind === 'session')
   const active = activeRef ? parseRef(activeRef) : null
+
+  // Ferme le menu ＋ au clic extérieur (et donc aussi au démarrage d'un drag).
+  useEffect(() => {
+    if (!menuOpen) return
+    const onDown = (e: MouseEvent): void => {
+      if (!(e.target as HTMLElement).closest('.tab-new')) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [menuOpen])
 
   async function openTab(cwd: string): Promise<void> {
     setMenuOpen(false)
@@ -74,7 +84,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                 key={t.ref}
                 className={`tab${sel ? ' act' : ''}`}
                 draggable
-                onDragStart={() => setDragId(t.item.id)}
+                onDragStart={() => { setMenuOpen(false); setDragId(t.item.id) }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.stopPropagation(); onDropTab(t.item.id) }}
                 onClick={() => useHub.getState().selectTab(side, t.ref)}

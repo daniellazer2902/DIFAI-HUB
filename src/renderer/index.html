@@ -24,7 +24,7 @@
       .sound-toggle { background: none; border: 1px solid #444; border-radius: 6px; color: #ddd; cursor: pointer; padding: 2px 8px; font-family: inherit; -webkit-app-region: no-drag; }
 
       .tab { display: flex; align-items: center; gap: 6px; padding: 4px 9px; background: #1e1e1e; border: 1px solid #333; border-bottom: none; border-radius: 6px 6px 0 0; cursor: pointer; white-space: nowrap; font-size: 12px; }
-      .tab.act { background: #23262b; border-color: #c80; }
+      .tab.act { background: #23262b; border-color: #c80; margin-bottom: -1px; padding-bottom: 5px; position: relative; z-index: 1; }
       .tab-title { color: #ddd; }
       .tab-agents { color: #888; font-size: 11px; }
       .tab-close { color: #888; }
@@ -79,7 +79,7 @@
       .sound-toggle { display: inline-flex; align-items: center; justify-content: center; }
       #panes { flex: 1; min-height: 0; display: flex; }
       .pane { display: flex; flex-direction: column; min-width: 0; height: 100%; }
-      .pane-tabstrip { display: flex; align-items: flex-end; gap: 5px; padding: 6px 8px 0; background: #181818; border-bottom: 1px solid #333; min-height: 34px; overflow-x: auto; }
+      .pane-tabstrip { display: flex; align-items: flex-end; gap: 5px; padding: 6px 8px 0; background: #181818; border-bottom: 1px solid #333; min-height: 34px; }
       .pane-body { flex: 1; min-height: 0; position: relative; display: flex; }
       .body-slot { position: absolute; inset: 0; }
       .tab.aux { background: #1a1d22; border-color: #2f3a44; color: #9cc; }
