@@ -57,7 +57,7 @@ export function Sidebar(): React.JSX.Element {
 
   // ＋ du groupe : utilise le dossier par défaut du groupe s'il est défini, sinon demande.
   async function addItemTo(group: Group): Promise<void> {
-    const cwd = group.defaultCwd ?? (await window.hub.pickFolder())
+    const cwd = group.defaultCwd ?? useHub.getState().globalDefaultCwd ?? (await window.hub.pickFolder())
     if (!cwd) return
     const tabId = await window.hub.newSession(cwd)
     const item: Item = {
