@@ -3,6 +3,7 @@ import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
 import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, PaletteIcon } from './icons'
 import { GroupColorModal } from './GroupColorModal'
+import { AdoBindModal } from './AdoBindModal'
 import { darken, textOn } from '../color'
 import { basename, isBusy } from '../util'
 import { confirm } from '../confirm'
@@ -21,6 +22,7 @@ export function Sidebar(): React.JSX.Element {
   const activeGroupId = useHub((s) => s.activeGroupId)
   const [menu, setMenu] = useState<string | null>(null)
   const [colorFor, setColorFor] = useState<string | null>(null)
+  const [adoFor, setAdoFor] = useState<string | null>(null)
   const [editing, setEditing] = useState<Editing | null>(null)
   const [editValue, setEditValue] = useState('')
   const editRef = useRef<HTMLInputElement>(null)
@@ -55,7 +57,7 @@ export function Sidebar(): React.JSX.Element {
 
   async function onItemClick(item: Item): Promise<void> {
     useHub.getState().setActiveItem(item.id)
-    if (!item.tabId) await launch(item)
+    if (item.kind !== 'ado' && !item.tabId) await launch(item)
   }
 
   // ＋ du groupe : utilise le dossier par défaut du groupe s'il est défini, sinon demande.
@@ -66,6 +68,17 @@ export function Sidebar(): React.JSX.Element {
     const item: Item = {
       id: crypto.randomUUID(), name: basename(cwd), cwd, pinned: false, tabId,
       state: 'starting', agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '', kind: 'claude'
+    }
+    useHub.getState().addItem(group.id, item)
+  }
+
+  function addAdoItem(group: Group): void {
+    setMenu(null)
+    if (!group.ado) { setAdoFor(group.id); return }
+    const item: Item = {
+      id: crypto.randomUUID(), name: `Board ${group.ado.project}`, cwd: '', pinned: false, tabId: null,
+      state: 'done', agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
+      kind: 'ado', ado: { view: 'tree', iterationPath: null }
     }
     useHub.getState().addItem(group.id, item)
   }
@@ -137,6 +150,8 @@ export function Sidebar(): React.JSX.Element {
                   <div onClick={() => startRename('group', g.id, g.name)}><EditIcon /> Renommer</div>
                   <div onClick={() => setGroupDefault(g.id)}><FolderIcon /> Dossier par défaut…</div>
                   <div onClick={() => { setMenu(null); setColorFor(g.id) }}><PaletteIcon /> Attribuer une couleur</div>
+                  <div onClick={() => { setMenu(null); setAdoFor(g.id) }}><FolderIcon /> Configurer ADO…</div>
+                  <div onClick={() => addAdoItem(g)}><FolderIcon /> Ajouter un board ADO</div>
                   <div className="danger" onClick={() => removeGroup(g.id, g.name)}><TrashIcon /> Supprimer</div>
                 </div>
               )}
@@ -148,10 +163,10 @@ export function Sidebar(): React.JSX.Element {
                 onClick={() => onItemClick(it)}
                 onContextMenu={(e) => { e.preventDefault(); setMenu(it.id) }}
               >
-                <span className="item-ic"><TerminalIcon /></span>
+                <span className="item-ic">{it.kind === 'ado' ? <FolderIcon /> : <TerminalIcon />}</span>
                 {nameOrEditor('item', it.id, it.name, 'item-name')}
                 <span className="item-pin">{it.pinned && <PinIcon />}</span>
-                <span className="item-state">{it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>}</span>
+                <span className="item-state">{it.kind === 'ado' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>
                 <span className="ic-btn menu-btn item-menu" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}>···</span>
                 {menu === it.id && (
                   <div className="ctx-menu" onClick={(e) => e.stopPropagation()}>
@@ -170,6 +185,13 @@ export function Sidebar(): React.JSX.Element {
             current={groups.find((x) => x.id === colorFor)?.color ?? null}
             onPick={(c) => useHub.getState().setGroupColor(colorFor, c)}
             onClose={() => setColorFor(null)}
+          />
+        )}
+        {adoFor && (
+          <AdoBindModal
+            current={groups.find((x) => x.id === adoFor)?.ado ?? null}
+            onApply={(ado) => { useHub.getState().setGroupAdo(adoFor, ado); setAdoFor(null) }}
+            onClose={() => setAdoFor(null)}
           />
         )}
       </div>
