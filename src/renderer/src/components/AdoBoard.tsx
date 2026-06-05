@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useHub, adoCacheKey, type Item, type Group } from '../store'
 import type { AdoBoard as Board, AdoIteration, AdoWorkItem } from '../../../shared/ipc'
+import { AdoStoryDetail } from './AdoStoryDetail'
 
 interface Props { item: Item; group: Group }
 
@@ -15,6 +16,7 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
   const [iterReady, setIterReady] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [detailId, setDetailId] = useState<number | null>(null)
 
   // Stale-while-revalidate : on affiche le cache (s'il existe) et on rafraîchit en arrière-plan.
   const load = useCallback(async () => {
@@ -69,14 +71,46 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
       </div>
       {err && <div className="ado-board-err">{err} <button className="btn" onClick={load}>Réessayer</button></div>}
       <div className="ado-content">
-        {ado.view === 'board'
-          ? <div className="ado-center">Vue board — sous-lot 4.3</div>
-          : board
-            ? <TreeView board={board} />
-            : refreshing
-              ? <div className="ado-center"><span className="ado-spinner" /> Chargement du board…</div>
-              : !err && <div className="ado-center">Aucune donnée.</div>}
+        {board
+          ? (ado.view === 'board'
+              ? <BoardView board={board} onOpen={setDetailId} />
+              : <TreeView board={board} />)
+          : refreshing
+            ? <div className="ado-center"><span className="ado-spinner" /> Chargement du board…</div>
+            : !err && <div className="ado-center">Aucune donnée.</div>}
       </div>
+      {detailId !== null && board && (() => {
+        const s = board.stories.find((x) => x.id === detailId)
+        return s ? <AdoStoryDetail story={s} tasks={board.tasksByParent[s.id] ?? []} onClose={() => setDetailId(null)} /> : null
+      })()}
+    </div>
+  )
+}
+
+function BoardView({ board, onOpen }: { board: Board; onOpen: (id: number) => void }): React.JSX.Element {
+  if (board.stories.length === 0) return <div className="ado-center">Aucune User Story dans ce sprint.</div>
+  return (
+    <div className="ado-cols">
+      {board.states.map((state) => {
+        const cards = board.stories.filter((s) => s.state === state)
+        return (
+          <div key={state} className="ado-col">
+            <div className="ado-col-head">{state} <span className="ado-col-count">{cards.length}</span></div>
+            <div className="ado-col-body">
+              {cards.map((s) => (
+                <button key={s.id} className="ado-card" onClick={() => onOpen(s.id)}>
+                  <div className="ado-card-title">{s.title}</div>
+                  <div className="ado-card-meta">
+                    <span className="ado-id">#{s.id}</span>
+                    <span className="ado-card-tasks">{s.childCount} tâche{s.childCount > 1 ? 's' : ''}</span>
+                    <span className="ado-assignee">{s.assignedTo ?? '—'}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
