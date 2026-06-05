@@ -259,4 +259,11 @@ describe('store ADO (lot 4.2)', () => {
     expect(parseRef('d:a1')).toEqual({ kind: 'ado', itemId: 'a1' })
     expect(tabRef('ado', 'a1')).toBe('d:a1')
   })
+
+  it('setActiveItem d\'un item ado active la ref d: (pas s:)', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkAdo('a1'))
+    useHub.getState().setActiveItem('a1')
+    expect(useHub.getState().groups.find((x) => x.id === g)!.leftActiveTab).toBe('d:a1')
+  })
 })

@@ -253,7 +253,8 @@ export const useHub = create<HubState>((set, get) => ({
       if (!g) return { activeItemId: itemId }
       const item = g.items.find((i) => i.id === itemId) as Item
       const pane: Pane = item.split === 2 ? 'right' : 'left'
-      const groups = setPaneActive(s.groups, itemId, pane, tabRef('session', itemId))
+      const ref = item.kind === 'ado' ? tabRef('ado', itemId) : tabRef('session', itemId)
+      const groups = setPaneActive(s.groups, itemId, pane, ref)
       return { activeItemId: itemId, activeGroupId: g.id, focusedPane: pane, groups }
     }),
   moveItem: (itemId, toIndex, toGroupId) =>
