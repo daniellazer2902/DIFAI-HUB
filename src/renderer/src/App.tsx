@@ -27,8 +27,10 @@ export function App(): React.JSX.Element {
         if (ref) {
           e.preventDefault(); e.stopPropagation()
           const { itemId, kind } = parseRef(ref)
-          // Board ADO = page DOM → recherche in-page ; sinon Find transcript de session.
+          const item = s.itemById(itemId)
+          // Board ADO = page DOM → recherche in-page ; session Claude → Find transcript ; terminal cmd → rien (pas de transcript).
           if (kind === 'ado') s.setAdoFind(itemId, { open: !(s.adoFind[itemId]?.open) })
+          else if (item?.kind === 'cmd') { /* pas de recherche sur un terminal */ }
           else s.toggleFind(itemId)
         }
       }
