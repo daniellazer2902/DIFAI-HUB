@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useHub, tabRef, parseRef } from '../src/renderer/src/store'
+import { useHub, tabRef, parseRef, adoCacheKey } from '../src/renderer/src/store'
 import type { Item } from '../src/renderer/src/store'
 
 const mkItem = (id: string, over: Partial<Item> = {}): Item => ({
@@ -273,5 +273,29 @@ describe('store ADO (lot 4.2)', () => {
     useHub.getState().addItem(g, mkAdo('a1'))
     useHub.getState().setSplit('a1', 2)
     expect(useHub.getState().groups.find((x) => x.id === g)!.rightActiveTab).toBe('d:a1')
+  })
+
+  it('setAdoCache stocke le board par clé', () => {
+    const k = adoCacheKey('a1', 'P\\S1')
+    const board = { states: ['New'], stories: [], tasksByParent: {} }
+    useHub.getState().setAdoCache(k, board)
+    expect(useHub.getState().adoCache[k].board).toEqual(board)
+  })
+
+  it('removeItem purge le cache de l\'item', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkAdo('a1'))
+    useHub.getState().setAdoCache(adoCacheKey('a1', null), { states: [], stories: [], tasksByParent: {} })
+    useHub.getState().setAdoCache(adoCacheKey('a1', 'P\\S2'), { states: [], stories: [], tasksByParent: {} })
+    useHub.getState().removeItem('a1')
+    expect(Object.keys(useHub.getState().adoCache)).toHaveLength(0)
+  })
+
+  it('removeGroup purge le cache de ses items', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkAdo('a1'))
+    useHub.getState().setAdoCache(adoCacheKey('a1', null), { states: [], stories: [], tasksByParent: {} })
+    useHub.getState().removeGroup(g)
+    expect(Object.keys(useHub.getState().adoCache)).toHaveLength(0)
   })
 })

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ConsoleLine, SessionState, WorkspaceTree } from '../../shared/ipc'
+import type { ConsoleLine, SessionState, WorkspaceTree, AdoBoard } from '../../shared/ipc'
 
 export interface AgentView {
   id: string
@@ -14,6 +14,12 @@ export type TabKind = 'session' | 'find' | 'agents' | 'ado'
 
 export interface AdoView { view: 'tree' | 'board'; iterationPath: string | null }
 export interface GroupAdo { connId: string; project: string; team: string | null }
+
+/** Cache board en session (non persisté) : clé = itemId + sprint. */
+export interface AdoBoardCacheEntry { board: AdoBoard; at: number }
+export function adoCacheKey(itemId: string, iterationPath: string | null): string {
+  return `${itemId}::${iterationPath ?? '__all__'}`
+}
 
 export interface Item {
   id: string
@@ -55,6 +61,7 @@ interface HubState {
   consoleWidth: number
   confirmOnClose: boolean
   globalDefaultCwd: string | null
+  adoCache: Record<string, AdoBoardCacheEntry>
 
   itemById: (itemId: string) => Item | undefined
   itemByTab: (tabId: string) => Item | undefined
@@ -77,6 +84,7 @@ interface HubState {
   setGroupAdo: (groupId: string, ado: GroupAdo | null) => void
   setAdoView: (itemId: string, view: 'tree' | 'board') => void
   setAdoIteration: (itemId: string, iterationPath: string | null) => void
+  setAdoCache: (key: string, board: AdoBoard) => void
 
   bindSession: (itemId: string, tabId: string) => void
   clearSession: (itemId: string) => void
@@ -174,7 +182,8 @@ const initial = {
   soundEnabled: true,
   consoleWidth: 380,
   confirmOnClose: true,
-  globalDefaultCwd: null as string | null
+  globalDefaultCwd: null as string | null,
+  adoCache: {} as Record<string, AdoBoardCacheEntry>
 }
 
 function mapItems(groups: Group[], match: (i: Item) => boolean, fn: (i: Item) => Item): Group[] {
@@ -207,9 +216,11 @@ export const useHub = create<HubState>((set, get) => ({
   renameGroup: (groupId, name) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, name } : g)) })),
   removeGroup: (groupId) =>
     set((s) => {
+      const removedIds = new Set((s.groups.find((g) => g.id === groupId)?.items ?? []).map((i) => `${i.id}::`))
       const groups = s.groups.filter((g) => g.id !== groupId)
       const activeGroupId = s.activeGroupId === groupId ? (groups[groups.length - 1]?.id ?? null) : s.activeGroupId
-      return { groups, activeGroupId }
+      const adoCache = Object.fromEntries(Object.entries(s.adoCache).filter(([k]) => ![...removedIds].some((p) => k.startsWith(p))))
+      return { groups, activeGroupId, adoCache }
     }),
   toggleGroupCollapsed: (groupId) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, collapsed: !g.collapsed } : g)) })),
   setGroupDefaultCwd: (groupId, cwd) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, defaultCwd: cwd } : g)) })),
@@ -219,6 +230,7 @@ export const useHub = create<HubState>((set, get) => ({
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view, iterationPath: i.ado?.iterationPath ?? null } })) })),
   setAdoIteration: (itemId, iterationPath) =>
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view: i.ado?.view ?? 'tree', iterationPath } })) })),
+  setAdoCache: (key, board) => set((s) => ({ adoCache: { ...s.adoCache, [key]: { board, at: Date.now() } } })),
   setActiveGroup: (groupId) =>
     set((s) => {
       const g = s.groups.find((x) => x.id === groupId)
@@ -243,7 +255,9 @@ export const useHub = create<HubState>((set, get) => ({
   removeItem: (itemId) =>
     set((s) => {
       const groups = normalizeAll(s.groups.map((g) => ({ ...g, items: g.items.filter((i) => i.id !== itemId) })))
-      return { groups, activeItemId: s.activeItemId === itemId ? null : s.activeItemId }
+      const prefix = `${itemId}::`
+      const adoCache = Object.fromEntries(Object.entries(s.adoCache).filter(([k]) => !k.startsWith(prefix)))
+      return { groups, activeItemId: s.activeItemId === itemId ? null : s.activeItemId, adoCache }
     }),
   renameItem: (itemId, name) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, name })) })),
   togglePin: (itemId) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, pinned: !i.pinned })) })),
