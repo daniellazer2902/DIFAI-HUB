@@ -100,7 +100,7 @@ export function App(): React.JSX.Element {
       for (const g of tree.groups) {
         for (const i of g.items) {
           if (i.kind === 'ado') continue // board ADO : pas de pty à relancer
-          const tabId = i.kind === 'cmd' ? await window.hub.newCmd(i.cwd) : await window.hub.newSession(i.cwd)
+          const tabId = i.kind === 'cmd' ? await window.hub.newCmd(i.cwd) : await window.hub.newSession(i.cwd, i.claudeArgs)
           if (!active) return
           useHub.getState().bindSession(i.id, tabId)
         }

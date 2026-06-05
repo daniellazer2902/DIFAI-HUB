@@ -10,7 +10,7 @@ import { confirm } from '../confirm'
 
 /** Ouvre une session pour un item éteint et la lie. */
 async function launch(item: Item): Promise<void> {
-  const tabId = item.kind === 'cmd' ? await window.hub.newCmd(item.cwd) : await window.hub.newSession(item.cwd)
+  const tabId = item.kind === 'cmd' ? await window.hub.newCmd(item.cwd) : await window.hub.newSession(item.cwd, item.claudeArgs)
   useHub.getState().bindSession(item.id, tabId)
 }
 

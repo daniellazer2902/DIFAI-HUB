@@ -18,7 +18,10 @@ function normItem(x: unknown): PersistItem | null {
   if (a && (a.view === 'tree' || a.view === 'board')) {
     ado = { view: a.view, iterationPath: typeof a.iterationPath === 'string' ? a.iterationPath : null }
   }
-  return { id: o.id, name: o.name, cwd: o.cwd, ...(split ? { split } : {}), ...(kind ? { kind } : {}), ...(ado ? { ado } : {}) }
+  const claudeArgs = Array.isArray(o.claudeArgs) && o.claudeArgs.every((a) => typeof a === 'string')
+    ? (o.claudeArgs as string[])
+    : undefined
+  return { id: o.id, name: o.name, cwd: o.cwd, ...(split ? { split } : {}), ...(kind ? { kind } : {}), ...(claudeArgs ? { claudeArgs } : {}), ...(ado ? { ado } : {}) }
 }
 
 function normGroup(x: unknown): PersistGroup | null {
