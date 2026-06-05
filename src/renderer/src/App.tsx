@@ -24,7 +24,13 @@ export function App(): React.JSX.Element {
         if (!g) return
         // Cible = onglet actif du groupe COURANT (volet focus si valide, sinon l'autre volet).
         const ref = (s.focusedPane === 'right' ? g.rightActiveTab : g.leftActiveTab) ?? g.leftActiveTab ?? g.rightActiveTab
-        if (ref) { e.preventDefault(); e.stopPropagation(); s.toggleFind(parseRef(ref).itemId) }
+        if (ref) {
+          e.preventDefault(); e.stopPropagation()
+          const { itemId, kind } = parseRef(ref)
+          // Board ADO = page DOM → recherche in-page ; sinon Find transcript de session.
+          if (kind === 'ado') s.setAdoFind(itemId, { open: !(s.adoFind[itemId]?.open) })
+          else s.toggleFind(itemId)
+        }
       }
     }
     document.addEventListener('keydown', onKey, true)
@@ -91,6 +97,7 @@ export function App(): React.JSX.Element {
       }
       for (const g of tree.groups) {
         for (const i of g.items) {
+          if (i.kind === 'ado') continue // board ADO : pas de pty à relancer
           const tabId = await window.hub.newSession(i.cwd)
           if (!active) return
           useHub.getState().bindSession(i.id, tabId)
