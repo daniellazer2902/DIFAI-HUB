@@ -1,6 +1,7 @@
 import React from 'react'
 import { useHub } from '../store'
 import { Modal } from './Modal'
+import { AdoConnections } from './AdoConnections'
 import { writeSoundEnabled } from '../sound'
 import { writeConfirmOnClose, writeGlobalDefaultCwd } from '../settings'
 
@@ -33,6 +34,8 @@ export function Settings({ onClose }: { onClose: () => void }): React.JSX.Elemen
         <button className="btn" onClick={pick}>Choisir…</button>
         {globalDefaultCwd && <button className="btn" onClick={reset}>Réinitialiser</button>}
       </div>
+      <div className="settings-section-title">Intégrations</div>
+      <AdoConnections />
     </Modal>
   )
 }
