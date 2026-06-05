@@ -86,7 +86,7 @@ export type Unsub = () => void
 
 /** Contrat exposé au renderer via contextBridge. Le preload l'implémente, le renderer le consomme. */
 export interface HubApi {
-  newSession(cwd: string): Promise<string>
+  newSession(cwd: string, extraArgs?: string[]): Promise<string>
   newCmd(cwd: string): Promise<string>
   sendInput(tabId: string, data: string): void
   resize(tabId: string, cols: number, rows: number): void
