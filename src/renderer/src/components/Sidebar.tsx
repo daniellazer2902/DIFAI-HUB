@@ -56,6 +56,7 @@ export function Sidebar(): React.JSX.Element {
   }
 
   async function onItemClick(item: Item): Promise<void> {
+    if (item.kind === 'ado' && item.adoClosed) useHub.getState().setAdoClosed(item.id, false) // rouvre l'onglet fermé
     useHub.getState().setActiveItem(item.id)
     if (item.kind !== 'ado' && !item.tabId) await launch(item)
   }

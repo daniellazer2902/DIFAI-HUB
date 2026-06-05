@@ -203,7 +203,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                   <span className="tab-ic"><AzureIcon /></span>
                   <span className="tab-title">{t.item.name}</span>
                   {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
-                  <span className="tab-close" title="Fermer l'onglet" onClick={(e) => { e.stopPropagation(); useHub.getState().closeSession(t.item.id) }}>✕</span>
+                  <span className="tab-close" title="Fermer l'onglet" onClick={(e) => { e.stopPropagation(); if (t.item.pinned) useHub.getState().setAdoClosed(t.item.id, true); else useHub.getState().removeItem(t.item.id) }}>✕</span>
                 </div>
               )
             }
@@ -268,7 +268,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
           {ctxItem.kind !== 'ado' && (
             <div onClick={() => { if (ctxItem.agentsOpen) useHub.getState().closeAgentsTab(ctxItem.id); else useHub.getState().openAgentsTab(ctxItem.id); setCtx(null) }}><TerminalIcon /> {ctxItem.agentsOpen ? 'Cacher Agents' : 'Afficher Agents'}</div>
           )}
-          <div className="danger" onClick={(e) => { closeSession(e, ctxItem.id, ctxItem.tabId); setCtx(null) }}><TrashIcon /> Supprimer</div>
+          <div className="danger" onClick={(e) => { if (ctxItem.kind === 'ado') { e.stopPropagation(); useHub.getState().removeItem(ctxItem.id) } else closeSession(e, ctxItem.id, ctxItem.tabId); setCtx(null) }}><TrashIcon /> Supprimer</div>
         </div>
       )}
     </div>

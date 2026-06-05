@@ -39,6 +39,8 @@ export interface Item {
   searchQuery: string
   kind: 'claude' | 'ado'
   ado?: AdoView
+  /** Board ado épinglé dont l'onglet a été fermé (reste en sidebar, masqué des onglets). Éphémère. */
+  adoClosed?: boolean
 }
 
 export interface Group {
@@ -88,6 +90,7 @@ interface HubState {
   setGroupAdo: (groupId: string, ado: GroupAdo | null) => void
   setAdoView: (itemId: string, view: 'tree' | 'board') => void
   setAdoIteration: (itemId: string, iterationPath: string | null) => void
+  setAdoClosed: (itemId: string, closed: boolean) => void
   setAdoCache: (key: string, board: AdoBoard) => void
   setAdoFind: (itemId: string, patch: Partial<AdoFindState>) => void
 
@@ -152,7 +155,7 @@ function paneRefs(group: Group, pane: Pane): string[] {
   const auxOwnerSplit = pane === 'left' ? 2 : 1
   for (const i of group.items) {
     if (i.split === sessionSplit) {
-      if (i.kind === 'ado') refs.push(tabRef('ado', i.id))
+      if (i.kind === 'ado') { if (!i.adoClosed) refs.push(tabRef('ado', i.id)) }
       else if (i.tabId) refs.push(tabRef('session', i.id))
     }
     if (i.split === auxOwnerSplit && i.findOpen) refs.push(tabRef('find', i.id))
@@ -236,6 +239,8 @@ export const useHub = create<HubState>((set, get) => ({
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view, iterationPath: i.ado?.iterationPath ?? null } })) })),
   setAdoIteration: (itemId, iterationPath) =>
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view: i.ado?.view ?? 'tree', iterationPath } })) })),
+  setAdoClosed: (itemId, closed) =>
+    set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, adoClosed: closed }))) })),
   setAdoCache: (key, board) => set((s) => ({ adoCache: { ...s.adoCache, [key]: { board, at: Date.now() } } })),
   setAdoFind: (itemId, patch) =>
     set((s) => {

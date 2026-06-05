@@ -291,6 +291,17 @@ describe('store ADO (lot 4.2)', () => {
     expect(Object.keys(useHub.getState().adoCache)).toHaveLength(0)
   })
 
+  it('setAdoClosed masque l\'onglet ado puis le réaffiche', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkAdo('a1', { pinned: true }))
+    expect(useHub.getState().leftTabs().map((t) => t.ref)).toContain('d:a1')
+    useHub.getState().setAdoClosed('a1', true)
+    expect(useHub.getState().leftTabs().map((t) => t.ref)).not.toContain('d:a1')
+    expect(useHub.getState().itemById('a1')).toBeDefined() // item conservé (épinglé)
+    useHub.getState().setAdoClosed('a1', false)
+    expect(useHub.getState().leftTabs().map((t) => t.ref)).toContain('d:a1')
+  })
+
   it('removeGroup purge le cache de ses items', () => {
     const g = useHub.getState().addGroup('G')
     useHub.getState().addItem(g, mkAdo('a1'))
