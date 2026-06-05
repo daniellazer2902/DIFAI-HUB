@@ -12,7 +12,7 @@ function normItem(x: unknown): PersistItem | null {
   const o = x as Record<string, unknown>
   if (typeof o.id !== 'string' || typeof o.name !== 'string' || typeof o.cwd !== 'string') return null
   const split: 1 | 2 | undefined = o.split === 2 ? 2 : o.split === 1 ? 1 : undefined
-  const kind: 'claude' | 'ado' | undefined = o.kind === 'ado' ? 'ado' : o.kind === 'claude' ? 'claude' : undefined
+  const kind: 'claude' | 'ado' | 'cmd' | undefined = o.kind === 'ado' ? 'ado' : o.kind === 'cmd' ? 'cmd' : o.kind === 'claude' ? 'claude' : undefined
   let ado: PersistItem['ado'] | undefined
   const a = o.ado as Record<string, unknown> | undefined
   if (a && (a.view === 'tree' || a.view === 'board')) {
