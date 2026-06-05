@@ -372,7 +372,11 @@ export const useHub = create<HubState>((set, get) => ({
       activeGroupId: s.activeGroupId,
       groups: s.groups.map((g) => ({
         id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd, color: g.color,
-        items: g.items.filter((i) => i.pinned).map((i) => ({ id: i.id, name: i.name, cwd: i.cwd, split: i.split }))
+        ...(g.ado ? { ado: g.ado } : {}),
+        items: g.items.filter((i) => i.pinned).map((i) => ({
+          id: i.id, name: i.name, cwd: i.cwd, split: i.split, kind: i.kind,
+          ...(i.kind === 'ado' && i.ado ? { ado: i.ado } : {})
+        }))
       }))
     }
   },
@@ -383,10 +387,12 @@ export const useHub = create<HubState>((set, get) => ({
       focusedPane: 'left',
       groups: normalizeAll(
         tree.groups.map((g) => ({
-          id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd ?? null, color: g.color ?? null, ado: null, leftActiveTab: null, rightActiveTab: null,
+          id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd ?? null, color: g.color ?? null,
+          ado: g.ado ?? null, leftActiveTab: null, rightActiveTab: null,
           items: g.items.map((i) => ({
             id: i.id, name: i.name, cwd: i.cwd, pinned: true, tabId: null, state: 'done', agents: [], openAgentId: null,
-            split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: '', kind: 'claude'
+            split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: '',
+            kind: i.kind ?? 'claude', ...(i.kind === 'ado' ? { ado: i.ado ?? { view: 'tree', iterationPath: null } } : {})
           }))
         }))
       )
