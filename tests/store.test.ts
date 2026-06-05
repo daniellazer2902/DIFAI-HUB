@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useHub, tabRef } from '../src/renderer/src/store'
+import { useHub, tabRef, parseRef } from '../src/renderer/src/store'
 import type { Item } from '../src/renderer/src/store'
 
 const mkItem = (id: string, over: Partial<Item> = {}): Item => ({
   id, name: id, cwd: 'C:/' + id, pinned: false, tabId: 't-' + id,
   state: 'starting', agents: [], openAgentId: null,
-  split: 1, findOpen: false, agentsOpen: false, searchQuery: '', ...over
+  split: 1, findOpen: false, agentsOpen: false, searchQuery: '', kind: 'claude', ...over
 })
 
 describe('store groupes/items', () => {
@@ -207,5 +207,56 @@ describe('store groupes/items', () => {
   it('loadWorkspace restaure color', () => {
     useHub.getState().loadWorkspace({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'M', collapsed: false, defaultCwd: null, color: '#b5413b', items: [] }] })
     expect(useHub.getState().groups[0].color).toBe('#b5413b')
+  })
+})
+
+describe('store ADO (lot 4.2)', () => {
+  beforeEach(() => useHub.getState().reset())
+
+  const mkAdo = (id: string, over: Partial<Item> = {}): Item => ({
+    id, name: id, cwd: '', pinned: false, tabId: null, state: 'done', agents: [], openAgentId: null,
+    split: 1, findOpen: false, agentsOpen: false, searchQuery: '', kind: 'ado',
+    ado: { view: 'tree', iterationPath: null }, ...over
+  })
+
+  it('addItem d\'un item ado active l\'onglet ado (ref d:)', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkAdo('a1'))
+    const grp = useHub.getState().groups.find((x) => x.id === g)!
+    expect(grp.leftActiveTab).toBe('d:a1')
+  })
+
+  it('paneRefs inclut un item ado sans tabId', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkAdo('a1'))
+    expect(useHub.getState().leftTabs().map((t) => t.ref)).toContain('d:a1')
+  })
+
+  it('un item claude sans tabId reste absent des onglets', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkItem('c1', { tabId: null, kind: 'claude' }))
+    expect(useHub.getState().leftTabs().map((t) => t.ref)).not.toContain('s:c1')
+  })
+
+  it('setGroupAdo pose et retire le binding', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().setGroupAdo(g, { connId: 'c1', project: 'P', team: 'T' })
+    expect(useHub.getState().groups.find((x) => x.id === g)!.ado).toEqual({ connId: 'c1', project: 'P', team: 'T' })
+    useHub.getState().setGroupAdo(g, null)
+    expect(useHub.getState().groups.find((x) => x.id === g)!.ado).toBeNull()
+  })
+
+  it('setAdoView et setAdoIteration mettent à jour l\'item', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkAdo('a1'))
+    useHub.getState().setAdoView('a1', 'board')
+    useHub.getState().setAdoIteration('a1', 'P\\Sprint 2')
+    const it = useHub.getState().itemById('a1')!
+    expect(it.ado).toEqual({ view: 'board', iterationPath: 'P\\Sprint 2' })
+  })
+
+  it('parseRef décode le préfixe d: en kind ado', () => {
+    expect(parseRef('d:a1')).toEqual({ kind: 'ado', itemId: 'a1' })
+    expect(tabRef('ado', 'a1')).toBe('d:a1')
   })
 })
