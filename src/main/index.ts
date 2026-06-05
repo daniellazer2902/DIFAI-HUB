@@ -13,6 +13,7 @@ import type { AppContext, HubModule } from './AppContext'
 import { createSessionModule } from './modules/sessionModule'
 import { createAgentsModule } from './modules/agentsModule'
 import { createAdoModule } from './modules/adoModule'
+import { createClaudeGuardModule } from './modules/claudeGuardModule'
 import { IPC } from '../shared/ipc'
 
 let hooksSettingsPath = ''
@@ -40,7 +41,7 @@ const ctx: AppContext = {
   credentials: credentialStore
 }
 
-const modules: HubModule[] = [createSessionModule(), createAgentsModule(), createAdoModule()]
+const modules: HubModule[] = [createSessionModule(), createAgentsModule(), createAdoModule(), createClaudeGuardModule()]
 for (const m of modules) m.register(ctx)
 
 function createWindow(): void {
