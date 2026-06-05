@@ -46,3 +46,31 @@ describe('workspaceStore (pur)', () => {
     expect(parseWorkspace(serializeWorkspace(tree))).toEqual(tree)
   })
 })
+
+describe('workspaceStore ADO (lot 4.2)', () => {
+  it('parse un item ado (kind + ado)', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'G', collapsed: false, defaultCwd: null,
+      ado: { connId: 'c1', project: 'P', team: 'T' },
+      items: [{ id: 'a1', name: 'Board', cwd: '', kind: 'ado', ado: { view: 'tree', iterationPath: 'P\\S1' } }] }] })
+    const t = parseWorkspace(raw)
+    expect(t.groups[0].ado).toEqual({ connId: 'c1', project: 'P', team: 'T' })
+    expect(t.groups[0].items[0]).toMatchObject({ id: 'a1', kind: 'ado', ado: { view: 'tree', iterationPath: 'P\\S1' } })
+  })
+
+  it('un item sans kind reste accepté (claude implicite)', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'G', collapsed: false, defaultCwd: null,
+      items: [{ id: 'c1', name: 'Sess', cwd: 'C:/x' }] }] })
+    const t = parseWorkspace(raw)
+    expect(t.groups[0].items[0].id).toBe('c1')
+    expect(t.groups[0].items[0].kind).toBeUndefined()
+    expect(t.groups[0].ado).toBeUndefined()
+  })
+
+  it('ignore un ado d\'item mal formé', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'G', collapsed: false, defaultCwd: null,
+      items: [{ id: 'a1', name: 'B', cwd: '', kind: 'ado', ado: { view: 'wrong' } }] }] })
+    const t = parseWorkspace(raw)
+    expect(t.groups[0].items[0].ado).toBeUndefined()
+    expect(t.groups[0].items[0].kind).toBe('ado')
+  })
+})
