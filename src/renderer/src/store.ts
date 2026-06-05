@@ -279,7 +279,9 @@ export const useHub = create<HubState>((set, get) => ({
   setSplit: (itemId, split) =>
     set((s) => {
       const moved = mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, split }))
-      const groups = setPaneActive(moved, itemId, split === 2 ? 'right' : 'left', tabRef('session', itemId))
+      const item = moved.flatMap((g) => g.items).find((i) => i.id === itemId)
+      const ref = item?.kind === 'ado' ? tabRef('ado', itemId) : tabRef('session', itemId)
+      const groups = setPaneActive(moved, itemId, split === 2 ? 'right' : 'left', ref)
       return { groups: normalizeAll(groups), focusedPane: split === 2 ? 'right' : 'left', activeItemId: itemId }
     }),
 

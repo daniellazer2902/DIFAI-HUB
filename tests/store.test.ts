@@ -266,4 +266,12 @@ describe('store ADO (lot 4.2)', () => {
     useHub.getState().setActiveItem('a1')
     expect(useHub.getState().groups.find((x) => x.id === g)!.leftActiveTab).toBe('d:a1')
   })
+
+  it('setSplit d\'un item ado active la ref d: dans le volet cible', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkItem('c1')) // session à gauche
+    useHub.getState().addItem(g, mkAdo('a1'))
+    useHub.getState().setSplit('a1', 2)
+    expect(useHub.getState().groups.find((x) => x.id === g)!.rightActiveTab).toBe('d:a1')
+  })
 })
