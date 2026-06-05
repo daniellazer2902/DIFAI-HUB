@@ -5,6 +5,7 @@ import { TerminalIcon, FolderIcon, EditIcon, PinIcon, TrashIcon } from './icons'
 import { Terminal } from './Terminal'
 import { Console } from './Console'
 import { SearchPanel } from './SearchPanel'
+import { AdoBoard } from './AdoBoard'
 import { basename } from '../util'
 import { confirm } from '../confirm'
 
@@ -23,7 +24,8 @@ type Pos = { x: number; y: number }
 type Ctx = { id: string; x: number; y: number }
 
 function tabLabel(t: PaneTab): string {
-  return t.kind === 'session' ? t.item.name : `${t.item.name} - ${t.kind === 'find' ? 'Find' : 'Agents'}`
+  if (t.kind === 'session' || t.kind === 'ado') return t.item.name
+  return `${t.item.name} - ${t.kind === 'find' ? 'Find' : 'Agents'}`
 }
 
 export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, setDragId }: Props): React.JSX.Element {
@@ -185,6 +187,26 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                 </div>
               )
             }
+            if (t.kind === 'ado') {
+              return (
+                <div
+                  key={t.ref}
+                  className={`tab${sel ? ' act' : ''}`}
+                  draggable
+                  onDragStart={(e) => { setAddMenu(null); setCtx(null); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', t.item.id); const id = t.item.id; setTimeout(() => setDragId(id), 0) }}
+                  onDragEnd={() => setDragId(null)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.stopPropagation(); onDropTab(t.item.id) }}
+                  onClick={() => useHub.getState().selectTab(side, t.ref)}
+                  onContextMenu={(e) => { e.preventDefault(); const x = Math.max(4, Math.min(e.clientX, window.innerWidth - 190)); const y = Math.min(e.clientY, window.innerHeight - 150); setCtx(ctx?.id === t.item.id ? null : { id: t.item.id, x, y }) }}
+                >
+                  <span className="tab-ic"><FolderIcon /></span>
+                  <span className="tab-title">{t.item.name}</span>
+                  {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
+                  <span className="tab-close" title="Fermer l'onglet" onClick={(e) => { e.stopPropagation(); useHub.getState().closeSession(t.item.id) }}>✕</span>
+                </div>
+              )
+            }
             const onClose = t.kind === 'find' ? () => useHub.getState().closeFind(t.item.id) : () => useHub.getState().closeAgentsTab(t.item.id)
             return (
               <div key={t.ref} className={`tab aux${sel ? ' act' : ''}`} onClick={() => useHub.getState().selectTab(side, t.ref)}>
@@ -226,6 +248,10 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
         ))}
         {active?.kind === 'find' && <SearchPanel itemId={active.itemId} />}
         {active?.kind === 'agents' && <Console itemId={active.itemId} />}
+        {active?.kind === 'ado' && (() => {
+          const it = group.items.find((i) => i.id === active.itemId)
+          return it ? <AdoBoard item={it} group={group} /> : null
+        })()}
       </div>
       {addMenu && (
         <div className="tab-new-menu add-menu" style={{ position: 'fixed', left: addMenu.x, top: addMenu.y }}>
@@ -238,7 +264,9 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
         <div className="ctx-menu tab-ctx" style={{ position: 'fixed', left: ctx.x, top: ctx.y, right: 'auto' }} onClick={(e) => e.stopPropagation()}>
           <div onClick={() => startRename(ctxItem.id, ctxItem.name)}><EditIcon /> Renommer</div>
           <div onClick={() => { useHub.getState().togglePin(ctxItem.id); setCtx(null) }}><PinIcon /> {ctxItem.pinned ? 'Désépingler' : 'Épingler'}</div>
-          <div onClick={() => { if (ctxItem.agentsOpen) useHub.getState().closeAgentsTab(ctxItem.id); else useHub.getState().openAgentsTab(ctxItem.id); setCtx(null) }}><TerminalIcon /> {ctxItem.agentsOpen ? 'Cacher Agents' : 'Afficher Agents'}</div>
+          {ctxItem.kind !== 'ado' && (
+            <div onClick={() => { if (ctxItem.agentsOpen) useHub.getState().closeAgentsTab(ctxItem.id); else useHub.getState().openAgentsTab(ctxItem.id); setCtx(null) }}><TerminalIcon /> {ctxItem.agentsOpen ? 'Cacher Agents' : 'Afficher Agents'}</div>
+          )}
           <div className="danger" onClick={(e) => { closeSession(e, ctxItem.id, ctxItem.tabId); setCtx(null) }}><TrashIcon /> Supprimer</div>
         </div>
       )}
