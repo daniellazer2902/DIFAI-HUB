@@ -77,7 +77,7 @@ describe('store groupes/items', () => {
     const g = useHub.getState().addGroup('M')
     useHub.getState().addItem(g, mkItem('pin', { pinned: true, name: 'api', cwd: 'C:/api' }))
     useHub.getState().addItem(g, mkItem('eph', { pinned: false }))
-    expect(useHub.getState().toPersistable().groups[0].items).toEqual([{ id: 'pin', name: 'api', cwd: 'C:/api', split: 1 }])
+    expect(useHub.getState().toPersistable().groups[0].items).toEqual([{ id: 'pin', name: 'api', cwd: 'C:/api', split: 1, kind: 'claude' }])
   })
 
   it('loadWorkspace recrée les groupes/items (éteints, épinglés) + defaultCwd', () => {
@@ -177,7 +177,7 @@ describe('store groupes/items', () => {
   it('persistance : split conservé pour les items épinglés', () => {
     const g = useHub.getState().addGroup('M')
     useHub.getState().addItem(g, mkItem('pin', { pinned: true, name: 'api', cwd: 'C:/api', split: 2 }))
-    expect(useHub.getState().toPersistable().groups[0].items).toEqual([{ id: 'pin', name: 'api', cwd: 'C:/api', split: 2 }])
+    expect(useHub.getState().toPersistable().groups[0].items).toEqual([{ id: 'pin', name: 'api', cwd: 'C:/api', split: 2, kind: 'claude' }])
     useHub.getState().reset()
     useHub.getState().loadWorkspace(useHub.getState().toPersistable())
   })
