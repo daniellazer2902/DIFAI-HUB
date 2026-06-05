@@ -10,7 +10,10 @@ export interface AgentView {
 }
 
 export type Pane = 'left' | 'right'
-export type TabKind = 'session' | 'find' | 'agents'
+export type TabKind = 'session' | 'find' | 'agents' | 'ado'
+
+export interface AdoView { view: 'tree' | 'board'; iterationPath: string | null }
+export interface GroupAdo { connId: string; project: string; team: string | null }
 
 export interface Item {
   id: string
@@ -25,6 +28,8 @@ export interface Item {
   findOpen: boolean
   agentsOpen: boolean
   searchQuery: string
+  kind: 'claude' | 'ado'
+  ado?: AdoView
 }
 
 export interface Group {
@@ -36,6 +41,7 @@ export interface Group {
   leftActiveTab: string | null
   rightActiveTab: string | null
   color: string | null
+  ado: GroupAdo | null
 }
 
 export interface PaneTab { ref: string; kind: TabKind; item: Item }
@@ -68,6 +74,9 @@ interface HubState {
   setActiveItem: (itemId: string) => void
   moveItem: (itemId: string, toIndex: number, toGroupId?: string) => void
   setSplit: (itemId: string, split: 1 | 2) => void
+  setGroupAdo: (groupId: string, ado: GroupAdo | null) => void
+  setAdoView: (itemId: string, view: 'tree' | 'board') => void
+  setAdoIteration: (itemId: string, iterationPath: string | null) => void
 
   bindSession: (itemId: string, tabId: string) => void
   clearSession: (itemId: string) => void
@@ -105,7 +114,7 @@ function uid(prefix: string): string {
   return `${prefix}-${counter}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-const KIND_PREFIX: Record<TabKind, string> = { session: 's', find: 'f', agents: 'a' }
+const KIND_PREFIX: Record<TabKind, string> = { session: 's', find: 'f', agents: 'a', ado: 'd' }
 export function tabRef(kind: TabKind, itemId: string): string {
   return `${KIND_PREFIX[kind]}:${itemId}`
 }
@@ -114,7 +123,7 @@ export function parseRef(ref: string): { kind: TabKind; itemId: string } {
   if (i < 0) return { kind: 'session', itemId: ref }
   const p = ref.slice(0, i)
   const itemId = ref.slice(i + 1)
-  const kind: TabKind = p === 's' ? 'session' : p === 'f' ? 'find' : 'agents'
+  const kind: TabKind = p === 's' ? 'session' : p === 'f' ? 'find' : p === 'a' ? 'agents' : p === 'd' ? 'ado' : 'session'
   return { kind, itemId }
 }
 
@@ -129,7 +138,10 @@ function paneRefs(group: Group, pane: Pane): string[] {
   const sessionSplit = pane === 'left' ? 1 : 2
   const auxOwnerSplit = pane === 'left' ? 2 : 1
   for (const i of group.items) {
-    if (i.split === sessionSplit && i.tabId) refs.push(tabRef('session', i.id))
+    if (i.split === sessionSplit) {
+      if (i.kind === 'ado') refs.push(tabRef('ado', i.id))
+      else if (i.tabId) refs.push(tabRef('session', i.id))
+    }
     if (i.split === auxOwnerSplit && i.findOpen) refs.push(tabRef('find', i.id))
     if (i.split === auxOwnerSplit && i.agentsOpen) refs.push(tabRef('agents', i.id))
   }
@@ -187,7 +199,7 @@ export const useHub = create<HubState>((set, get) => ({
   addGroup: (name) => {
     const id = uid('g')
     set((s) => ({
-      groups: [...s.groups, { id, name, collapsed: false, defaultCwd: null, color: null, items: [], leftActiveTab: null, rightActiveTab: null }],
+      groups: [...s.groups, { id, name, collapsed: false, defaultCwd: null, color: null, ado: null, items: [], leftActiveTab: null, rightActiveTab: null }],
       activeGroupId: id
     }))
     return id
@@ -202,6 +214,11 @@ export const useHub = create<HubState>((set, get) => ({
   toggleGroupCollapsed: (groupId) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, collapsed: !g.collapsed } : g)) })),
   setGroupDefaultCwd: (groupId, cwd) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, defaultCwd: cwd } : g)) })),
   setGroupColor: (groupId, color) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, color } : g)) })),
+  setGroupAdo: (groupId, ado) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, ado } : g)) })),
+  setAdoView: (itemId, view) =>
+    set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view, iterationPath: i.ado?.iterationPath ?? null } })) })),
+  setAdoIteration: (itemId, iterationPath) =>
+    set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view: i.ado?.view ?? 'tree', iterationPath } })) })),
   setActiveGroup: (groupId) =>
     set((s) => {
       const g = s.groups.find((x) => x.id === groupId)
@@ -215,7 +232,7 @@ export const useHub = create<HubState>((set, get) => ({
   addItem: (groupId, item) =>
     set((s) => {
       const pane: Pane = item.split === 2 ? 'right' : 'left'
-      const ref = tabRef('session', item.id)
+      const ref = item.kind === 'ado' ? tabRef('ado', item.id) : tabRef('session', item.id)
       const groups = s.groups.map((g) => {
         if (g.id !== groupId) return g
         const ng = { ...g, items: [...g.items, item] }
@@ -365,10 +382,10 @@ export const useHub = create<HubState>((set, get) => ({
       focusedPane: 'left',
       groups: normalizeAll(
         tree.groups.map((g) => ({
-          id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd ?? null, color: g.color ?? null, leftActiveTab: null, rightActiveTab: null,
+          id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd ?? null, color: g.color ?? null, ado: null, leftActiveTab: null, rightActiveTab: null,
           items: g.items.map((i) => ({
             id: i.id, name: i.name, cwd: i.cwd, pinned: true, tabId: null, state: 'done', agents: [], openAgentId: null,
-            split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: ''
+            split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: '', kind: 'claude'
           }))
         }))
       )
