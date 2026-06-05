@@ -23,6 +23,12 @@ export interface AppContext {
   pickFolder: () => Promise<string | null>
   /** Dossier userData (pour la persistance du workspace). */
   userDataDir: string
+  /** PAT chiffrés (lot 4). */
+  credentials: {
+    set(connId: string, pat: string): void
+    get(connId: string): string | null
+    delete(connId: string): void
+  }
 }
 
 /** Une feature autonome qui câble ses services + ses canaux IPC. */
