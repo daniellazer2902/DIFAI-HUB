@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, PaletteIcon } from './icons'
+import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, PaletteIcon, SettingsIcon, AzureIcon } from './icons'
 import { GroupColorModal } from './GroupColorModal'
 import { AdoBindModal } from './AdoBindModal'
 import { darken, textOn } from '../color'
@@ -150,8 +150,8 @@ export function Sidebar(): React.JSX.Element {
                   <div onClick={() => startRename('group', g.id, g.name)}><EditIcon /> Renommer</div>
                   <div onClick={() => setGroupDefault(g.id)}><FolderIcon /> Dossier par défaut…</div>
                   <div onClick={() => { setMenu(null); setColorFor(g.id) }}><PaletteIcon /> Attribuer une couleur</div>
-                  <div onClick={() => { setMenu(null); setAdoFor(g.id) }}><FolderIcon /> Configurer ADO…</div>
-                  <div onClick={() => addAdoItem(g)}><FolderIcon /> Ajouter un board ADO</div>
+                  <div onClick={() => { setMenu(null); setAdoFor(g.id) }}><SettingsIcon size={12} /> Configurer ADO…</div>
+                  <div onClick={() => addAdoItem(g)}><AzureIcon /> Ajouter un board ADO</div>
                   <div className="danger" onClick={() => removeGroup(g.id, g.name)}><TrashIcon /> Supprimer</div>
                 </div>
               )}
@@ -163,7 +163,7 @@ export function Sidebar(): React.JSX.Element {
                 onClick={() => onItemClick(it)}
                 onContextMenu={(e) => { e.preventDefault(); setMenu(it.id) }}
               >
-                <span className="item-ic">{it.kind === 'ado' ? <FolderIcon /> : <TerminalIcon />}</span>
+                <span className="item-ic">{it.kind === 'ado' ? <AzureIcon /> : <TerminalIcon />}</span>
                 {nameOrEditor('item', it.id, it.name, 'item-name')}
                 <span className="item-pin">{it.pinned && <PinIcon />}</span>
                 <span className="item-state">{it.kind === 'ado' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>

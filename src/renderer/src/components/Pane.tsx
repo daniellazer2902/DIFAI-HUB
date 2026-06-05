@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, parseRef, type Group, type PaneTab, type Pane as Side } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, FolderIcon, EditIcon, PinIcon, TrashIcon } from './icons'
+import { TerminalIcon, EditIcon, PinIcon, TrashIcon, AzureIcon } from './icons'
 import { Terminal } from './Terminal'
 import { Console } from './Console'
 import { SearchPanel } from './SearchPanel'
@@ -200,7 +200,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                   onClick={() => useHub.getState().selectTab(side, t.ref)}
                   onContextMenu={(e) => { e.preventDefault(); const x = Math.max(4, Math.min(e.clientX, window.innerWidth - 190)); const y = Math.min(e.clientY, window.innerHeight - 150); setCtx(ctx?.id === t.item.id ? null : { id: t.item.id, x, y }) }}
                 >
-                  <span className="tab-ic"><FolderIcon /></span>
+                  <span className="tab-ic"><AzureIcon /></span>
                   <span className="tab-title">{t.item.name}</span>
                   {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
                   <span className="tab-close" title="Fermer l'onglet" onClick={(e) => { e.stopPropagation(); useHub.getState().closeSession(t.item.id) }}>✕</span>
@@ -232,8 +232,9 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                       onClick={() => { useHub.getState().selectTab(side, t.ref); setOverflowOpen(false) }}
                     >{tabLabel(t)}</div>
                   ))}
-                  <div className="ovf-add" onClick={onDefault}><FolderIcon /> ＋ Dossier par défaut</div>
-                  <div className="ovf-add" onClick={onPick}><FolderIcon /> ＋ Choisir un dossier…</div>
+                  <div className="ovf-add" onClick={onDefault}><TerminalIcon /> ＋ Dossier par défaut</div>
+                  <div className="ovf-add" onClick={onPick}><TerminalIcon /> ＋ Choisir un dossier…</div>
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addAdo() }}><AzureIcon /> ＋ ADO – Azure</div>
                 </div>
               )}
             </div>
@@ -255,9 +256,9 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
       </div>
       {addMenu && (
         <div className="tab-new-menu add-menu" style={{ position: 'fixed', left: addMenu.x, top: addMenu.y }}>
-          <div onClick={onDefault}><FolderIcon /> Dossier par défaut</div>
-          <div onClick={onPick}><FolderIcon /> Choisir un dossier…</div>
-          <div onClick={addAdo}><FolderIcon /> ADO – Azure</div>
+          <div onClick={onDefault}><TerminalIcon /> Dossier par défaut</div>
+          <div onClick={onPick}><TerminalIcon /> Choisir un dossier…</div>
+          <div onClick={addAdo}><AzureIcon /> ADO – Azure</div>
         </div>
       )}
       {ctx && ctxItem && (
