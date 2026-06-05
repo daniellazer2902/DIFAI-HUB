@@ -37,7 +37,9 @@ export interface Item {
   findOpen: boolean
   agentsOpen: boolean
   searchQuery: string
-  kind: 'claude' | 'ado'
+  kind: 'claude' | 'ado' | 'cmd'
+  /** Arguments de lancement supplémentaires (Claude avancé) — persistés pour relance à l'identique. */
+  claudeArgs?: string[]
   ado?: AdoView
   /** Board ado épinglé dont l'onglet a été fermé (reste en sidebar, masqué des onglets). Éphémère. */
   adoClosed?: boolean
@@ -408,7 +410,8 @@ export const useHub = create<HubState>((set, get) => ({
         ...(g.ado ? { ado: g.ado } : {}),
         items: g.items.filter((i) => i.pinned).map((i) => ({
           id: i.id, name: i.name, cwd: i.cwd, split: i.split, kind: i.kind,
-          ...(i.kind === 'ado' && i.ado ? { ado: i.ado } : {})
+          ...(i.kind === 'ado' && i.ado ? { ado: i.ado } : {}),
+          ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {})
         }))
       }))
     }
@@ -425,7 +428,8 @@ export const useHub = create<HubState>((set, get) => ({
           items: g.items.map((i) => ({
             id: i.id, name: i.name, cwd: i.cwd, pinned: true, tabId: null, state: 'done', agents: [], openAgentId: null,
             split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: '',
-            kind: i.kind ?? 'claude', ...(i.kind === 'ado' ? { ado: i.ado ?? { view: 'tree', iterationPath: null } } : {})
+            kind: i.kind ?? 'claude', ...(i.kind === 'ado' ? { ado: i.ado ?? { view: 'tree', iterationPath: null } } : {}),
+            ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {})
           }))
         }))
       )

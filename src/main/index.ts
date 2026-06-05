@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { PtyManager } from './PtyManager'
 import { nodePtySpawner } from './ptyFactory'
 import { resolveClaudePath } from './claudePath'
+import { resolvePowerShellPath } from './shellPath'
 import { SessionRegistry } from './SessionRegistry'
 import { HookServer } from './HookServer'
 import { writeHooksSettings } from './hubHooks'
@@ -14,6 +15,7 @@ import { createSessionModule } from './modules/sessionModule'
 import { createAgentsModule } from './modules/agentsModule'
 import { createAdoModule } from './modules/adoModule'
 import { createClaudeGuardModule } from './modules/claudeGuardModule'
+import { createCmdModule } from './modules/cmdModule'
 import { IPC } from '../shared/ipc'
 
 let hooksSettingsPath = ''
@@ -41,7 +43,13 @@ const ctx: AppContext = {
   credentials: credentialStore
 }
 
-const modules: HubModule[] = [createSessionModule(), createAgentsModule(), createAdoModule(), createClaudeGuardModule()]
+const modules: HubModule[] = [
+  createSessionModule(),
+  createAgentsModule(),
+  createAdoModule(),
+  createClaudeGuardModule(),
+  createCmdModule({ shellPath: resolvePowerShellPath(), shellArgs: process.platform === 'win32' ? ['-NoLogo'] : [] })
+]
 for (const m of modules) m.register(ctx)
 
 function createWindow(): void {
