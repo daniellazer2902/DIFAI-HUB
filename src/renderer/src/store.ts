@@ -15,6 +15,9 @@ export type TabKind = 'session' | 'find' | 'agents' | 'ado'
 export interface AdoView { view: 'tree' | 'board'; iterationPath: string | null }
 export interface GroupAdo { connId: string; project: string; team: string | null }
 
+/** État de recherche dans un board (Ctrl+F sur page, éphémère). */
+export interface AdoFindState { open: boolean; query: string; filter: boolean }
+
 /** Cache board en session (non persisté) : clé = itemId + sprint. */
 export interface AdoBoardCacheEntry { board: AdoBoard; at: number }
 export function adoCacheKey(itemId: string, iterationPath: string | null): string {
@@ -62,6 +65,7 @@ interface HubState {
   confirmOnClose: boolean
   globalDefaultCwd: string | null
   adoCache: Record<string, AdoBoardCacheEntry>
+  adoFind: Record<string, AdoFindState>
 
   itemById: (itemId: string) => Item | undefined
   itemByTab: (tabId: string) => Item | undefined
@@ -85,6 +89,7 @@ interface HubState {
   setAdoView: (itemId: string, view: 'tree' | 'board') => void
   setAdoIteration: (itemId: string, iterationPath: string | null) => void
   setAdoCache: (key: string, board: AdoBoard) => void
+  setAdoFind: (itemId: string, patch: Partial<AdoFindState>) => void
 
   bindSession: (itemId: string, tabId: string) => void
   clearSession: (itemId: string) => void
@@ -183,7 +188,8 @@ const initial = {
   consoleWidth: 380,
   confirmOnClose: true,
   globalDefaultCwd: null as string | null,
-  adoCache: {} as Record<string, AdoBoardCacheEntry>
+  adoCache: {} as Record<string, AdoBoardCacheEntry>,
+  adoFind: {} as Record<string, AdoFindState>
 }
 
 function mapItems(groups: Group[], match: (i: Item) => boolean, fn: (i: Item) => Item): Group[] {
@@ -231,6 +237,11 @@ export const useHub = create<HubState>((set, get) => ({
   setAdoIteration: (itemId, iterationPath) =>
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view: i.ado?.view ?? 'tree', iterationPath } })) })),
   setAdoCache: (key, board) => set((s) => ({ adoCache: { ...s.adoCache, [key]: { board, at: Date.now() } } })),
+  setAdoFind: (itemId, patch) =>
+    set((s) => {
+      const cur = s.adoFind[itemId] ?? { open: false, query: '', filter: false }
+      return { adoFind: { ...s.adoFind, [itemId]: { ...cur, ...patch } } }
+    }),
   setActiveGroup: (groupId) =>
     set((s) => {
       const g = s.groups.find((x) => x.id === groupId)
@@ -257,7 +268,8 @@ export const useHub = create<HubState>((set, get) => ({
       const groups = normalizeAll(s.groups.map((g) => ({ ...g, items: g.items.filter((i) => i.id !== itemId) })))
       const prefix = `${itemId}::`
       const adoCache = Object.fromEntries(Object.entries(s.adoCache).filter(([k]) => !k.startsWith(prefix)))
-      return { groups, activeItemId: s.activeItemId === itemId ? null : s.activeItemId, adoCache }
+      const adoFind = Object.fromEntries(Object.entries(s.adoFind).filter(([k]) => k !== itemId))
+      return { groups, activeItemId: s.activeItemId === itemId ? null : s.activeItemId, adoCache, adoFind }
     }),
   renameItem: (itemId, name) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, name })) })),
   togglePin: (itemId) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, pinned: !i.pinned })) })),
