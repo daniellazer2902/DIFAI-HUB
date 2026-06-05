@@ -6,6 +6,7 @@ import { Terminal } from './Terminal'
 import { Console } from './Console'
 import { SearchPanel } from './SearchPanel'
 import { basename } from '../util'
+import { confirm } from '../confirm'
 
 interface Props {
   side: Side
@@ -85,6 +86,19 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
     useHub.getState().addItem(group.id, {
       id, name: basename(cwd), cwd, pinned: false, tabId, state: 'starting', agents: [], openAgentId: null,
       split: side === 'right' ? 2 : 1, findOpen: false, agentsOpen: false, searchQuery: '', kind: 'claude'
+    })
+  }
+  async function addAdo(): Promise<void> {
+    closeMenus()
+    if (!group.ado) {
+      await confirm({ title: 'ADO non configuré', message: 'Configurez d\'abord ADO sur le groupe (menu ··· du groupe › Configurer ADO…).', confirmLabel: 'OK' })
+      return
+    }
+    const id = crypto.randomUUID()
+    useHub.getState().addItem(group.id, {
+      id, name: `Board ${group.ado.project}`, cwd: '', pinned: false, tabId: null, state: 'done',
+      agents: [], openAgentId: null, split: side === 'right' ? 2 : 1, findOpen: false, agentsOpen: false,
+      searchQuery: '', kind: 'ado', ado: { view: 'tree', iterationPath: null }
     })
   }
   async function onDefault(): Promise<void> { openTab(group.defaultCwd ?? useHub.getState().globalDefaultCwd ?? (await window.hub.defaultCwd())) }
@@ -217,6 +231,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
         <div className="tab-new-menu add-menu" style={{ position: 'fixed', left: addMenu.x, top: addMenu.y }}>
           <div onClick={onDefault}><FolderIcon /> Dossier par défaut</div>
           <div onClick={onPick}><FolderIcon /> Choisir un dossier…</div>
+          <div onClick={addAdo}><FolderIcon /> ADO – Azure</div>
         </div>
       )}
       {ctx && ctxItem && (
