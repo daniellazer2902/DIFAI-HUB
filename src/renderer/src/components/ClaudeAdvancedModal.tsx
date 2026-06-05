@@ -7,7 +7,7 @@ interface Props {
 }
 
 const INPUT_STYLE: React.CSSProperties = {
-  width: '100%', background: '#161616', border: '1px solid #444', borderRadius: 6,
+  width: '100%', boxSizing: 'border-box', background: '#161616', border: '1px solid #444', borderRadius: 6,
   color: '#ddd', padding: '6px 8px', fontFamily: 'inherit', fontSize: 12
 }
 
