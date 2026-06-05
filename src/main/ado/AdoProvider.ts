@@ -51,7 +51,11 @@ export class AdoProvider implements WorkItemProvider {
     const ids: number[] = (wiql.workItems ?? []).map((w: any) => w.id)
     const stories = ids.length ? await this.batch(ids) : []
     const tasksByParent: Record<number, AdoWorkItem[]> = {}
-    for (const s of stories) tasksByParent[s.id] = await this.getChildren(s.id)
+    // N+1 séquentiel : acceptable en lecture lot 4 (sprint = quelques dizaines d'US).
+    for (const s of stories) {
+      tasksByParent[s.id] = await this.getChildren(s.id)
+      s.childCount = tasksByParent[s.id].length // backfill : la card du board lit childCount
+    }
     return { states, stories, tasksByParent }
   }
   async getChildren(parentId: number): Promise<AdoWorkItem[]> {
