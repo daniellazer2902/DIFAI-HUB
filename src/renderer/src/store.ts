@@ -37,7 +37,7 @@ export interface Item {
   findOpen: boolean
   agentsOpen: boolean
   searchQuery: string
-  kind: 'claude' | 'ado'
+  kind: 'claude' | 'ado' | 'cmd'
   ado?: AdoView
   /** Board ado épinglé dont l'onglet a été fermé (reste en sidebar, masqué des onglets). Éphémère. */
   adoClosed?: boolean
