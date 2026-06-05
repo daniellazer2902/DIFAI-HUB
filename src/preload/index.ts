@@ -9,7 +9,8 @@ function on(channel: string, handler: (...args: unknown[]) => void): Unsub {
 }
 
 const hub: HubApi = {
-  newSession: (cwd) => ipcRenderer.invoke(IPC.SessionNew, cwd),
+  newSession: (cwd, extraArgs) => ipcRenderer.invoke(IPC.SessionNew, cwd, extraArgs),
+  newCmd: (cwd) => ipcRenderer.invoke(IPC.CmdNew, cwd),
   sendInput: (tabId, data) => ipcRenderer.send(IPC.SessionInput, tabId, data),
   resize: (tabId, cols, rows) => ipcRenderer.send(IPC.SessionResize, tabId, cols, rows),
   killSession: (tabId) => ipcRenderer.send(IPC.SessionKill, tabId),

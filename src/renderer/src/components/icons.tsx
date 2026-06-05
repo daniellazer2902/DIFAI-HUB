@@ -68,6 +68,15 @@ export function SettingsIcon({ size = 16 }: IconProps): React.JSX.Element {
   )
 }
 
+/** Créature pixel monochrome (repère « session Claude »), cohérente avec la DA solid. */
+export function ClaudeIcon({ size = 12 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path fillRule="evenodd" d="M4 7h16v8H4z M6 15h2v3H6z M10 15h2v3h-2z M14 15h2v3h-2z M17 15h2v3h-2z M8 9h2v2H8z M14 9h2v2h-2z" />
+    </svg>
+  )
+}
+
 /** Azure (« A » monochrome, cohérent avec la DA d'icônes solid). */
 export function AzureIcon({ size = 12 }: IconProps): React.JSX.Element {
   return (

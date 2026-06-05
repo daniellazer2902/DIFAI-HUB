@@ -309,4 +309,14 @@ describe('store ADO (lot 4.2)', () => {
     useHub.getState().removeGroup(g)
     expect(Object.keys(useHub.getState().adoCache)).toHaveLength(0)
   })
+
+  it('claudeArgs (Claude avancé) persiste en round-trip toPersistable/loadWorkspace', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkItem('adv', { pinned: true, kind: 'claude', claudeArgs: ['--dangerously-skip-permissions'] }))
+    const persisted = useHub.getState().toPersistable()
+    expect(persisted.groups[0].items[0].claudeArgs).toEqual(['--dangerously-skip-permissions'])
+    useHub.getState().reset()
+    useHub.getState().loadWorkspace(persisted)
+    expect(useHub.getState().itemById('adv')!.claudeArgs).toEqual(['--dangerously-skip-permissions'])
+  })
 })

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, PaletteIcon, SettingsIcon, AzureIcon } from './icons'
+import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon } from './icons'
 import { GroupColorModal } from './GroupColorModal'
 import { AdoBindModal } from './AdoBindModal'
 import { darken, textOn } from '../color'
@@ -10,7 +10,7 @@ import { confirm } from '../confirm'
 
 /** Ouvre une session pour un item éteint et la lie. */
 async function launch(item: Item): Promise<void> {
-  const tabId = await window.hub.newSession(item.cwd)
+  const tabId = item.kind === 'cmd' ? await window.hub.newCmd(item.cwd) : await window.hub.newSession(item.cwd, item.claudeArgs)
   useHub.getState().bindSession(item.id, tabId)
 }
 
@@ -84,6 +84,17 @@ export function Sidebar(): React.JSX.Element {
     useHub.getState().addItem(group.id, item)
   }
 
+  async function addCmdItem(group: Group): Promise<void> {
+    setMenu(null)
+    const cwd = group.defaultCwd ?? useHub.getState().globalDefaultCwd ?? (await window.hub.pickFolder())
+    if (!cwd) return
+    const tabId = await window.hub.newCmd(cwd)
+    useHub.getState().addItem(group.id, {
+      id: crypto.randomUUID(), name: basename(cwd), cwd, pinned: false, tabId, state: 'active',
+      agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '', kind: 'cmd'
+    })
+  }
+
   async function setGroupDefault(groupId: string): Promise<void> {
     setMenu(null)
     const cwd = await window.hub.pickFolder()
@@ -152,6 +163,7 @@ export function Sidebar(): React.JSX.Element {
                   <div onClick={() => setGroupDefault(g.id)}><FolderIcon /> Dossier par défaut…</div>
                   <div onClick={() => { setMenu(null); setColorFor(g.id) }}><PaletteIcon /> Attribuer une couleur</div>
                   <div onClick={() => { setMenu(null); setAdoFor(g.id) }}><SettingsIcon size={12} /> Configurer ADO…</div>
+                  <div onClick={() => addCmdItem(g)}><TerminalIcon /> Nouveau terminal</div>
                   <div onClick={() => addAdoItem(g)}><AzureIcon /> Ajouter un board ADO</div>
                   <div className="danger" onClick={() => removeGroup(g.id, g.name)}><TrashIcon /> Supprimer</div>
                 </div>
@@ -164,7 +176,7 @@ export function Sidebar(): React.JSX.Element {
                 onClick={() => onItemClick(it)}
                 onContextMenu={(e) => { e.preventDefault(); setMenu(it.id) }}
               >
-                <span className="item-ic">{it.kind === 'ado' ? <AzureIcon /> : <TerminalIcon />}</span>
+                <span className="item-ic">{it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : <ClaudeIcon />}</span>
                 {nameOrEditor('item', it.id, it.name, 'item-name')}
                 <span className="item-pin">{it.pinned && <PinIcon />}</span>
                 <span className="item-state">{it.kind === 'ado' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>
