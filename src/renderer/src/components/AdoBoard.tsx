@@ -21,8 +21,11 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
   const [detailId, setDetailId] = useState<number | null>(null)
   const [activeIdx, setActiveIdx] = useState(0)
   const [matchCount, setMatchCount] = useState(0)
+  const [compact, setCompact] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const findInputRef = useRef<HTMLInputElement>(null)
+  const findBarRef = useRef<HTMLDivElement>(null)
 
   const query = find?.open ? find.query : ''
   const filter = !!find?.open && find.filter
@@ -58,6 +61,18 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
 
   // Focus l'input à l'ouverture de la recherche.
   useEffect(() => { if (find?.open) findInputRef.current?.focus() }, [find?.open])
+  // Replie les actions (↑↓ / œil / ✕) dans un « ⋯ » quand la barre est étroite.
+  useEffect(() => {
+    if (!find?.open) return
+    const el = findBarRef.current
+    if (!el) return
+    const update = (): void => setCompact(el.clientWidth < 340)
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [find?.open])
+  useEffect(() => { if (!compact) setMoreOpen(false) }, [compact])
   // Réinitialise la position active quand la requête / le filtre change.
   useEffect(() => { setActiveIdx(0) }, [query, filter])
   // Met à jour le compteur + la correspondance active (scroll) après rendu.
@@ -92,7 +107,7 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
       </div>
 
       {find?.open && (
-        <div className="ado-find-bar">
+        <div className="ado-find-bar" ref={findBarRef}>
           <input
             ref={findInputRef}
             className="ado-find-input"
@@ -105,16 +120,32 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
             }}
           />
           <span className="ado-find-count">{matchCount ? `${Math.min(activeIdx + 1, matchCount)}/${matchCount}` : (find.query ? '0' : '')}</span>
-          <button className="btn ado-find-btn" title="Précédent" disabled={!matchCount} onClick={() => go(-1)}>↑</button>
-          <button className="btn ado-find-btn" title="Suivant" disabled={!matchCount} onClick={() => go(1)}>↓</button>
-          <button
-            className={`btn ado-eye${filter ? ' on' : ''}`}
-            title={filter ? 'Filtre actif : seules les correspondances sont affichées' : 'Filtrer : masquer les éléments sans correspondance'}
-            onClick={() => useHub.getState().setAdoFind(item.id, { filter: !find.filter })}
-          >
-            <EyeIcon off={!filter} />
-          </button>
-          <button className="btn ado-find-btn" title="Fermer (Échap)" onClick={closeFind}>✕</button>
+          {compact ? (
+            <div className="ado-find-more">
+              <button className="btn ado-find-btn" title="Options de recherche" onClick={() => setMoreOpen((o) => !o)}>⋯</button>
+              {moreOpen && (
+                <div className="ado-find-more-menu" onClick={(e) => e.stopPropagation()}>
+                  <div className={!matchCount ? 'disabled' : ''} onClick={() => matchCount && go(-1)}>↑ Précédent</div>
+                  <div className={!matchCount ? 'disabled' : ''} onClick={() => matchCount && go(1)}>↓ Suivant</div>
+                  <div onClick={() => useHub.getState().setAdoFind(item.id, { filter: !find.filter })}>{filter ? '✓ ' : ''}Filtrer (œil)</div>
+                  <div onClick={() => { setMoreOpen(false); closeFind() }}>✕ Fermer</div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <button className="btn ado-find-btn" title="Précédent" disabled={!matchCount} onClick={() => go(-1)}>↑</button>
+              <button className="btn ado-find-btn" title="Suivant" disabled={!matchCount} onClick={() => go(1)}>↓</button>
+              <button
+                className={`btn ado-eye${filter ? ' on' : ''}`}
+                title={filter ? 'Filtre actif : seules les correspondances sont affichées' : 'Filtrer : masquer les éléments sans correspondance'}
+                onClick={() => useHub.getState().setAdoFind(item.id, { filter: !find.filter })}
+              >
+                <EyeIcon off={!filter} />
+              </button>
+              <button className="btn ado-find-btn" title="Fermer (Échap)" onClick={closeFind}>✕</button>
+            </>
+          )}
         </div>
       )}
 

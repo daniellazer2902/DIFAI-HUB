@@ -68,6 +68,15 @@ export function SettingsIcon({ size = 16 }: IconProps): React.JSX.Element {
   )
 }
 
+/** Azure (« A » monochrome, cohérent avec la DA d'icônes solid). */
+export function AzureIcon({ size = 12 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 512 512" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path fillRule="evenodd" d="M256 56 460 456 52 456ZM256 208 334 360 178 360Z" />
+    </svg>
+  )
+}
+
 /** Palette (couleurs) — Font Awesome « palette » solid. */
 export function PaletteIcon({ size = 12 }: IconProps): React.JSX.Element {
   return (
