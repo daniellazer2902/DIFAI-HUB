@@ -16,15 +16,15 @@ const INPUT_STYLE: React.CSSProperties = {
  * Modale dédiée, prévue pour s'enrichir plus tard (cases à cocher, modèle, paramètres enregistrés).
  */
 export function ClaudeAdvancedModal({ onLaunch, onClose }: Props): React.JSX.Element {
-  const [command, setCommand] = useState('claude --dangerously-skip-permissions')
-  const launch = (): void => { if (command.trim()) { onLaunch(command); onClose() } }
+  const [command, setCommand] = useState('')
+  const launch = (): void => { onLaunch(command); onClose() } // vide => claude nature
   return (
     <Modal
       title="Claude avancé"
       onClose={onClose}
       footer={<>
         <button className="btn" onClick={onClose}>Annuler</button>
-        <button className="btn primary" disabled={!command.trim()} onClick={launch}>Lancer</button>
+        <button className="btn primary" onClick={launch}>Lancer</button>
       </>}
     >
       <div className="setting-row"><label>Commande / paramètres de lancement</label></div>
