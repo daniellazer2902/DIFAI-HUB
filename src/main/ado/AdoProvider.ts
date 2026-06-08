@@ -7,6 +7,7 @@ export interface FetchResponse { ok: boolean; status: number; json(): Promise<an
 export type FetchLike = (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<FetchResponse>
 
 const STORY_TYPE = 'User Story' // lot 4 : Agile. (Scrum=Product Backlog Item → override futur.)
+const TASK_TYPE = 'Task'        // lot 4 : type enfant universel dans le process Agile.
 
 export class AdoProvider implements WorkItemProvider {
   constructor(private conn: AdoConnection, private pat: string, private fetchImpl: FetchLike = fetch as unknown as FetchLike) {}
@@ -44,7 +45,7 @@ export class AdoProvider implements WorkItemProvider {
   async listBoard(p: { project: string; team?: string; iterationPath?: string }): Promise<AdoBoard> {
     const statesRaw = (await this.get(statesUrl(this.conn.baseUrl, p.project, STORY_TYPE))).value ?? []
     const states: string[] = [...statesRaw].sort((a, b) => a.order - b.order).map((s: any) => s.name)
-    const taskStatesRaw = (await this.get(statesUrl(this.conn.baseUrl, p.project, 'Task'))).value ?? []
+    const taskStatesRaw = (await this.get(statesUrl(this.conn.baseUrl, p.project, TASK_TYPE))).value ?? []
     const taskStates: string[] = [...taskStatesRaw].sort((a, b) => a.order - b.order).map((s: any) => s.name)
     const wiql = await (await this.fetchImpl(wiqlUrl(this.conn.baseUrl, p.project), {
       method: 'POST', headers: this.headers(true),
