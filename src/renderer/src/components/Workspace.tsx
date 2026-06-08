@@ -45,6 +45,10 @@ export function Workspace(): React.JSX.Element {
   const rightTabs = group ? paneTabs(group, 'right') : []
   const splitOpen = leftTabs.length > 0 && rightTabs.length > 0
 
+  // On monte les volets de TOUS les groupes (inactifs masqués en display:none) pour ne jamais
+  // démonter leurs terminaux : sinon le Terminal se dispose et perd son buffer/scrollback xterm
+  // → au retour sur le groupe, l'historique défilé est perdu et le scroll « reset ».
+
   // À l'ouverture du split : si la fenêtre a changé de taille depuis le dernier réglage,
   // on (re)met le volet à 50 % de la zone des volets.
   const prevSplit = useRef(false)
@@ -70,21 +74,30 @@ export function Workspace(): React.JSX.Element {
 
   return (
     <div id="panes" ref={panesRef}>
-      {group && dragId && leftTabs.length === 0 && rightTabs.length > 0 && (
-        <div className="drop-zone" onDragOver={(e) => e.preventDefault()} onDrop={() => dropTo(1)}>← Déposer à gauche</div>
-      )}
-      {group && leftTabs.length > 0 && (
-        <Pane side="left" group={group} tabs={leftTabs} activeRef={group.leftActiveTab} width={consoleWidth} hasOther={rightTabs.length > 0} dragId={dragId} setDragId={setDragId} />
-      )}
-      {group && leftTabs.length > 0 && rightTabs.length > 0 && (
-        <div className="splitter" title="Redimensionner" onMouseDown={startResize} />
-      )}
-      {group && rightTabs.length > 0 && (
-        <Pane side="right" group={group} tabs={rightTabs} activeRef={group.rightActiveTab} width={consoleWidth} hasOther={leftTabs.length > 0} dragId={dragId} setDragId={setDragId} />
-      )}
-      {group && dragId && leftTabs.length > 0 && rightTabs.length === 0 && (
-        <div className="drop-zone" onDragOver={(e) => e.preventDefault()} onDrop={() => dropTo(2)}>Déposer à droite →</div>
-      )}
+      {groups.map((g) => {
+        const isActive = g.id === activeGroupId
+        const lt = paneTabs(g, 'left')
+        const rt = paneTabs(g, 'right')
+        return (
+          <div key={g.id} className="group-panes" style={{ display: isActive ? 'flex' : 'none' }}>
+            {isActive && dragId && lt.length === 0 && rt.length > 0 && (
+              <div className="drop-zone" onDragOver={(e) => e.preventDefault()} onDrop={() => dropTo(1)}>← Déposer à gauche</div>
+            )}
+            {lt.length > 0 && (
+              <Pane side="left" group={g} tabs={lt} activeRef={g.leftActiveTab} width={consoleWidth} hasOther={rt.length > 0} dragId={dragId} setDragId={setDragId} />
+            )}
+            {lt.length > 0 && rt.length > 0 && (
+              <div className="splitter" title="Redimensionner" onMouseDown={startResize} />
+            )}
+            {rt.length > 0 && (
+              <Pane side="right" group={g} tabs={rt} activeRef={g.rightActiveTab} width={consoleWidth} hasOther={lt.length > 0} dragId={dragId} setDragId={setDragId} />
+            )}
+            {isActive && dragId && lt.length > 0 && rt.length === 0 && (
+              <div className="drop-zone" onDragOver={(e) => e.preventDefault()} onDrop={() => dropTo(2)}>Déposer à droite →</div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
