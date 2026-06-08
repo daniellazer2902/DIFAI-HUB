@@ -3,7 +3,7 @@ import type { AdoConnection, AdoProject, AdoTeam, AdoIteration, AdoBoard, AdoWor
 import { authHeader, projectsUrl, teamsUrl, iterationsUrl, statesUrl, wiqlUrl, batchUrl, taskboardColumnsUrl } from './adoUrls'
 import { storiesQuery } from './wiql'
 
-export interface FetchResponse { ok: boolean; status: number; json(): Promise<any>; text(): Promise<string> }
+export interface FetchResponse { ok: boolean; status: number; json(): Promise<any>; text(): Promise<string>; arrayBuffer?(): Promise<ArrayBuffer> }
 export type FetchLike = (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<FetchResponse>
 
 const STORY_TYPE = 'User Story' // lot 4 : Agile. (Scrum=Product Backlog Item → override futur.)
