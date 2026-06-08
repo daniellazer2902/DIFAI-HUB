@@ -10,6 +10,7 @@ interface Props { board: Board; q: string; filter: boolean; onOpen: (id: number)
 export function TaskBoardView({ board, q, filter, onOpen }: Props): React.JSX.Element {
   const stories = filter && q ? board.stories.filter((s) => storyVisible(s, board.tasksByParent[s.id] ?? [], q)) : board.stories
   if (stories.length === 0) return <div className="ado-center">{q && filter ? 'Aucune correspondance.' : 'Aucune User Story dans ce sprint.'}</div>
+  if (board.taskStates.length === 0) return <div className="ado-center">Aucun état de tâche configuré.</div>
   // Colonne US figée (220px) + une colonne par état de tâche.
   const cols = `220px repeat(${board.taskStates.length}, minmax(180px, 1fr))`
   return (
