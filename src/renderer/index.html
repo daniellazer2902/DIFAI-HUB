@@ -88,6 +88,8 @@
       .tab-new-menu div svg { color: #9ab; flex: none; }
       .sound-toggle { display: inline-flex; align-items: center; justify-content: center; }
       #panes { flex: 1; min-height: 0; min-width: 0; display: flex; overflow: hidden; }
+      /* Un conteneur par groupe (display:flex si actif, none sinon) : garde tous les terminaux montés. */
+      .group-panes { flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
       .pane { display: flex; flex-direction: column; min-width: 0; height: 100%; }
       .pane-tabstrip { display: flex; align-items: flex-end; gap: 5px; padding: 6px 8px 0; background: #181818; border-bottom: 1px solid #333; min-height: 34px; }
       .tab-row { flex: 1; min-width: 0; display: flex; align-items: flex-end; gap: 5px; overflow: hidden; }
