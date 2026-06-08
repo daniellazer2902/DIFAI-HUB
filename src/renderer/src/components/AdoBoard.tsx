@@ -2,7 +2,9 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useHub, adoCacheKey, type Item, type Group } from '../store'
 import type { AdoBoard as Board, AdoIteration, AdoWorkItem } from '../../../shared/ipc'
 import { AdoStoryDetail } from './AdoStoryDetail'
-import { splitHighlight, itemMatches, storyVisible } from '../adoFind'
+import { itemMatches, storyVisible } from '../adoFind'
+import { Hl } from './Hl'
+import { StateBoardView } from './StateBoardView'
 
 interface Props { item: Item; group: Group }
 
@@ -153,7 +155,7 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
       <div className="ado-content" ref={contentRef}>
         {board
           ? (ado.view === 'board'
-              ? <BoardView board={board} q={query} filter={filter} onOpen={setDetailId} />
+              ? <StateBoardView board={board} q={query} filter={filter} onOpen={setDetailId} />
               : <TreeView board={board} q={query} filter={filter} />)
           : refreshing
             ? <div className="ado-center"><span className="ado-spinner" /> Chargement du board…</div>
@@ -165,12 +167,6 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
       })()}
     </div>
   )
-}
-
-/** Texte avec occurrences de `q` surlignées. */
-function Hl({ text, q }: { text: string; q: string }): React.JSX.Element {
-  if (!q) return <>{text}</>
-  return <>{splitHighlight(text, q).map((s, i) => (s.hit ? <mark key={i} className="ado-hl">{s.text}</mark> : <span key={i}>{s.text}</span>))}</>
 }
 
 function EyeIcon({ off }: { off: boolean }): React.JSX.Element {
@@ -223,31 +219,3 @@ function StoryRow({ story, tasks, q }: { story: AdoWorkItem; tasks: AdoWorkItem[
   )
 }
 
-function BoardView({ board, q, filter, onOpen }: ViewProps & { onOpen: (id: number) => void }): React.JSX.Element {
-  const stories = filter && q ? board.stories.filter((s) => storyVisible(s, board.tasksByParent[s.id] ?? [], q)) : board.stories
-  if (stories.length === 0) return <div className="ado-center">{q && filter ? 'Aucune correspondance.' : 'Aucune User Story dans ce sprint.'}</div>
-  return (
-    <div className="ado-cols">
-      {board.states.map((state) => {
-        const cards = stories.filter((s) => s.state === state)
-        return (
-          <div key={state} className="ado-col">
-            <div className="ado-col-head">{state} <span className="ado-col-count">{cards.length}</span></div>
-            <div className="ado-col-body">
-              {cards.map((s) => (
-                <button key={s.id} className="ado-card" onClick={() => onOpen(s.id)}>
-                  <div className="ado-card-title"><Hl text={s.title} q={q} /></div>
-                  <div className="ado-card-meta">
-                    <span className="ado-id"><Hl text={`#${s.id}`} q={q} /></span>
-                    <span className="ado-card-tasks">{s.childCount} tâche{s.childCount > 1 ? 's' : ''}</span>
-                    <span className="ado-assignee"><Hl text={s.assignedTo ?? '—'} q={q} /></span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
