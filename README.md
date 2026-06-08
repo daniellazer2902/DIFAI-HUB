@@ -8,6 +8,10 @@ projet, avec terminaux embarqués, suivi d'état en temps réel et intégration 
 
 > Nom de package : `difai-hub` · Nom d'affichage : **DIFAI-IDE**.
 
+![Vue d'ensemble de DIFAI-IDE](docs/screenshots/overview.png)
+
+*Sessions Claude organisées par groupe (à gauche), terminal embarqué au centre, et recherche dans le transcript via `Ctrl+F` (à droite).*
+
 ---
 
 ## À quoi ça sert
@@ -46,6 +50,37 @@ vite entre des dizaines de terminaux. DIFAI-IDE centralise tout dans une seule f
   atomique) et restaure automatiquement la dernière version valide si des sessions
   parallèles le corrompent.
 - **Réglages** — dossier par défaut, confirmation à la fermeture, son on/off.
+
+## Captures d'écran
+
+### Recherche dans le transcript (`Ctrl+F`)
+
+Voir la [vue d'ensemble](#difai-ide) ci-dessus : `Ctrl+F` sur une session ouvre un panneau de
+recherche dans l'historique de la conversation, avec surlignage et compteur d'occurrences.
+
+### Console des sous-agents
+
+![Console des sous-agents](docs/screenshots/agents-console.png)
+
+*Le rail liste les sous-agents lancés par une session ; la console affiche leur sortie (outils, prompts, résultats), ici en vue partagée à côté du terminal.*
+
+### Azure DevOps — board & Sprint Taskboard
+
+![Board Azure DevOps](docs/screenshots/azure-board.png)
+
+*Board d'un sprint en **arborescence** (US → tâches) et en **Sprint Taskboard** façon Azure (colonnes du taskboard), avec **filtre par personne** assignée.*
+
+### Claude avancé — reprendre une conversation
+
+![Claude avancé](docs/screenshots/claude-advanced-resume.png)
+
+*La modale « Claude avancé » accepte des paramètres de lancement libres — par exemple `claude --resume <id>` pour reprendre une conversation existante.*
+
+### Plusieurs comptes Azure DevOps
+
+![Connexions Azure DevOps](docs/screenshots/ado-connections.png)
+
+*Les Réglages gèrent plusieurs connexions Azure DevOps (cloud ou serveur auto-hébergé), chacune avec son URL d'organisation ; le PAT est chiffré localement.*
 
 ## Prérequis
 
