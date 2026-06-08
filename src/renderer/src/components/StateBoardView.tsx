@@ -1,3 +1,4 @@
+import React from 'react'
 import type { AdoBoard as Board } from '../../../shared/ipc'
 import { Hl } from './Hl'
 import { storyVisible } from '../adoFind'
