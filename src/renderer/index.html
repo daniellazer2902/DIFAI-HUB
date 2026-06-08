@@ -109,6 +109,18 @@
       .drop-zone { flex: none; width: 180px; min-width: 120px; align-self: stretch; display: flex; align-items: center; justify-content: center; margin: 8px; border: 2px dashed #c80; border-radius: 8px; color: #c80; font-size: 12px; background: rgba(204, 136, 0, 0.06); }
       .term-screen { flex: 1; min-width: 0; width: 100%; height: 100%; }
 
+      /* Taskboard ADO : grille swimlanes (US figée à gauche) × colonnes d'états de tâches */
+      .ado-taskboard { height: 100%; overflow: auto; padding: 8px 10px; }
+      .ado-tb-head { display: grid; gap: 8px; position: sticky; top: 0; z-index: 2; background: #1b1b1b; padding: 2px 0 6px; }
+      .ado-tb-head-cell { font-size: 12px; color: #9c9; padding: 4px 6px; border-bottom: 1px solid #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .ado-tb-head-cell.swim { position: sticky; left: 0; background: #1b1b1b; z-index: 1; }
+      .ado-swimlane { display: grid; gap: 8px; align-items: start; padding: 8px 0; border-bottom: 1px solid #262626; }
+      .ado-swim-head { position: sticky; left: 0; z-index: 1; background: #1b1b1b; display: flex; gap: 4px; align-items: flex-start; }
+      .ado-tb-caret { background: none; border: none; color: #9ab; cursor: pointer; font-size: 12px; line-height: 1; padding: 4px 2px; }
+      .ado-tb-cell { display: flex; flex-direction: column; gap: 6px; min-height: 8px; }
+      .ado-us-card { flex: 1; min-width: 0; border-left: 3px solid #c80; text-align: left; }
+      .ado-task-card { text-align: left; }
+
       .search-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #1b1b1b; }
       .pane-body > .search-panel, .pane-body > .agents-tab { position: absolute; inset: 0; }
       .search-header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid #333; background: #1e1e1e; }

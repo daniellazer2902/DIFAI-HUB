@@ -4,7 +4,7 @@ import type { AdoBoard as Board, AdoIteration, AdoWorkItem } from '../../../shar
 import { AdoStoryDetail } from './AdoStoryDetail'
 import { itemMatches, storyVisible } from '../adoFind'
 import { Hl } from './Hl'
-import { StateBoardView } from './StateBoardView'
+import { TaskBoardView } from './TaskBoardView'
 
 interface Props { item: Item; group: Group }
 
@@ -155,7 +155,7 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
       <div className="ado-content" ref={contentRef}>
         {board
           ? (ado.view === 'board'
-              ? <StateBoardView board={board} q={query} filter={filter} onOpen={setDetailId} />
+              ? <TaskBoardView board={board} q={query} filter={filter} onOpen={setDetailId} />
               : <TreeView board={board} q={query} filter={filter} />)
           : refreshing
             ? <div className="ado-center"><span className="ado-spinner" /> Chargement du board…</div>
