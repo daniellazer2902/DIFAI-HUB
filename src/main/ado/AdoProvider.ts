@@ -44,6 +44,8 @@ export class AdoProvider implements WorkItemProvider {
   async listBoard(p: { project: string; team?: string; iterationPath?: string }): Promise<AdoBoard> {
     const statesRaw = (await this.get(statesUrl(this.conn.baseUrl, p.project, STORY_TYPE))).value ?? []
     const states: string[] = [...statesRaw].sort((a, b) => a.order - b.order).map((s: any) => s.name)
+    const taskStatesRaw = (await this.get(statesUrl(this.conn.baseUrl, p.project, 'Task'))).value ?? []
+    const taskStates: string[] = [...taskStatesRaw].sort((a, b) => a.order - b.order).map((s: any) => s.name)
     const wiql = await (await this.fetchImpl(wiqlUrl(this.conn.baseUrl, p.project), {
       method: 'POST', headers: this.headers(true),
       body: JSON.stringify({ query: storiesQuery({ project: p.project, storyType: STORY_TYPE, iterationPath: p.iterationPath }) })
@@ -56,7 +58,7 @@ export class AdoProvider implements WorkItemProvider {
       tasksByParent[s.id] = await this.getChildren(s.id)
       s.childCount = tasksByParent[s.id].length // backfill : la card du board lit childCount
     }
-    return { states, stories, tasksByParent }
+    return { states, taskStates, stories, tasksByParent }
   }
   async getChildren(parentId: number): Promise<AdoWorkItem[]> {
     const r = await this.get(`${this.conn.baseUrl.replace(/\/+$/, '')}/_apis/wit/workitems/${parentId}?$expand=relations&api-version=7.1`)
