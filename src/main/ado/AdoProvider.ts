@@ -1,7 +1,8 @@
 import type { WorkItemProvider } from './WorkItemProvider'
-import type { AdoConnection, AdoProject, AdoTeam, AdoIteration, AdoBoard, AdoWorkItem, AdoTaskColumn } from '../../shared/ipc'
-import { authHeader, projectsUrl, teamsUrl, iterationsUrl, statesUrl, wiqlUrl, batchUrl, taskboardColumnsUrl } from './adoUrls'
+import type { AdoConnection, AdoProject, AdoTeam, AdoIteration, AdoBoard, AdoWorkItem, AdoTaskColumn, AdoWorkItemDetail, AdoComment } from '../../shared/ipc'
+import { authHeader, projectsUrl, teamsUrl, iterationsUrl, statesUrl, wiqlUrl, batchUrl, taskboardColumnsUrl, workItemUrl, commentsUrl } from './adoUrls'
 import { storiesQuery } from './wiql'
+import { inlineImages, type AttachmentFetcher } from './inlineImages'
 
 export interface FetchResponse { ok: boolean; status: number; json(): Promise<any>; text(): Promise<string>; arrayBuffer?(): Promise<ArrayBuffer> }
 export type FetchLike = (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<FetchResponse>
@@ -83,6 +84,38 @@ export class AdoProvider implements WorkItemProvider {
     return [...raw].sort((a: any, b: any) => a.order - b.order)
       .map((s: any) => ({ name: s.name, mappings: [{ workItemType: TASK_TYPE, state: s.name }] }))
   }
+  async getDetail(project: string, id: number): Promise<AdoWorkItemDetail> {
+    const wi = await this.get(workItemUrl(this.conn.baseUrl, id))
+    const f = wi.fields ?? {}
+    const fetchAttachment: AttachmentFetcher = async (url) => {
+      try {
+        const r = await this.fetchImpl(url, { headers: this.headers() })
+        if (!r.ok || !r.arrayBuffer) return null
+        const buf = Buffer.from(await r.arrayBuffer())
+        if (buf.length > 3_000_000) return null   // garde-fou : pas d'inline géant
+        return { mime: mimeFromUrl(url), base64: buf.toString('base64') }
+      } catch { return null }
+    }
+    const descriptionHtml = await inlineImages(f['System.Description'] ?? '', fetchAttachment)
+    const acceptanceCriteriaHtml = await inlineImages(f['Microsoft.VSTS.Common.AcceptanceCriteria'] ?? '', fetchAttachment)
+    let comments: AdoComment[] = []
+    try {
+      const c = await this.get(commentsUrl(this.conn.baseUrl, project, id))
+      comments = await Promise.all(((c.comments ?? []) as any[]).map(async (cm) => ({
+        author: cm.createdBy?.displayName ?? '—',
+        date: cm.createdDate ?? '',
+        html: await inlineImages(cm.text ?? '', fetchAttachment)
+      })))
+    } catch { comments = [] }
+    return {
+      id, type: f['System.WorkItemType'], title: f['System.Title'], state: f['System.State'],
+      assignedTo: f['System.AssignedTo']?.displayName ?? null,
+      storyPoints: f['Microsoft.VSTS.Scheduling.StoryPoints'] ?? null,
+      priority: f['Microsoft.VSTS.Common.Priority'] ?? null,
+      descriptionHtml, acceptanceCriteriaHtml, comments
+    }
+  }
+
   async getChildren(parentId: number): Promise<AdoWorkItem[]> {
     const r = await this.get(`${this.conn.baseUrl.replace(/\/+$/, '')}/_apis/wit/workitems/${parentId}?$expand=relations&api-version=7.1`)
     const childIds: number[] = (r.relations ?? [])
@@ -107,4 +140,14 @@ export class AdoProvider implements WorkItemProvider {
       childCount: 0
     }))
   }
+}
+
+function mimeFromUrl(url: string): string {
+  const name = (/[?&]fileName=([^&]+)/i.exec(url)?.[1] ?? url).toLowerCase()
+  if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg'
+  if (name.endsWith('.gif')) return 'image/gif'
+  if (name.endsWith('.webp')) return 'image/webp'
+  if (name.endsWith('.svg')) return 'image/svg+xml'
+  if (name.endsWith('.bmp')) return 'image/bmp'
+  return 'image/png'
 }

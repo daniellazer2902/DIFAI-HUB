@@ -38,7 +38,8 @@ const hub: HubApi = {
   adoListTeams: (id, project) => ipcRenderer.invoke(IPC.AdoListTeams, id, project),
   adoListIterations: (id, project, team) => ipcRenderer.invoke(IPC.AdoListIterations, id, project, team),
   adoListBoard: (p) => ipcRenderer.invoke(IPC.AdoListBoard, p),
-  adoGetChildren: (id, parentId) => ipcRenderer.invoke(IPC.AdoGetChildren, id, parentId)
+  adoGetChildren: (id, parentId) => ipcRenderer.invoke(IPC.AdoGetChildren, id, parentId),
+  adoGetDetail: (connId, project, id) => ipcRenderer.invoke(IPC.AdoGetDetail, connId, project, id)
 }
 
 contextBridge.exposeInMainWorld('hub', hub)
