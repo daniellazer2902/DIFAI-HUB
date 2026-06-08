@@ -37,22 +37,38 @@ describe('AdoProvider', () => {
     const p = new AdoProvider(conn, 'tok', fetchLike as never)
     const board = await p.listBoard({ project: 'Proj', iterationPath: 'Proj\\S1' })
     expect(board.states).toEqual(['New', 'Active', 'Closed'])
-    expect(board.taskStates).toEqual(['New', 'Active', 'Closed'])
+    expect(board.taskColumns.map((c) => c.name)).toEqual(['New', 'Active', 'Closed'])
     expect(board.stories.map((s) => s.id)).toEqual([10, 11])
     expect(board.stories[0]).toMatchObject({ id: 10, title: 'US A', state: 'Active', type: 'User Story' })
   })
 
-  it('listBoard expose les états du type Task (colonnes du taskboard), triés par order', async () => {
+  it('listBoard récupère les colonnes du taskboard (taskboardcolumns) quand une équipe est fournie', async () => {
     const fetchLike = vi.fn((url: string) => {
-      if (url.includes('/workitemtypes/Task/states')) {
-        return ok({ value: [{ name: 'Closed', order: 3 }, { name: 'New', order: 1 }, { name: 'In PR', order: 2 }] })
-      }
+      if (url.includes('/_apis/work/taskboardcolumns')) return ok({ columns: [
+        { name: 'New', order: 0, mappings: [{ workItemType: 'Task', state: 'New' }] },
+        { name: 'IN PR', order: 1, mappings: [{ workItemType: 'Task', state: 'Active' }] },
+        { name: 'Closed', order: 2, mappings: [{ workItemType: 'Task', state: 'Closed' }] }
+      ] })
       if (url.includes('/states')) return ok({ value: [{ name: 'New', order: 1 }, { name: 'Active', order: 2 }] })
       if (url.includes('/wiql')) return ok({ workItems: [] })
       return ok({ value: [] })
     })
     const p = new AdoProvider(conn, 'tok', fetchLike as never)
+    const board = await p.listBoard({ project: 'Proj', team: 'Team A' })
+    expect(board.taskColumns.map((c) => c.name)).toEqual(['New', 'IN PR', 'Closed'])
+    expect(board.taskColumns[1].mappings).toEqual([{ workItemType: 'Task', state: 'Active' }])
+  })
+
+  it('listBoard sans équipe : repli sur les états du type Task comme colonnes', async () => {
+    const fetchLike = vi.fn((url: string) => {
+      if (url.includes('/workitemtypes/Task/states')) return ok({ value: [{ name: 'New', order: 1 }, { name: 'Done', order: 2 }] })
+      if (url.includes('/states')) return ok({ value: [{ name: 'New', order: 1 }] })
+      if (url.includes('/wiql')) return ok({ workItems: [] })
+      return ok({ value: [] })
+    })
+    const p = new AdoProvider(conn, 'tok', fetchLike as never)
     const board = await p.listBoard({ project: 'Proj' })
-    expect(board.taskStates).toEqual(['New', 'In PR', 'Closed'])
+    expect(board.taskColumns.map((c) => c.name)).toEqual(['New', 'Done'])
+    expect(board.taskColumns[0].mappings).toEqual([{ workItemType: 'Task', state: 'New' }])
   })
 })

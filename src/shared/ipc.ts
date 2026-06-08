@@ -72,11 +72,16 @@ export interface AdoWorkItem {
   parentId: number | null
   childCount: number
 }
+/** Une colonne du Taskboard (custom) : nom + mapping état→colonne par type de work item. */
+export interface AdoTaskColumn {
+  name: string
+  mappings: { workItemType: string; state: string }[]
+}
 /** Board d'un sprint : colonnes (états du process) + US, chacune avec ses tâches. */
 export interface AdoBoard {
-  states: string[]                 // ordre des colonnes (états User Story) — vue cartes-par-état
-  taskStates: string[]             // ordre des colonnes du taskboard (états du type Task)
-  stories: AdoWorkItem[]           // cards (User Stories)
+  states: string[]                 // états User Story — vue cartes-par-état (StateBoardView)
+  taskColumns: AdoTaskColumn[]     // colonnes du Taskboard (ordre d'affichage)
+  stories: AdoWorkItem[]
   tasksByParent: Record<number, AdoWorkItem[]>
 }
 export interface AdoError { ok: false; error: string; status?: number }

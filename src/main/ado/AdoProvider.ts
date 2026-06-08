@@ -1,6 +1,6 @@
 import type { WorkItemProvider } from './WorkItemProvider'
-import type { AdoConnection, AdoProject, AdoTeam, AdoIteration, AdoBoard, AdoWorkItem } from '../../shared/ipc'
-import { authHeader, projectsUrl, teamsUrl, iterationsUrl, statesUrl, wiqlUrl, batchUrl } from './adoUrls'
+import type { AdoConnection, AdoProject, AdoTeam, AdoIteration, AdoBoard, AdoWorkItem, AdoTaskColumn } from '../../shared/ipc'
+import { authHeader, projectsUrl, teamsUrl, iterationsUrl, statesUrl, wiqlUrl, batchUrl, taskboardColumnsUrl } from './adoUrls'
 import { storiesQuery } from './wiql'
 
 export interface FetchResponse { ok: boolean; status: number; json(): Promise<any>; text(): Promise<string> }
@@ -45,8 +45,23 @@ export class AdoProvider implements WorkItemProvider {
   async listBoard(p: { project: string; team?: string; iterationPath?: string }): Promise<AdoBoard> {
     const statesRaw = (await this.get(statesUrl(this.conn.baseUrl, p.project, STORY_TYPE))).value ?? []
     const states: string[] = [...statesRaw].sort((a, b) => a.order - b.order).map((s: any) => s.name)
-    const taskStatesRaw = (await this.get(statesUrl(this.conn.baseUrl, p.project, TASK_TYPE))).value ?? []
-    const taskStates: string[] = [...taskStatesRaw].sort((a, b) => a.order - b.order).map((s: any) => s.name)
+    // Colonnes du Taskboard : API dédiée si une équipe est connue, sinon repli sur les états Task.
+    let taskColumns: AdoTaskColumn[]
+    try {
+      if (p.team) {
+        const raw = await this.get(taskboardColumnsUrl(this.conn.baseUrl, p.project, p.team))
+        const cols = [...(raw.columns ?? [])].sort((a: any, b: any) => a.order - b.order)
+        taskColumns = cols.map((c: any) => ({
+          name: c.name,
+          mappings: (c.mappings ?? []).map((m: any) => ({ workItemType: m.workItemType, state: m.state }))
+        }))
+        if (taskColumns.length === 0) taskColumns = await this.taskColumnsFromStates(p.project)
+      } else {
+        taskColumns = await this.taskColumnsFromStates(p.project)
+      }
+    } catch {
+      taskColumns = await this.taskColumnsFromStates(p.project)
+    }
     const wiql = await (await this.fetchImpl(wiqlUrl(this.conn.baseUrl, p.project), {
       method: 'POST', headers: this.headers(true),
       body: JSON.stringify({ query: storiesQuery({ project: p.project, storyType: STORY_TYPE, iterationPath: p.iterationPath }) })
@@ -59,7 +74,14 @@ export class AdoProvider implements WorkItemProvider {
       tasksByParent[s.id] = await this.getChildren(s.id)
       s.childCount = tasksByParent[s.id].length // backfill : la card du board lit childCount
     }
-    return { states, taskStates, stories, tasksByParent }
+    return { states, taskColumns, stories, tasksByParent }
+  }
+
+  /** Repli : une colonne par état du type Task (mapping 1:1). */
+  private async taskColumnsFromStates(project: string): Promise<AdoTaskColumn[]> {
+    const raw = (await this.get(statesUrl(this.conn.baseUrl, project, TASK_TYPE))).value ?? []
+    return [...raw].sort((a: any, b: any) => a.order - b.order)
+      .map((s: any) => ({ name: s.name, mappings: [{ workItemType: TASK_TYPE, state: s.name }] }))
   }
   async getChildren(parentId: number): Promise<AdoWorkItem[]> {
     const r = await this.get(`${this.conn.baseUrl.replace(/\/+$/, '')}/_apis/wit/workitems/${parentId}?$expand=relations&api-version=7.1`)

@@ -24,3 +24,6 @@ export function wiqlUrl(base: string, project: string): string {
 export function batchUrl(base: string): string {
   return `${trim(base)}/_apis/wit/workitemsbatch?${API}`
 }
+export function taskboardColumnsUrl(base: string, project: string, team: string): string {
+  return `${trim(base)}/${seg(project)}/${seg(team)}/_apis/work/taskboardcolumns?api-version=7.1-preview.1`
+}
