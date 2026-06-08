@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useHub, adoCacheKey, type Item, type Group } from '../store'
 import type { AdoBoard as Board, AdoIteration, AdoWorkItem } from '../../../shared/ipc'
 import { AdoStoryDetail } from './AdoStoryDetail'
 import { itemMatches, storyVisible } from '../adoFind'
 import { Hl } from './Hl'
 import { TaskBoardView } from './TaskBoardView'
+import { filterBoardByAssignee } from '../adoBoard'
 
 interface Props { item: Item; group: Group }
 
@@ -31,6 +32,16 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
 
   const query = find?.open ? find.query : ''
   const filter = !!find?.open && find.filter
+
+  const [assignee, setAssignee] = useState('')
+  const assignees = React.useMemo(() => {
+    if (!board) return [] as string[]
+    const set = new Set<string>()
+    for (const s of board.stories) if (s.assignedTo) set.add(s.assignedTo)
+    for (const list of Object.values(board.tasksByParent)) for (const t of list) if (t.assignedTo) set.add(t.assignedTo)
+    return [...set].sort((a, b) => a.localeCompare(b))
+  }, [board])
+  const viewBoard = React.useMemo(() => (board ? filterBoardByAssignee(board, assignee || null) : null), [board, assignee])
 
   const load = useCallback(async () => {
     if (!bind) return
@@ -102,6 +113,10 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
           <option value="">— tout le projet —</option>
           {iterations.map((i) => <option key={i.id} value={i.path}>{i.name}{i.current ? ' (courant)' : ''}</option>)}
         </select>
+        <select className="ado-assignee-filter" value={assignee} onChange={(e) => setAssignee(e.target.value)} title="Filtrer par personne assignée">
+          <option value="">— toutes les personnes —</option>
+          {assignees.map((a) => <option key={a} value={a}>{a}</option>)}
+        </select>
         <button className="btn ado-refresh" onClick={load} disabled={refreshing} title="Rafraîchir">
           <span className={refreshing ? 'ado-spin-ico' : ''}>↻</span>
         </button>
@@ -153,10 +168,10 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
 
       {err && <div className="ado-board-err">{err} <button className="btn" onClick={load}>Réessayer</button></div>}
       <div className="ado-content" ref={contentRef}>
-        {board
+        {viewBoard
           ? (ado.view === 'board'
-              ? <TaskBoardView board={board} q={query} filter={filter} onOpen={setDetailId} />
-              : <TreeView board={board} q={query} filter={filter} />)
+              ? <TaskBoardView board={viewBoard} q={query} filter={filter} onOpen={setDetailId} />
+              : <TreeView board={viewBoard} q={query} filter={filter} />)
           : refreshing
             ? <div className="ado-center"><span className="ado-spinner" /> Chargement du board…</div>
             : !err && <div className="ado-center">Aucune donnée.</div>}
