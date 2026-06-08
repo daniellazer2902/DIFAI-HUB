@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useHub, adoCacheKey, type Item, type Group } from '../store'
 import type { AdoBoard as Board, AdoIteration, AdoWorkItem } from '../../../shared/ipc'
-import { AdoStoryDetail } from './AdoStoryDetail'
+import { AdoDetail } from './AdoDetail'
 import { itemMatches, storyVisible } from '../adoFind'
 import { Hl } from './Hl'
 import { TaskBoardView } from './TaskBoardView'
@@ -168,18 +168,16 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
 
       {err && <div className="ado-board-err">{err} <button className="btn" onClick={load}>Réessayer</button></div>}
       <div className="ado-content" ref={contentRef}>
-        {viewBoard
-          ? (ado.view === 'board'
-              ? <TaskBoardView board={viewBoard} q={query} filter={filter} onOpen={setDetailId} />
-              : <TreeView board={viewBoard} q={query} filter={filter} />)
-          : refreshing
-            ? <div className="ado-center"><span className="ado-spinner" /> Chargement du board…</div>
-            : !err && <div className="ado-center">Aucune donnée.</div>}
+        {detailId !== null
+          ? <AdoDetail connId={bind.connId} project={bind.project} id={detailId} onBack={() => setDetailId(null)} />
+          : viewBoard
+            ? (ado.view === 'board'
+                ? <TaskBoardView board={viewBoard} q={query} filter={filter} onOpen={setDetailId} />
+                : <TreeView board={viewBoard} q={query} filter={filter} />)
+            : refreshing
+              ? <div className="ado-center"><span className="ado-spinner" /> Chargement du board…</div>
+              : !err && <div className="ado-center">Aucune donnée.</div>}
       </div>
-      {detailId !== null && board && (() => {
-        const s = board.stories.find((x) => x.id === detailId)
-        return s ? <AdoStoryDetail story={s} tasks={board.tasksByParent[s.id] ?? []} onClose={() => setDetailId(null)} /> : null
-      })()}
     </div>
   )
 }
