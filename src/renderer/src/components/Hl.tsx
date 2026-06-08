@@ -1,3 +1,4 @@
+import React from 'react'
 import { splitHighlight } from '../adoFind'
 
 /** Texte avec occurrences de `q` surlignées (mark.ado-hl, repéré par la recherche). */
