@@ -1,8 +1,12 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useHub, adoCacheKey, type Item, type Group } from '../store'
 import type { AdoBoard as Board, AdoIteration, AdoWorkItem } from '../../../shared/ipc'
-import { AdoStoryDetail } from './AdoStoryDetail'
-import { splitHighlight, itemMatches, storyVisible } from '../adoFind'
+import { AdoDetail } from './AdoDetail'
+import { itemMatches, storyVisible } from '../adoFind'
+import { Hl } from './Hl'
+import { Chevron } from './Chevron'
+import { TaskBoardView } from './TaskBoardView'
+import { filterBoardByAssignee } from '../adoBoard'
 
 interface Props { item: Item; group: Group }
 
@@ -29,6 +33,16 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
 
   const query = find?.open ? find.query : ''
   const filter = !!find?.open && find.filter
+
+  const [assignee, setAssignee] = useState('')
+  const assignees = React.useMemo(() => {
+    if (!board) return [] as string[]
+    const set = new Set<string>()
+    for (const s of board.stories) if (s.assignedTo) set.add(s.assignedTo)
+    for (const list of Object.values(board.tasksByParent)) for (const t of list) if (t.assignedTo) set.add(t.assignedTo)
+    return [...set].sort((a, b) => a.localeCompare(b))
+  }, [board])
+  const viewBoard = React.useMemo(() => (board ? filterBoardByAssignee(board, assignee || null) : null), [board, assignee])
 
   const load = useCallback(async () => {
     if (!bind) return
@@ -100,6 +114,10 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
           <option value="">— tout le projet —</option>
           {iterations.map((i) => <option key={i.id} value={i.path}>{i.name}{i.current ? ' (courant)' : ''}</option>)}
         </select>
+        <select className="ado-assignee-filter" value={assignee} onChange={(e) => setAssignee(e.target.value)} title="Filtrer par personne assignée">
+          <option value="">— toutes les personnes —</option>
+          {assignees.map((a) => <option key={a} value={a}>{a}</option>)}
+        </select>
         <button className="btn ado-refresh" onClick={load} disabled={refreshing} title="Rafraîchir">
           <span className={refreshing ? 'ado-spin-ico' : ''}>↻</span>
         </button>
@@ -151,26 +169,18 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
 
       {err && <div className="ado-board-err">{err} <button className="btn" onClick={load}>Réessayer</button></div>}
       <div className="ado-content" ref={contentRef}>
-        {board
-          ? (ado.view === 'board'
-              ? <BoardView board={board} q={query} filter={filter} onOpen={setDetailId} />
-              : <TreeView board={board} q={query} filter={filter} />)
-          : refreshing
-            ? <div className="ado-center"><span className="ado-spinner" /> Chargement du board…</div>
-            : !err && <div className="ado-center">Aucune donnée.</div>}
+        {detailId !== null
+          ? <AdoDetail connId={bind.connId} project={bind.project} id={detailId} onBack={() => setDetailId(null)} />
+          : viewBoard
+            ? (ado.view === 'board'
+                ? <TaskBoardView board={viewBoard} q={query} filter={filter} onOpen={setDetailId} />
+                : <TreeView board={viewBoard} q={query} filter={filter} onOpen={setDetailId} />)
+            : refreshing
+              ? <div className="ado-center"><span className="ado-spinner" /> Chargement du board…</div>
+              : !err && <div className="ado-center">Aucune donnée.</div>}
       </div>
-      {detailId !== null && board && (() => {
-        const s = board.stories.find((x) => x.id === detailId)
-        return s ? <AdoStoryDetail story={s} tasks={board.tasksByParent[s.id] ?? []} onClose={() => setDetailId(null)} /> : null
-      })()}
     </div>
   )
-}
-
-/** Texte avec occurrences de `q` surlignées. */
-function Hl({ text, q }: { text: string; q: string }): React.JSX.Element {
-  if (!q) return <>{text}</>
-  return <>{splitHighlight(text, q).map((s, i) => (s.hit ? <mark key={i} className="ado-hl">{s.text}</mark> : <span key={i}>{s.text}</span>))}</>
 }
 
 function EyeIcon({ off }: { off: boolean }): React.JSX.Element {
@@ -185,7 +195,7 @@ function EyeIcon({ off }: { off: boolean }): React.JSX.Element {
 
 interface ViewProps { board: Board; q: string; filter: boolean }
 
-function TreeView({ board, q, filter }: ViewProps): React.JSX.Element {
+function TreeView({ board, q, filter, onOpen }: ViewProps & { onOpen: (id: number) => void }): React.JSX.Element {
   const stories = filter && q ? board.stories.filter((s) => storyVisible(s, board.tasksByParent[s.id] ?? [], q)) : board.stories
   if (stories.length === 0) return <div className="ado-center">{q && filter ? 'Aucune correspondance.' : 'Aucune User Story dans ce sprint.'}</div>
   return (
@@ -193,25 +203,27 @@ function TreeView({ board, q, filter }: ViewProps): React.JSX.Element {
       {stories.map((s) => {
         const all = board.tasksByParent[s.id] ?? []
         const tasks = filter && q && !itemMatches(s, q) ? all.filter((t) => itemMatches(t, q)) : all
-        return <StoryRow key={s.id} story={s} tasks={tasks} q={q} />
+        return <StoryRow key={s.id} story={s} tasks={tasks} q={q} onOpen={onOpen} />
       })}
     </div>
   )
 }
 
-function StoryRow({ story, tasks, q }: { story: AdoWorkItem; tasks: AdoWorkItem[]; q: string }): React.JSX.Element {
+function StoryRow({ story, tasks, q, onOpen }: { story: AdoWorkItem; tasks: AdoWorkItem[]; q: string; onOpen: (id: number) => void }): React.JSX.Element {
   const [open, setOpen] = useState(true)
   return (
     <div className="ado-story">
-      <div className="ado-row story" onClick={() => setOpen((o) => !o)}>
-        <span className="ado-caret">{tasks.length ? (open ? '▾' : '▸') : '·'}</span>
+      <div className="ado-row story" onClick={() => onOpen(story.id)}>
+        {tasks.length
+          ? <button className="ado-caret-btn" title={open ? 'Replier' : 'Déplier'} onClick={(e) => { e.stopPropagation(); setOpen((o) => !o) }}><Chevron open={open} /></button>
+          : <span className="ado-caret" />}
         <span className="ado-id"><Hl text={`#${story.id}`} q={q} /></span>
         <span className="ado-title"><Hl text={story.title} q={q} /></span>
         <span className="ado-state"><Hl text={story.state} q={q} /></span>
         <span className="ado-assignee"><Hl text={story.assignedTo ?? '—'} q={q} /></span>
       </div>
       {open && tasks.map((t) => (
-        <div key={t.id} className="ado-row task">
+        <div key={t.id} className="ado-row task" onClick={() => onOpen(t.id)}>
           <span className="ado-caret" />
           <span className="ado-id"><Hl text={`#${t.id}`} q={q} /></span>
           <span className="ado-title"><Hl text={t.title} q={q} /></span>
@@ -223,31 +235,3 @@ function StoryRow({ story, tasks, q }: { story: AdoWorkItem; tasks: AdoWorkItem[
   )
 }
 
-function BoardView({ board, q, filter, onOpen }: ViewProps & { onOpen: (id: number) => void }): React.JSX.Element {
-  const stories = filter && q ? board.stories.filter((s) => storyVisible(s, board.tasksByParent[s.id] ?? [], q)) : board.stories
-  if (stories.length === 0) return <div className="ado-center">{q && filter ? 'Aucune correspondance.' : 'Aucune User Story dans ce sprint.'}</div>
-  return (
-    <div className="ado-cols">
-      {board.states.map((state) => {
-        const cards = stories.filter((s) => s.state === state)
-        return (
-          <div key={state} className="ado-col">
-            <div className="ado-col-head">{state} <span className="ado-col-count">{cards.length}</span></div>
-            <div className="ado-col-body">
-              {cards.map((s) => (
-                <button key={s.id} className="ado-card" onClick={() => onOpen(s.id)}>
-                  <div className="ado-card-title"><Hl text={s.title} q={q} /></div>
-                  <div className="ado-card-meta">
-                    <span className="ado-id"><Hl text={`#${s.id}`} q={q} /></span>
-                    <span className="ado-card-tasks">{s.childCount} tâche{s.childCount > 1 ? 's' : ''}</span>
-                    <span className="ado-assignee"><Hl text={s.assignedTo ?? '—'} q={q} /></span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}

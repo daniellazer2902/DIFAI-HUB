@@ -253,11 +253,11 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                       onClick={() => { useHub.getState().selectTab(side, t.ref); setOverflowOpen(false) }}
                     >{tabLabel(t)}</div>
                   ))}
-                  <div className="ovf-add" onClick={onDefault}><ClaudeIcon /> ＋ Claude par défaut</div>
-                  <div className="ovf-add" onClick={onPick}><ClaudeIcon /> ＋ Claude (choisir un dossier…)</div>
-                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); setAdvancedOpen(true) }}><ClaudeIcon /> ＋ Claude avancé…</div>
-                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addCmd() }}><TerminalIcon /> ＋ Terminal</div>
-                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addAdo() }}><AzureIcon /> ＋ ADO – Azure</div>
+                  <div className="ovf-add ovf-sep" onClick={onDefault}><ClaudeIcon /> Claude par défaut</div>
+                  <div className="ovf-add" onClick={onPick}><ClaudeIcon /> Claude (choisir un dossier…)</div>
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); setAdvancedOpen(true) }}><ClaudeIcon /> Claude avancé…</div>
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addCmd() }}><TerminalIcon /> Terminal</div>
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addAdo() }}><AzureIcon /> ADO – Azure</div>
                 </div>
               )}
             </div>

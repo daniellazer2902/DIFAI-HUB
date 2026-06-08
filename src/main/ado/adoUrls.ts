@@ -24,3 +24,12 @@ export function wiqlUrl(base: string, project: string): string {
 export function batchUrl(base: string): string {
   return `${trim(base)}/_apis/wit/workitemsbatch?${API}`
 }
+export function taskboardColumnsUrl(base: string, project: string, team: string): string {
+  return `${trim(base)}/${seg(project)}/${seg(team)}/_apis/work/taskboardcolumns?api-version=7.1-preview.1`
+}
+export function workItemUrl(base: string, id: number): string {
+  return `${trim(base)}/_apis/wit/workitems/${id}?api-version=7.1`
+}
+export function commentsUrl(base: string, project: string, id: number): string {
+  return `${trim(base)}/${seg(project)}/_apis/wit/workItems/${id}/comments?api-version=7.1-preview.4`
+}

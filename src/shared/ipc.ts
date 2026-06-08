@@ -23,6 +23,7 @@ export const IPC = {
   AdoListIterations: 'ado:list-iterations',
   AdoListBoard: 'ado:list-board',
   AdoGetChildren: 'ado:get-children',
+  AdoGetDetail: 'ado:get-detail',
   // main -> renderer
   CloseRequest: 'app:close-request',
   PtyData: 'pty:data',
@@ -72,11 +73,30 @@ export interface AdoWorkItem {
   parentId: number | null
   childCount: number
 }
+/** Une colonne du Taskboard (custom) : nom + mapping état→colonne par type de work item. */
+export interface AdoTaskColumn {
+  name: string
+  mappings: { workItemType: string; state: string }[]
+}
 /** Board d'un sprint : colonnes (états du process) + US, chacune avec ses tâches. */
 export interface AdoBoard {
-  states: string[]                 // ordre des colonnes
-  stories: AdoWorkItem[]           // cards (User Stories)
+  states: string[]                 // états User Story — vue cartes-par-état (StateBoardView)
+  taskColumns: AdoTaskColumn[]     // colonnes du Taskboard (ordre d'affichage)
+  stories: AdoWorkItem[]
   tasksByParent: Record<number, AdoWorkItem[]>
+}
+export interface AdoComment { author: string; date: string; html: string }
+export interface AdoWorkItemDetail {
+  id: number
+  type: string
+  title: string
+  state: string
+  assignedTo: string | null
+  storyPoints: number | null
+  priority: number | null
+  descriptionHtml: string          // images déjà inlinées (data: URI), non sanitisé (sanitisation renderer)
+  acceptanceCriteriaHtml: string
+  comments: AdoComment[]
 }
 export interface AdoError { ok: false; error: string; status?: number }
 export type AdoResponse<T> = { ok: true; data: T } | AdoError
@@ -113,4 +133,5 @@ export interface HubApi {
   adoListIterations(connId: string, project: string, team?: string): Promise<AdoResponse<AdoIteration[]>>
   adoListBoard(p: { connId: string; project: string; team?: string; iterationPath?: string }): Promise<AdoResponse<AdoBoard>>
   adoGetChildren(connId: string, parentId: number): Promise<AdoResponse<AdoWorkItem[]>>
+  adoGetDetail(connId: string, project: string, id: number): Promise<AdoResponse<AdoWorkItemDetail>>
 }
