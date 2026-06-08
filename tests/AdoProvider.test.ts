@@ -37,6 +37,7 @@ describe('AdoProvider', () => {
     const p = new AdoProvider(conn, 'tok', fetchLike as never)
     const board = await p.listBoard({ project: 'Proj', iterationPath: 'Proj\\S1' })
     expect(board.states).toEqual(['New', 'Active', 'Closed'])
+    expect(board.taskStates).toEqual(['New', 'Active', 'Closed'])
     expect(board.stories.map((s) => s.id)).toEqual([10, 11])
     expect(board.stories[0]).toMatchObject({ id: 10, title: 'US A', state: 'Active', type: 'User Story' })
   })
