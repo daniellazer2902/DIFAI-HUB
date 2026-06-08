@@ -139,7 +139,10 @@
       .ado-assignee-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #cdd; }
       .ado-chip-ini { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #3a3d44; color: #fff; font-size: 10px; }
       .ado-meta-pill { font-size: 11px; color: #9bd; background: #1b2330; border: 1px solid #2f3a44; border-radius: 10px; padding: 2px 8px; }
-      .ado-detail-section { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #9c9; margin: 18px 0 6px; border-bottom: 1px solid #2a2a2a; padding-bottom: 4px; }
+      .ado-detail-section { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #9c9; margin: 18px 0 6px; border: none; border-bottom: 1px solid #2a2a2a; padding: 0 0 4px; background: none; width: 100%; display: flex; align-items: center; gap: 6px; cursor: pointer; font-family: inherit; }
+      .ado-detail-section:hover { color: #fc8; }
+      .ado-twisty { flex: none; transition: transform .12s ease; }
+      .ado-twisty.open { transform: rotate(90deg); }
       .ado-html { font-size: 13px; line-height: 1.5; color: #ddd; }
       .ado-html img { max-width: 100%; height: auto; border-radius: 4px; }
       .ado-html table { border-collapse: collapse; }
@@ -276,8 +279,10 @@
       .ado-row { display: flex; align-items: center; gap: 8px; padding: 5px 10px; font-size: 12px; cursor: default; }
       .ado-row.story { cursor: pointer; color: #ddd; }
       .ado-row:hover { background: #2a2d33; }
-      .ado-row.task { padding-left: 30px; color: #aaa; }
+      .ado-row.task { padding-left: 30px; color: #aaa; cursor: pointer; }
       .ado-caret { flex: none; width: 12px; text-align: center; color: #888; }
+      .ado-caret-btn { flex: none; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; background: none; border: none; color: #9ab; cursor: pointer; padding: 0; }
+      .ado-caret-btn:hover { color: #fc8; }
       .ado-id { flex: none; font-family: Consolas, monospace; color: #888; }
       .ado-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .ado-state { flex: none; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: #2a2d33; border: 1px solid #3a3d44; color: #9bd; }

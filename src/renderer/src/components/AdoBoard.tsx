@@ -4,6 +4,7 @@ import type { AdoBoard as Board, AdoIteration, AdoWorkItem } from '../../../shar
 import { AdoDetail } from './AdoDetail'
 import { itemMatches, storyVisible } from '../adoFind'
 import { Hl } from './Hl'
+import { Chevron } from './Chevron'
 import { TaskBoardView } from './TaskBoardView'
 import { filterBoardByAssignee } from '../adoBoard'
 
@@ -173,7 +174,7 @@ export function AdoBoard({ item, group }: Props): React.JSX.Element {
           : viewBoard
             ? (ado.view === 'board'
                 ? <TaskBoardView board={viewBoard} q={query} filter={filter} onOpen={setDetailId} />
-                : <TreeView board={viewBoard} q={query} filter={filter} />)
+                : <TreeView board={viewBoard} q={query} filter={filter} onOpen={setDetailId} />)
             : refreshing
               ? <div className="ado-center"><span className="ado-spinner" /> Chargement du board…</div>
               : !err && <div className="ado-center">Aucune donnée.</div>}
@@ -194,7 +195,7 @@ function EyeIcon({ off }: { off: boolean }): React.JSX.Element {
 
 interface ViewProps { board: Board; q: string; filter: boolean }
 
-function TreeView({ board, q, filter }: ViewProps): React.JSX.Element {
+function TreeView({ board, q, filter, onOpen }: ViewProps & { onOpen: (id: number) => void }): React.JSX.Element {
   const stories = filter && q ? board.stories.filter((s) => storyVisible(s, board.tasksByParent[s.id] ?? [], q)) : board.stories
   if (stories.length === 0) return <div className="ado-center">{q && filter ? 'Aucune correspondance.' : 'Aucune User Story dans ce sprint.'}</div>
   return (
@@ -202,25 +203,27 @@ function TreeView({ board, q, filter }: ViewProps): React.JSX.Element {
       {stories.map((s) => {
         const all = board.tasksByParent[s.id] ?? []
         const tasks = filter && q && !itemMatches(s, q) ? all.filter((t) => itemMatches(t, q)) : all
-        return <StoryRow key={s.id} story={s} tasks={tasks} q={q} />
+        return <StoryRow key={s.id} story={s} tasks={tasks} q={q} onOpen={onOpen} />
       })}
     </div>
   )
 }
 
-function StoryRow({ story, tasks, q }: { story: AdoWorkItem; tasks: AdoWorkItem[]; q: string }): React.JSX.Element {
+function StoryRow({ story, tasks, q, onOpen }: { story: AdoWorkItem; tasks: AdoWorkItem[]; q: string; onOpen: (id: number) => void }): React.JSX.Element {
   const [open, setOpen] = useState(true)
   return (
     <div className="ado-story">
-      <div className="ado-row story" onClick={() => setOpen((o) => !o)}>
-        <span className="ado-caret">{tasks.length ? (open ? '▾' : '▸') : '·'}</span>
+      <div className="ado-row story" onClick={() => onOpen(story.id)}>
+        {tasks.length
+          ? <button className="ado-caret-btn" title={open ? 'Replier' : 'Déplier'} onClick={(e) => { e.stopPropagation(); setOpen((o) => !o) }}><Chevron open={open} /></button>
+          : <span className="ado-caret" />}
         <span className="ado-id"><Hl text={`#${story.id}`} q={q} /></span>
         <span className="ado-title"><Hl text={story.title} q={q} /></span>
         <span className="ado-state"><Hl text={story.state} q={q} /></span>
         <span className="ado-assignee"><Hl text={story.assignedTo ?? '—'} q={q} /></span>
       </div>
       {open && tasks.map((t) => (
-        <div key={t.id} className="ado-row task">
+        <div key={t.id} className="ado-row task" onClick={() => onOpen(t.id)}>
           <span className="ado-caret" />
           <span className="ado-id"><Hl text={`#${t.id}`} q={q} /></span>
           <span className="ado-title"><Hl text={t.title} q={q} /></span>
