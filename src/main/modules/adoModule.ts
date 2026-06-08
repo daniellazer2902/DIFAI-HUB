@@ -52,6 +52,8 @@ export function createAdoModule(deps: AdoModuleDeps = defaultDeps): HubModule {
       ctx.ipc.handle(IPC.AdoListBoard, (_e, q: { connId: string; project: string; team?: string; iterationPath?: string }) =>
         wrap(q.connId, (p) => p.listBoard(q)))
       ctx.ipc.handle(IPC.AdoGetChildren, (_e, id: string, parentId: number) => wrap(id, (p) => p.getChildren(parentId)))
+      ctx.ipc.handle(IPC.AdoGetDetail, (_e, connId: string, project: string, id: number) =>
+        wrap(connId, (p) => p.getDetail(project, id)))
     }
   }
 }

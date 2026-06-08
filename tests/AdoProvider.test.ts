@@ -71,4 +71,38 @@ describe('AdoProvider', () => {
     expect(board.taskColumns.map((c) => c.name)).toEqual(['New', 'Done'])
     expect(board.taskColumns[0].mappings).toEqual([{ workItemType: 'Task', state: 'New' }])
   })
+
+  it('getDetail mappe les champs + commentaires (HTML sans image inchangé)', async () => {
+    const fetchLike = vi.fn((url: string) => {
+      if (url.includes('/comments')) return ok({ comments: [
+        { text: '<p>hi</p>', createdBy: { displayName: 'Bob' }, createdDate: '2026-01-01' }
+      ] })
+      if (url.includes('/workitems/42')) return ok({ id: 42, fields: {
+        'System.Title': 'T', 'System.WorkItemType': 'User Story', 'System.State': 'Active',
+        'System.AssignedTo': { displayName: 'Alice' },
+        'Microsoft.VSTS.Scheduling.StoryPoints': 5, 'Microsoft.VSTS.Common.Priority': 2,
+        'System.Description': '<p>desc</p>', 'Microsoft.VSTS.Common.AcceptanceCriteria': '<p>ac</p>'
+      } })
+      return ok({})
+    })
+    const p = new AdoProvider(conn, 'tok', fetchLike as never)
+    const d = await p.getDetail('Proj', 42)
+    expect(d).toMatchObject({
+      id: 42, title: 'T', type: 'User Story', state: 'Active', assignedTo: 'Alice',
+      storyPoints: 5, priority: 2, descriptionHtml: '<p>desc</p>', acceptanceCriteriaHtml: '<p>ac</p>'
+    })
+    expect(d.comments).toEqual([{ author: 'Bob', date: '2026-01-01', html: '<p>hi</p>' }])
+  })
+
+  it('getDetail : champs absents → null/chaîne vide, commentaires en erreur → []', async () => {
+    const fetchLike = vi.fn((url: string) => {
+      if (url.includes('/comments')) return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}), text: () => Promise.resolve('') })
+      if (url.includes('/workitems/7')) return ok({ id: 7, fields: { 'System.Title': 'X', 'System.WorkItemType': 'Task', 'System.State': 'New' } })
+      return ok({})
+    })
+    const p = new AdoProvider(conn, 'tok', fetchLike as never)
+    const d = await p.getDetail('Proj', 7)
+    expect(d).toMatchObject({ id: 7, assignedTo: null, storyPoints: null, priority: null, descriptionHtml: '', acceptanceCriteriaHtml: '' })
+    expect(d.comments).toEqual([])
+  })
 })
