@@ -74,7 +74,8 @@ export interface AdoWorkItem {
 }
 /** Board d'un sprint : colonnes (états du process) + US, chacune avec ses tâches. */
 export interface AdoBoard {
-  states: string[]                 // ordre des colonnes
+  states: string[]                 // ordre des colonnes (états User Story) — vue cartes-par-état
+  taskStates: string[]             // ordre des colonnes du taskboard (états du type Task)
   stories: AdoWorkItem[]           // cards (User Stories)
   tasksByParent: Record<number, AdoWorkItem[]>
 }

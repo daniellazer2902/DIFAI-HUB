@@ -40,4 +40,18 @@ describe('AdoProvider', () => {
     expect(board.stories.map((s) => s.id)).toEqual([10, 11])
     expect(board.stories[0]).toMatchObject({ id: 10, title: 'US A', state: 'Active', type: 'User Story' })
   })
+
+  it('listBoard expose les états du type Task (colonnes du taskboard), triés par order', async () => {
+    const fetchLike = vi.fn((url: string) => {
+      if (url.includes('/workitemtypes/Task/states')) {
+        return ok({ value: [{ name: 'Closed', order: 3 }, { name: 'New', order: 1 }, { name: 'In PR', order: 2 }] })
+      }
+      if (url.includes('/states')) return ok({ value: [{ name: 'New', order: 1 }, { name: 'Active', order: 2 }] })
+      if (url.includes('/wiql')) return ok({ workItems: [] })
+      return ok({ value: [] })
+    })
+    const p = new AdoProvider(conn, 'tok', fetchLike as never)
+    const board = await p.listBoard({ project: 'Proj' })
+    expect(board.taskStates).toEqual(['New', 'In PR', 'Closed'])
+  })
 })
