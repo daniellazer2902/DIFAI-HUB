@@ -27,7 +27,9 @@ export function TaskBoardView({ board, q, filter, onOpen }: Props): React.JSX.El
       <div className="ado-tb-head" style={{ gridTemplateColumns: cols }}>
         <div className="ado-tb-head-cell swim">
           <button className="ado-tb-expander" title={allCollapsed ? 'Tout déplier' : 'Tout replier'} onClick={toggleAll}>
-            {allCollapsed ? '⌄' : '⌃'} {allCollapsed ? 'Tout déplier' : 'Tout replier'}
+            <svg className={`ado-chevron${allCollapsed ? ' down' : ''}`} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 15 12 9 18 15" />
+            </svg>
           </button>
         </div>
         {board.taskColumns.map((c) => <div key={c.name} className="ado-tb-head-cell">{c.name}</div>)}
