@@ -1,11 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, parseRef, type Group, type PaneTab, type Pane as Side } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, FolderIcon, EditIcon, PinIcon, TrashIcon } from './icons'
+import { TerminalIcon, EditIcon, PinIcon, TrashIcon, AzureIcon, ClaudeIcon } from './icons'
 import { Terminal } from './Terminal'
 import { Console } from './Console'
 import { SearchPanel } from './SearchPanel'
+import { AdoBoard } from './AdoBoard'
+import { ClaudeAdvancedModal } from './ClaudeAdvancedModal'
 import { basename } from '../util'
+import { parseClaudeArgs } from '../claudeArgs'
+import { confirm } from '../confirm'
 
 interface Props {
   side: Side
@@ -22,11 +26,13 @@ type Pos = { x: number; y: number }
 type Ctx = { id: string; x: number; y: number }
 
 function tabLabel(t: PaneTab): string {
-  return t.kind === 'session' ? t.item.name : `${t.item.name} - ${t.kind === 'find' ? 'Find' : 'Agents'}`
+  if (t.kind === 'session' || t.kind === 'ado') return t.item.name
+  return `${t.item.name} - ${t.kind === 'find' ? 'Find' : 'Agents'}`
 }
 
 export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, setDragId }: Props): React.JSX.Element {
   const [addMenu, setAddMenu] = useState<Pos | null>(null)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const [overflowOpen, setOverflowOpen] = useState(false)
   const [overflowing, setOverflowing] = useState(false)
   const [ctx, setCtx] = useState<Ctx | null>(null)
@@ -78,17 +84,46 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
 
   function closeMenus(): void { setAddMenu(null); setOverflowOpen(false) }
 
-  async function openTab(cwd: string): Promise<void> {
+  async function openTab(cwd: string, extraArgs?: string[]): Promise<void> {
     closeMenus()
-    const tabId = await window.hub.newSession(cwd)
+    const tabId = await window.hub.newSession(cwd, extraArgs)
     const id = crypto.randomUUID()
     useHub.getState().addItem(group.id, {
       id, name: basename(cwd), cwd, pinned: false, tabId, state: 'starting', agents: [], openAgentId: null,
-      split: side === 'right' ? 2 : 1, findOpen: false, agentsOpen: false, searchQuery: ''
+      split: side === 'right' ? 2 : 1, findOpen: false, agentsOpen: false, searchQuery: '', kind: 'claude',
+      ...(extraArgs && extraArgs.length ? { claudeArgs: extraArgs } : {})
+    })
+  }
+  async function onAdvanced(command: string): Promise<void> {
+    const cwd = group.defaultCwd ?? useHub.getState().globalDefaultCwd ?? (await window.hub.pickFolder())
+    if (cwd) openTab(cwd, parseClaudeArgs(command))
+  }
+  async function addAdo(): Promise<void> {
+    closeMenus()
+    if (!group.ado) {
+      await confirm({ title: 'ADO non configuré', message: 'Configurez d\'abord ADO sur le groupe (menu ··· du groupe › Configurer ADO…).', confirmLabel: 'OK' })
+      return
+    }
+    const id = crypto.randomUUID()
+    useHub.getState().addItem(group.id, {
+      id, name: `Board ${group.ado.project}`, cwd: '', pinned: false, tabId: null, state: 'done',
+      agents: [], openAgentId: null, split: side === 'right' ? 2 : 1, findOpen: false, agentsOpen: false,
+      searchQuery: '', kind: 'ado', ado: { view: 'tree', iterationPath: null }
     })
   }
   async function onDefault(): Promise<void> { openTab(group.defaultCwd ?? useHub.getState().globalDefaultCwd ?? (await window.hub.defaultCwd())) }
   async function onPick(): Promise<void> { const f = await window.hub.pickFolder(); if (f) openTab(f); else closeMenus() }
+  async function addCmd(): Promise<void> {
+    closeMenus()
+    const cwd = group.defaultCwd ?? useHub.getState().globalDefaultCwd ?? (await window.hub.pickFolder())
+    if (!cwd) return
+    const tabId = await window.hub.newCmd(cwd)
+    useHub.getState().addItem(group.id, {
+      id: crypto.randomUUID(), name: basename(cwd), cwd, pinned: false, tabId, state: 'active',
+      agents: [], openAgentId: null, split: side === 'right' ? 2 : 1, findOpen: false, agentsOpen: false,
+      searchQuery: '', kind: 'cmd'
+    })
+  }
 
   function closeSession(e: React.MouseEvent, itemId: string, tabId: string | null): void {
     e.stopPropagation()
@@ -147,8 +182,10 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                     setCtx(ctx?.id === t.item.id ? null : { id: t.item.id, x, y })
                   }}
                 >
-                  <span className="tab-ic"><TerminalIcon /></span>
-                  <StateDot state={t.item.state} />
+                  <span className="tab-ic">{t.item.kind === 'cmd' ? <TerminalIcon /> : <ClaudeIcon />}</span>
+                  {t.item.kind === 'cmd'
+                    ? <span className="statedot" title={t.item.tabId ? 'En cours' : 'Terminé'} style={{ color: t.item.tabId ? '#7fd' : '#777' }}>{t.item.tabId ? '●' : '○'}</span>
+                    : <StateDot state={t.item.state} />}
                   {editingId === t.item.id ? (
                     <input
                       ref={editRef}
@@ -166,8 +203,28 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                     <span className="tab-title">{t.item.name}</span>
                   )}
                   {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
-                  <span className="tab-agents">· {t.item.agents.filter((a) => !a.done).length} agents</span>
+                  {t.item.kind !== 'cmd' && <span className="tab-agents">· {t.item.agents.filter((a) => !a.done).length} agents</span>}
                   <span className="tab-close" title="Fermer l'onglet" onClick={(e) => closeSession(e, t.item.id, t.item.tabId)}>✕</span>
+                </div>
+              )
+            }
+            if (t.kind === 'ado') {
+              return (
+                <div
+                  key={t.ref}
+                  className={`tab${sel ? ' act' : ''}`}
+                  draggable
+                  onDragStart={(e) => { setAddMenu(null); setCtx(null); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', t.item.id); const id = t.item.id; setTimeout(() => setDragId(id), 0) }}
+                  onDragEnd={() => setDragId(null)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.stopPropagation(); onDropTab(t.item.id) }}
+                  onClick={() => useHub.getState().selectTab(side, t.ref)}
+                  onContextMenu={(e) => { e.preventDefault(); const x = Math.max(4, Math.min(e.clientX, window.innerWidth - 190)); const y = Math.min(e.clientY, window.innerHeight - 150); setCtx(ctx?.id === t.item.id ? null : { id: t.item.id, x, y }) }}
+                >
+                  <span className="tab-ic"><AzureIcon /></span>
+                  <span className="tab-title">{t.item.name}</span>
+                  {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
+                  <span className="tab-close" title="Fermer l'onglet" onClick={(e) => { e.stopPropagation(); if (t.item.pinned) useHub.getState().setAdoClosed(t.item.id, true); else useHub.getState().removeItem(t.item.id) }}>✕</span>
                 </div>
               )
             }
@@ -196,8 +253,11 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                       onClick={() => { useHub.getState().selectTab(side, t.ref); setOverflowOpen(false) }}
                     >{tabLabel(t)}</div>
                   ))}
-                  <div className="ovf-add" onClick={onDefault}><FolderIcon /> ＋ Dossier par défaut</div>
-                  <div className="ovf-add" onClick={onPick}><FolderIcon /> ＋ Choisir un dossier…</div>
+                  <div className="ovf-add" onClick={onDefault}><ClaudeIcon /> ＋ Claude par défaut</div>
+                  <div className="ovf-add" onClick={onPick}><ClaudeIcon /> ＋ Claude (choisir un dossier…)</div>
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); setAdvancedOpen(true) }}><ClaudeIcon /> ＋ Claude avancé…</div>
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addCmd() }}><TerminalIcon /> ＋ Terminal</div>
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addAdo() }}><AzureIcon /> ＋ ADO – Azure</div>
                 </div>
               )}
             </div>
@@ -212,19 +272,29 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
         ))}
         {active?.kind === 'find' && <SearchPanel itemId={active.itemId} />}
         {active?.kind === 'agents' && <Console itemId={active.itemId} />}
+        {active?.kind === 'ado' && (() => {
+          const it = group.items.find((i) => i.id === active.itemId)
+          return it ? <AdoBoard item={it} group={group} /> : null
+        })()}
       </div>
+      {advancedOpen && <ClaudeAdvancedModal onLaunch={onAdvanced} onClose={() => setAdvancedOpen(false)} />}
       {addMenu && (
         <div className="tab-new-menu add-menu" style={{ position: 'fixed', left: addMenu.x, top: addMenu.y }}>
-          <div onClick={onDefault}><FolderIcon /> Dossier par défaut</div>
-          <div onClick={onPick}><FolderIcon /> Choisir un dossier…</div>
+          <div onClick={onDefault}><ClaudeIcon /> Claude par défaut</div>
+          <div onClick={onPick}><ClaudeIcon /> Claude (choisir un dossier…)</div>
+          <div onClick={() => { closeMenus(); setAdvancedOpen(true) }}><ClaudeIcon /> Claude avancé…</div>
+          <div onClick={addCmd}><TerminalIcon /> Terminal</div>
+          <div onClick={addAdo}><AzureIcon /> ADO – Azure</div>
         </div>
       )}
       {ctx && ctxItem && (
         <div className="ctx-menu tab-ctx" style={{ position: 'fixed', left: ctx.x, top: ctx.y, right: 'auto' }} onClick={(e) => e.stopPropagation()}>
           <div onClick={() => startRename(ctxItem.id, ctxItem.name)}><EditIcon /> Renommer</div>
           <div onClick={() => { useHub.getState().togglePin(ctxItem.id); setCtx(null) }}><PinIcon /> {ctxItem.pinned ? 'Désépingler' : 'Épingler'}</div>
-          <div onClick={() => { if (ctxItem.agentsOpen) useHub.getState().closeAgentsTab(ctxItem.id); else useHub.getState().openAgentsTab(ctxItem.id); setCtx(null) }}><TerminalIcon /> {ctxItem.agentsOpen ? 'Cacher Agents' : 'Afficher Agents'}</div>
-          <div className="danger" onClick={(e) => { closeSession(e, ctxItem.id, ctxItem.tabId); setCtx(null) }}><TrashIcon /> Supprimer</div>
+          {ctxItem.kind === 'claude' && (
+            <div onClick={() => { if (ctxItem.agentsOpen) useHub.getState().closeAgentsTab(ctxItem.id); else useHub.getState().openAgentsTab(ctxItem.id); setCtx(null) }}><TerminalIcon /> {ctxItem.agentsOpen ? 'Cacher Agents' : 'Afficher Agents'}</div>
+          )}
+          <div className="danger" onClick={(e) => { if (ctxItem.kind === 'ado') { e.stopPropagation(); useHub.getState().removeItem(ctxItem.id) } else closeSession(e, ctxItem.id, ctxItem.tabId); setCtx(null) }}><TrashIcon /> Supprimer</div>
         </div>
       )}
     </div>

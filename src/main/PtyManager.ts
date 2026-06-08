@@ -39,9 +39,9 @@ export class PtyManager {
     return () => { this.exitCbs.delete(cb) }
   }
 
-  create(cwd: string, opts?: { args?: string[]; env?: Record<string, string> }): string {
+  create(cwd: string, opts?: { file?: string; args?: string[]; env?: Record<string, string> }): string {
     const tabId = randomUUID()
-    const pty = this.spawn(this.claudePath, opts?.args ?? [], {
+    const pty = this.spawn(opts?.file ?? this.claudePath, opts?.args ?? [], {
       name: 'xterm-color',
       cols: 110,
       rows: 32,

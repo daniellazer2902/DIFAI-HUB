@@ -17,9 +17,9 @@ export function createSessionModule(): HubModule {
         ctx.sender.send(IPC.PtyExit, tabId, code)
       })
 
-      ctx.ipc.handle(IPC.SessionNew, (_e, cwd: string) => {
+      ctx.ipc.handle(IPC.SessionNew, (_e, cwd: string, extraArgs?: string[]) => {
         const tabId = ctx.pty.create(cwd, {
-          args: ['--settings', ctx.hooksSettingsPath()],
+          args: ['--settings', ctx.hooksSettingsPath(), ...(Array.isArray(extraArgs) ? extraArgs : [])],
           env: { DIFAI_HUB_PORT: String(ctx.hookServer.port) }
         })
         ctx.registry.register(tabId, cwd)

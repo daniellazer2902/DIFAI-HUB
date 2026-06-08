@@ -9,7 +9,8 @@ function on(channel: string, handler: (...args: unknown[]) => void): Unsub {
 }
 
 const hub: HubApi = {
-  newSession: (cwd) => ipcRenderer.invoke(IPC.SessionNew, cwd),
+  newSession: (cwd, extraArgs) => ipcRenderer.invoke(IPC.SessionNew, cwd, extraArgs),
+  newCmd: (cwd) => ipcRenderer.invoke(IPC.CmdNew, cwd),
   sendInput: (tabId, data) => ipcRenderer.send(IPC.SessionInput, tabId, data),
   resize: (tabId, cols, rows) => ipcRenderer.send(IPC.SessionResize, tabId, cols, rows),
   killSession: (tabId) => ipcRenderer.send(IPC.SessionKill, tabId),
@@ -28,7 +29,16 @@ const hub: HubApi = {
     on(IPC.AgentLines, (tabId, agentId, lines) => cb(tabId as string, agentId as string, lines as ConsoleLine[])),
   onAgentDone: (cb) => on(IPC.AgentDone, (tabId, agentId) => cb(tabId as string, agentId as string)),
   onCloseRequest: (cb) => on(IPC.CloseRequest, () => cb()),
-  confirmClose: () => ipcRenderer.send(IPC.CloseConfirm)
+  confirmClose: () => ipcRenderer.send(IPC.CloseConfirm),
+  adoConnList: () => ipcRenderer.invoke(IPC.AdoConnList),
+  adoConnUpsert: (conn, pat) => ipcRenderer.invoke(IPC.AdoConnUpsert, conn, pat),
+  adoConnDelete: (id) => ipcRenderer.invoke(IPC.AdoConnDelete, id),
+  adoConnTest: (id) => ipcRenderer.invoke(IPC.AdoConnTest, id),
+  adoListProjects: (id) => ipcRenderer.invoke(IPC.AdoListProjects, id),
+  adoListTeams: (id, project) => ipcRenderer.invoke(IPC.AdoListTeams, id, project),
+  adoListIterations: (id, project, team) => ipcRenderer.invoke(IPC.AdoListIterations, id, project, team),
+  adoListBoard: (p) => ipcRenderer.invoke(IPC.AdoListBoard, p),
+  adoGetChildren: (id, parentId) => ipcRenderer.invoke(IPC.AdoGetChildren, id, parentId)
 }
 
 contextBridge.exposeInMainWorld('hub', hub)

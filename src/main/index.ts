@@ -1,15 +1,21 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, safeStorage } from 'electron'
 import { join } from 'node:path'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { PtyManager } from './PtyManager'
 import { nodePtySpawner } from './ptyFactory'
 import { resolveClaudePath } from './claudePath'
+import { resolvePowerShellPath } from './shellPath'
 import { SessionRegistry } from './SessionRegistry'
 import { HookServer } from './HookServer'
 import { writeHooksSettings } from './hubHooks'
 import { WindowSender } from './WindowSender'
+import { CredentialStore } from './ado/CredentialStore'
 import type { AppContext, HubModule } from './AppContext'
 import { createSessionModule } from './modules/sessionModule'
 import { createAgentsModule } from './modules/agentsModule'
+import { createAdoModule } from './modules/adoModule'
+import { createClaudeGuardModule } from './modules/claudeGuardModule'
+import { createCmdModule } from './modules/cmdModule'
 import { IPC } from '../shared/ipc'
 
 let hooksSettingsPath = ''
@@ -19,6 +25,7 @@ const registry = new SessionRegistry()
 const hookServer = new HookServer()
 const ptyManager = new PtyManager({ spawn: nodePtySpawner, claudePath: resolveClaudePath() })
 const sender = new WindowSender()
+const credentialStore = new CredentialStore(app.getPath('userData'), safeStorage, { readFileSync, writeFileSync } as never)
 
 const ctx: AppContext = {
   ipc: ipcMain,
@@ -32,10 +39,17 @@ const ctx: AppContext = {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory'] })
     return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
   },
-  userDataDir: app.getPath('userData')
+  userDataDir: app.getPath('userData'),
+  credentials: credentialStore
 }
 
-const modules: HubModule[] = [createSessionModule(), createAgentsModule()]
+const modules: HubModule[] = [
+  createSessionModule(),
+  createAgentsModule(),
+  createAdoModule(),
+  createClaudeGuardModule(),
+  createCmdModule({ shellPath: resolvePowerShellPath(), shellArgs: process.platform === 'win32' ? ['-NoLogo'] : [] })
+]
 for (const m of modules) m.register(ctx)
 
 function createWindow(): void {
