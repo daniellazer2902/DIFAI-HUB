@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { Unicode11Addon } from '@xterm/addon-unicode11'
 import '@xterm/xterm/css/xterm.css'
 
 export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
@@ -10,9 +11,17 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     const container = containerRef.current
     if (!container) return
 
-    const term = new XTerm({ fontFamily: 'Consolas, monospace', fontSize: 13, cursorBlink: true, scrollback: 5000 })
+    const term = new XTerm({
+      fontFamily: '"Cascadia Mono", "Cascadia Code", "Segoe UI Emoji", Consolas, monospace',
+      fontSize: 13,
+      cursorBlink: true,
+      scrollback: 5000,
+      allowProposedApi: true
+    })
     const fit = new FitAddon()
     term.loadAddon(fit)
+    term.loadAddon(new Unicode11Addon())
+    term.unicode.activeVersion = '11'
     term.open(container)
 
     let lastCols = 0
