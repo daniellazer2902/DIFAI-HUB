@@ -141,44 +141,41 @@ git commit -m "feat(notes): types et canaux IPC du lecteur Markdown"
 
 ```ts
 // tests/noteTree.test.ts
+// NB : chemins construits avec join() pour rester cross-platform (Windows utilise \ ).
 import { describe, it, expect } from 'vitest'
+import { join } from 'node:path'
 import { buildNoteTree, type DirEntry } from '../src/main/notes/noteTree'
 
-// Faux système de fichiers : map chemin -> entrées
-function fakeListDir(fs: Record<string, DirEntry[]>) {
-  return (dir: string): DirEntry[] => fs[dir] ?? []
+const V = join('/', 'v')
+const SUB = join(V, 'sub')
+const fsMap: Record<string, DirEntry[]> = {
+  [V]: [
+    { name: 'b.md', dir: false },
+    { name: 'a.md', dir: false },
+    { name: 'sub', dir: true },
+    { name: '.obsidian', dir: true },
+    { name: 'image.png', dir: false },
+    { name: 'notes.txt', dir: false }
+  ],
+  [SUB]: [{ name: 'a.md', dir: false }]
 }
+const listDir = (dir: string): DirEntry[] => fsMap[dir] ?? []
 
 describe('buildNoteTree', () => {
-  const fs: Record<string, DirEntry[]> = {
-    '/v': [
-      { name: 'b.md', dir: false },
-      { name: 'a.md', dir: false },
-      { name: 'sub', dir: true },
-      { name: '.obsidian', dir: true },
-      { name: 'image.png', dir: false },
-      { name: 'notes.txt', dir: false }
-    ],
-    '/v/sub': [{ name: 'a.md', dir: false }]
-  }
-  const listDir = fakeListDir(fs)
-
   it('ne garde que les .md et les dossiers, dossiers en premier puis tri alpha', () => {
-    const t = buildNoteTree('/v', listDir)
-    const names = t.tree.children!.map((c) => c.name)
-    expect(names).toEqual(['sub', 'a.md', 'b.md'])
+    const t = buildNoteTree(V, listDir)
+    expect(t.tree.children!.map((c) => c.name)).toEqual(['sub', 'a.md', 'b.md'])
   })
 
   it('ignore .obsidian et les dotfolders', () => {
-    const t = buildNoteTree('/v', listDir)
+    const t = buildNoteTree(V, listDir)
     expect(t.tree.children!.some((c) => c.name === '.obsidian')).toBe(false)
   })
 
   it('construit un index nom->chemin, plus court chemin en cas de collision', () => {
-    const t = buildNoteTree('/v', listDir)
-    // a.md existe à /v/a.md et /v/sub/a.md -> garde le plus court
-    expect(t.index['a']).toBe('/v/a.md')
-    expect(t.index['b']).toBe('/v/b.md')
+    const t = buildNoteTree(V, listDir)
+    expect(t.index['a']).toBe(join(V, 'a.md'))
+    expect(t.index['b']).toBe(join(V, 'b.md'))
   })
 })
 ```
