@@ -24,6 +24,15 @@ export const IPC = {
   AdoListBoard: 'ado:list-board',
   AdoGetChildren: 'ado:get-children',
   AdoGetDetail: 'ado:get-detail',
+  // Notes / Markdown (renderer -> main)
+  NotesPickFolder: 'notes:pick-folder',
+  NotesPickFile: 'notes:pick-file',
+  NotesTree: 'notes:tree',
+  NotesRead: 'notes:read',
+  NotesAsset: 'notes:asset',
+  NotesOpenExternal: 'notes:open-external',
+  NotesWatch: 'notes:watch',
+  NotesUnwatch: 'notes:unwatch',
   // main -> renderer
   CloseRequest: 'app:close-request',
   PtyData: 'pty:data',
@@ -31,7 +40,8 @@ export const IPC = {
   SessionState: 'session:state',
   AgentAdded: 'agent:added',
   AgentLines: 'agent:lines',
-  AgentDone: 'agent:done'
+  AgentDone: 'agent:done',
+  NotesChanged: 'notes:changed'
 } as const
 
 export type ConsoleLineKind = 'prompt' | 'text' | 'tool' | 'result'
@@ -50,7 +60,7 @@ export interface TranscriptMatch {
 }
 
 /** Sous-ensemble persistable d'un item (config, sans état runtime de session). */
-export interface PersistItem { id: string; name: string; cwd: string; split?: 1 | 2; kind?: 'claude' | 'ado' | 'cmd'; claudeArgs?: string[]; ado?: { view: 'tree' | 'board'; iterationPath: string | null } }
+export interface PersistItem { id: string; name: string; cwd: string; split?: 1 | 2; kind?: 'claude' | 'ado' | 'cmd' | 'note'; claudeArgs?: string[]; ado?: { view: 'tree' | 'board'; iterationPath: string | null }; note?: PersistNote }
 export interface PersistGroup { id: string; name: string; collapsed: boolean; defaultCwd: string | null; color?: string | null; ado?: { connId: string; project: string; team: string | null } | null; items: PersistItem[] }
 /** Arborescence persistée sur disque (groupes + items épinglés). */
 export interface WorkspaceTree { activeGroupId: string | null; groups: PersistGroup[] }
@@ -101,6 +111,24 @@ export interface AdoWorkItemDetail {
 export interface AdoError { ok: false; error: string; status?: number }
 export type AdoResponse<T> = { ok: true; data: T } | AdoError
 
+// --- Notes / Markdown (lecteur Obsidian) ---
+export interface NoteTreeNode {
+  name: string            // nom affiché (fichier ou dossier)
+  path: string            // chemin absolu
+  dir: boolean
+  children?: NoteTreeNode[] // présent si dir
+}
+export interface NotesTree {
+  root: string
+  tree: NoteTreeNode                 // nœud racine (dir)
+  index: Record<string, string>      // clé = nom de fichier .md sans extension, en minuscules -> chemin absolu
+}
+export interface NoteFile { path: string; markdown: string }
+export interface NoteAsset { dataUri: string }
+export type NotesResult<T> = { ok: true; data: T } | { ok: false; error: string }
+/** Sous-ensemble persistable d'un item note. */
+export interface PersistNote { root: string; rootKind: 'vault' | 'file'; activePath: string | null }
+
 /** Fonction de désabonnement renvoyée par tous les `on*` (évite les fuites de listeners). */
 export type Unsub = () => void
 
@@ -134,4 +162,13 @@ export interface HubApi {
   adoListBoard(p: { connId: string; project: string; team?: string; iterationPath?: string }): Promise<AdoResponse<AdoBoard>>
   adoGetChildren(connId: string, parentId: number): Promise<AdoResponse<AdoWorkItem[]>>
   adoGetDetail(connId: string, project: string, id: number): Promise<AdoResponse<AdoWorkItemDetail>>
+  notesPickFolder(): Promise<string | null>
+  notesPickFile(): Promise<string | null>
+  notesTree(root: string): Promise<NotesResult<NotesTree>>
+  notesRead(root: string, path: string): Promise<NotesResult<NoteFile>>
+  notesAsset(root: string, path: string): Promise<NotesResult<NoteAsset>>
+  notesOpenExternal(url: string): void
+  notesWatch(itemId: string, root: string): void
+  notesUnwatch(itemId: string): void
+  onNotesChanged(cb: (itemId: string, event: string, path: string) => void): Unsub
 }
