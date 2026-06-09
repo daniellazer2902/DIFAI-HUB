@@ -12,11 +12,11 @@ export interface RenderContext {
   resolveHref(href: string): HrefResolution
 }
 
-const md = new MarkdownIt({
+const md: MarkdownIt = new MarkdownIt({
   html: false,          // pas de HTML brut sauf nos div d'embed (réintroduites ci-dessous via html:true ? non)
   linkify: true,
   breaks: false,
-  highlight(str, lang) {
+  highlight(str: string, lang: string): string {
     if (lang && hljs.getLanguage(lang)) {
       try { return `<pre><code class="hljs language-${lang}">${hljs.highlight(str, { language: lang }).value}</code></pre>` } catch { /* ignore */ }
     }
