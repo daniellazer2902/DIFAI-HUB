@@ -2,8 +2,14 @@ import { describe, it, expect } from 'vitest'
 import { soundForTransition } from '../src/renderer/src/sound'
 
 describe('soundForTransition', () => {
-  it('entrée en waiting => waiting', () => {
-    expect(soundForTransition('active', 'waiting')).toBe('waiting')
+  it('fin de génération (-> attention) => waiting (alerte)', () => {
+    expect(soundForTransition('active', 'attention')).toBe('waiting')
+  })
+  it('session prête au démarrage (starting -> waiting) => waiting', () => {
+    expect(soundForTransition('starting', 'waiting')).toBe('waiting')
+  })
+  it('accusé « vu » (attention -> waiting) => null (silencieux)', () => {
+    expect(soundForTransition('attention', 'waiting')).toBeNull()
   })
   it('entrée en done => done', () => {
     expect(soundForTransition('active', 'done')).toBe('done')

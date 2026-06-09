@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
+import { useHub } from '../store'
 
 export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -67,5 +68,14 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     }
   }, [tabId])
 
-  return <div ref={containerRef} className="term-screen" />
+  // onFocus/onBlur bubblent depuis le textarea interne de xterm → on suit la console focus
+  // pour l'accusé « vu » (attention -> waiting) géré dans le store.
+  return (
+    <div
+      ref={containerRef}
+      className="term-screen"
+      onFocus={() => useHub.getState().focusConsole(tabId)}
+      onBlur={() => useHub.getState().blurConsole(tabId)}
+    />
+  )
 }

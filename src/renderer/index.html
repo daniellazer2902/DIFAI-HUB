@@ -51,6 +51,9 @@
       .group-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .group-actions { display: flex; gap: 6px; opacity: 0; flex: none; }
       .group-head:hover .group-actions { opacity: 1; }
+      .group-head { cursor: grab; }
+      .group-head:active { cursor: grabbing; }
+      .group.drag-over-group { box-shadow: inset 0 2px 0 0 #7fd; }
       .ic-btn { cursor: pointer; color: #888; user-select: none; display: inline-flex; align-items: center; }
       .ic-btn:hover { color: #fff; }
       .item { position: relative; display: flex; align-items: center; gap: 6px; padding: 4px 8px 4px 22px; font-size: 12px; cursor: pointer; color: #ccc; }

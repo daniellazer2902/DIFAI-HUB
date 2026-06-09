@@ -13,9 +13,10 @@ export interface HookEvent {
 
 /**
  * Route un event de hook vers le SessionRegistry.
- * Sémantique des états : `active` = Claude travaille (mouline) ; `waiting` = prêt / a
- * fini sa tâche / attend l'utilisateur. UserPromptSubmit relance le travail (active),
- * Stop/Notification le ramènent à l'état prêt (waiting).
+ * Sémantique des états : `active` = Claude travaille (mouline) ; `attention` = a fini de
+ * générer mais l'utilisateur ne l'a pas encore vu ; `waiting` = prêt / vu. UserPromptSubmit
+ * relance le travail (active), Stop/Notification signalent la fin (attention) — c'est le
+ * renderer qui repasse à `waiting` quand l'utilisateur focus la console (accusé « vu »).
  */
 export function applyHookEvent(reg: SessionRegistry, e: HookEvent): void {
   const tabId = e.tabId
@@ -30,7 +31,7 @@ export function applyHookEvent(reg: SessionRegistry, e: HookEvent): void {
       break
     case 'Stop':
     case 'Notification':
-      reg.setState(tabId, 'waiting')
+      reg.setState(tabId, 'attention')
       break
     default:
       break

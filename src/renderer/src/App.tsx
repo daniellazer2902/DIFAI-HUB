@@ -48,10 +48,14 @@ export function App(): React.JSX.Element {
 
     const unsubs: Unsub[] = []
     unsubs.push(window.hub.onSessionState((tid, state) => {
-      const prev = useHub.getState().itemByTab(tid)?.state
-      useHub.getState().setItemState(tid, state)
+      const s = useHub.getState()
+      const prev = s.itemByTab(tid)?.state
+      // Fin de génération : si la fenêtre + cette console ont déjà le focus (on la regarde en
+      // direct), on marque « vu » tout de suite (waiting) ; sinon on laisse l'alerte (attention).
+      const effective = state === 'attention' && document.hasFocus() && s.focusedTabId === tid ? 'waiting' : state
+      useHub.getState().setItemState(tid, effective)
       if (prev) {
-        const snd = soundForTransition(prev, state)
+        const snd = soundForTransition(prev, state) // son basé sur l'état réel (attention = fin)
         if (snd && useHub.getState().soundEnabled) playSound(snd)
       }
     }))

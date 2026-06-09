@@ -64,6 +64,8 @@ interface HubState {
   activeGroupId: string | null
   activeItemId: string | null
   focusedPane: Pane
+  /** tabId de la console ayant actuellement le focus DOM (xterm), ou null. */
+  focusedTabId: string | null
   soundEnabled: boolean
   consoleWidth: number
   confirmOnClose: boolean
@@ -81,6 +83,8 @@ interface HubState {
   setGroupDefaultCwd: (groupId: string, cwd: string) => void
   setGroupColor: (groupId: string, color: string | null) => void
   setActiveGroup: (groupId: string) => void
+  /** Réordonne les groupes : place `groupId` au niveau de `targetId` (sous lui si on descend, au-dessus si on monte). */
+  moveGroup: (groupId: string, targetId: string) => void
 
   addItem: (groupId: string, item: Item) => void
   removeItem: (itemId: string) => void
@@ -113,6 +117,8 @@ interface HubState {
   closeAgentsTab: (itemId: string) => void
   selectTab: (pane: Pane, ref: string) => void
   setFocusedPane: (pane: Pane) => void
+  focusConsole: (tabId: string) => void
+  blurConsole: (tabId: string) => void
   setSearchQuery: (itemId: string, query: string) => void
   leftTabs: () => PaneTab[]
   rightTabs: () => PaneTab[]
@@ -189,6 +195,7 @@ const initial = {
   activeGroupId: null as string | null,
   activeItemId: null as string | null,
   focusedPane: 'left' as Pane,
+  focusedTabId: null as string | null,
   soundEnabled: true,
   consoleWidth: 380,
   confirmOnClose: true,
@@ -257,6 +264,20 @@ export const useHub = create<HubState>((set, get) => ({
       const pane: Pane = paneRefs(g, 'left').length > 0 ? 'left' : 'right'
       const ref = pane === 'left' ? g.leftActiveTab : g.rightActiveTab
       return { activeGroupId: groupId, focusedPane: pane, activeItemId: ref ? parseRef(ref).itemId : s.activeItemId }
+    }),
+
+  moveGroup: (groupId, targetId) =>
+    set((s) => {
+      if (groupId === targetId) return s
+      const from = s.groups.findIndex((g) => g.id === groupId)
+      const origTo = s.groups.findIndex((g) => g.id === targetId)
+      if (from < 0 || origTo < 0) return s
+      const goingDown = from < origTo
+      const groups = [...s.groups]
+      const [moved] = groups.splice(from, 1)
+      const to = groups.findIndex((g) => g.id === targetId)
+      groups.splice(goingDown ? to + 1 : to, 0, moved)
+      return { groups }
     }),
 
   addItem: (groupId, item) =>
@@ -382,10 +403,21 @@ export const useHub = create<HubState>((set, get) => ({
   closeAgentsTab: (itemId) => set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, agentsOpen: false }))) })),
   selectTab: (pane, ref) =>
     set((s) => {
-      const { itemId } = parseRef(ref)
-      return { groups: setPaneActive(s.groups, itemId, pane, ref), focusedPane: pane, activeItemId: itemId }
+      const { kind, itemId } = parseRef(ref)
+      // Sélectionner l'onglet d'une session = accusé « vu » : attention -> waiting.
+      const base = kind === 'session'
+        ? mapItems(s.groups, (i) => i.id === itemId && i.state === 'attention', (i) => ({ ...i, state: 'waiting' }))
+        : s.groups
+      return { groups: setPaneActive(base, itemId, pane, ref), focusedPane: pane, activeItemId: itemId }
     }),
   setFocusedPane: (focusedPane) => set({ focusedPane }),
+  focusConsole: (tabId) =>
+    set((s) => ({
+      focusedTabId: tabId,
+      // Focus réel sur la console = accusé « vu » : attention -> waiting.
+      groups: mapItems(s.groups, (i) => i.tabId === tabId && i.state === 'attention', (i) => ({ ...i, state: 'waiting' }))
+    })),
+  blurConsole: (tabId) => set((s) => (s.focusedTabId === tabId ? { focusedTabId: null } : {})),
   setSearchQuery: (itemId, searchQuery) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, searchQuery })) })),
   leftTabs: () => {
     const g = get().groups.find((x) => x.id === get().activeGroupId)

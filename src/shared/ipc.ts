@@ -40,7 +40,7 @@ export interface ConsoleLine {
   text: string
 }
 
-export type SessionState = 'starting' | 'active' | 'waiting' | 'done'
+export type SessionState = 'starting' | 'active' | 'waiting' | 'attention' | 'done'
 
 /** Un message du transcript contenant le terme recherché (texte entier + nb d'occurrences). */
 export interface TranscriptMatch {
