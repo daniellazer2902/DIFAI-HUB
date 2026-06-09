@@ -11,10 +11,16 @@ interface Props {
   markdown: string
   index: Record<string, string>
   onOpenInternal: (path: string) => void
+  /** Recherche in-page (Ctrl+F) : terme courant, occurrence active, et remontée du nombre de matches. */
+  query?: string
+  activeIdx?: number
+  onMatchCount?: (n: number) => void
 }
 
-export function MarkdownView({ root, filePath, markdown, index, onOpenInternal }: Props): React.JSX.Element {
+export function MarkdownView({ root, filePath, markdown, index, onOpenInternal, query = '', activeIdx = 0, onMatchCount }: Props): React.JSX.Element {
   const ref = useRef<HTMLDivElement>(null)
+  const onMatchCountRef = useRef(onMatchCount)
+  onMatchCountRef.current = onMatchCount
 
   const ctx = useMemo<RenderContext>(() => ({
     resolveHref(href: string): HrefResolution {
@@ -77,6 +83,18 @@ export function MarkdownView({ root, filePath, markdown, index, onOpenInternal }
     return () => { cancelled = true }
   }, [html, root, filePath, index, ctx])
 
+  // Recherche in-page (Ctrl+F) : surligne les occurrences, marque l'active et scrolle dessus.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const count = applyHighlights(el, query)
+    onMatchCountRef.current?.(count)
+    const marks = Array.from(el.querySelectorAll('mark.ado-hl'))
+    marks.forEach((m, i) => m.classList.toggle('active', i === activeIdx))
+    marks[activeIdx]?.scrollIntoView({ block: 'center' })
+    return () => clearHighlights(el)
+  }, [html, query, activeIdx])
+
   // Délégation des clics : liens internes / externes / ancres.
   function onClick(e: React.MouseEvent): void {
     const target = e.target as HTMLElement
@@ -99,4 +117,53 @@ export function MarkdownView({ root, filePath, markdown, index, onOpenInternal }
 
 function escapeText(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/** Retire tous les <mark.ado-hl> et refusionne les nœuds texte. */
+function clearHighlights(root: HTMLElement): void {
+  for (const m of Array.from(root.querySelectorAll('mark.ado-hl'))) {
+    const parent = m.parentNode
+    if (!parent) continue
+    while (m.firstChild) parent.insertBefore(m.firstChild, m)
+    parent.removeChild(m)
+    parent.normalize()
+  }
+}
+
+/** Surligne chaque occurrence (insensible à la casse) de `query` dans les nœuds texte ; renvoie le nombre de matches. */
+function applyHighlights(root: HTMLElement, query: string): number {
+  clearHighlights(root)
+  const q = query.trim().toLowerCase()
+  if (!q) return 0
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node: Node): number {
+      const v = node.nodeValue
+      if (!v || !v.toLowerCase().includes(q)) return NodeFilter.FILTER_REJECT
+      return NodeFilter.FILTER_ACCEPT
+    }
+  })
+  const targets: Text[] = []
+  let n: Node | null
+  while ((n = walker.nextNode())) targets.push(n as Text)
+  let count = 0
+  for (const textNode of targets) {
+    const text = textNode.nodeValue as string
+    const lower = text.toLowerCase()
+    const frag = document.createDocumentFragment()
+    let from = 0
+    let idx = lower.indexOf(q, from)
+    while (idx >= 0) {
+      if (idx > from) frag.appendChild(document.createTextNode(text.slice(from, idx)))
+      const mark = document.createElement('mark')
+      mark.className = 'ado-hl'
+      mark.textContent = text.slice(idx, idx + q.length)
+      frag.appendChild(mark)
+      count++
+      from = idx + q.length
+      idx = lower.indexOf(q, from)
+    }
+    if (from < text.length) frag.appendChild(document.createTextNode(text.slice(from)))
+    textNode.parentNode?.replaceChild(frag, textNode)
+  }
+  return count
 }

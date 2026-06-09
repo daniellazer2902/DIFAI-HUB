@@ -30,6 +30,7 @@ export function App(): React.JSX.Element {
           const item = s.itemById(itemId)
           // Board ADO = page DOM → recherche in-page ; session Claude → Find transcript ; terminal cmd → rien (pas de transcript).
           if (kind === 'ado') s.setAdoFind(itemId, { open: !(s.adoFind[itemId]?.open) })
+          else if (item?.kind === 'note') s.setNoteFind(itemId, { open: !(s.noteFind[itemId]?.open) })
           else if (item?.kind === 'cmd') { /* pas de recherche sur un terminal */ }
           else s.toggleFind(itemId)
         }

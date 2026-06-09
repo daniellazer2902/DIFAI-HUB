@@ -30,6 +30,13 @@ export function NotesView({ item }: Props): React.JSX.Element {
   const [, force] = useState(0)
   const activePath = note.activePath
 
+  // Recherche in-page (Ctrl+F) — état partagé via le store (déclenché par App.tsx).
+  const find = useHub((s) => s.noteFind[item.id])
+  const [activeIdx, setActiveIdx] = useState(0)
+  const [matchCount, setMatchCount] = useState(0)
+  const findInputRef = useRef<HTMLInputElement>(null)
+  const query = find?.open ? find.query : ''
+
   const readFile = useCallback(async (path: string) => {
     const r = await window.hub.notesRead(note.root, path)
     if (r.ok) { setMarkdown(r.data.markdown); setErr(null) }
@@ -76,6 +83,13 @@ export function NotesView({ item }: Props): React.JSX.Element {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id, note.root, note.rootKind])
 
+  // Focus l'input à l'ouverture ; recale l'occurrence active quand le terme ou le fichier change.
+  useEffect(() => { if (find?.open) findInputRef.current?.focus() }, [find?.open])
+  useEffect(() => { setActiveIdx(0) }, [query, activePath])
+
+  const closeFind = (): void => useHub.getState().setNoteFind(item.id, { open: false })
+  const goMatch = (d: number): void => setActiveIdx((i) => (matchCount ? (i + d + matchCount) % matchCount : 0))
+
   const h = histRef.current
   const goBack = (): void => { if (h.pos > 0) { h.pos--; force((n) => n + 1); open(h.stack[h.pos], false) } }
   const goFwd = (): void => { if (h.pos < h.stack.length - 1) { h.pos++; force((n) => n + 1); open(h.stack[h.pos], false) } }
@@ -90,6 +104,25 @@ export function NotesView({ item }: Props): React.JSX.Element {
         <button className="btn" title="Suivant" disabled={h.pos >= h.stack.length - 1} onClick={goFwd}>→</button>
         <span className="notes-crumb" title={activePath ?? ''}>{activePath ? basename(activePath).replace(/\.(md|markdown)$/i, '') : '—'}</span>
       </div>
+      {find?.open && (
+        <div className="ado-find-bar">
+          <input
+            ref={findInputRef}
+            className="ado-find-input"
+            placeholder="Rechercher dans la page…"
+            value={find.query}
+            onChange={(e) => useHub.getState().setNoteFind(item.id, { query: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); goMatch(e.shiftKey ? -1 : 1) }
+              else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFind() }
+            }}
+          />
+          <span className="ado-find-count">{matchCount ? `${Math.min(activeIdx + 1, matchCount)}/${matchCount}` : (find.query ? '0' : '')}</span>
+          <button className="btn ado-find-btn" title="Précédent" disabled={!matchCount} onClick={() => goMatch(-1)}>↑</button>
+          <button className="btn ado-find-btn" title="Suivant" disabled={!matchCount} onClick={() => goMatch(1)}>↓</button>
+          <button className="btn ado-find-btn" title="Fermer (Échap)" onClick={closeFind}>✕</button>
+        </div>
+      )}
       <div className="notes-body">
         {isVault && !collapsed && (
           <div className="notes-tree">
@@ -100,7 +133,7 @@ export function NotesView({ item }: Props): React.JSX.Element {
           {err
             ? <div className="notes-center notes-err">{err}</div>
             : activePath
-              ? <MarkdownView root={note.root} filePath={activePath} markdown={markdown} index={index} onOpenInternal={(p) => open(p)} />
+              ? <MarkdownView root={note.root} filePath={activePath} markdown={markdown} index={index} onOpenInternal={(p) => open(p)} query={query} activeIdx={activeIdx} onMatchCount={setMatchCount} />
               : <div className="notes-center">Aucun fichier.</div>}
         </div>
       </div>
