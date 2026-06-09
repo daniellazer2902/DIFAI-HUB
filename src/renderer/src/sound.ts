@@ -3,9 +3,10 @@ import type { SessionState } from '../../shared/ipc'
 /** Quelle notification jouer pour une transition d'état (null = aucune). */
 export function soundForTransition(prev: SessionState, next: SessionState): 'waiting' | 'done' | null {
   if (prev === next) return null
-  if (next === 'waiting') return 'waiting'
+  if (next === 'attention') return 'waiting'                     // Claude a fini de générer (alerte)
+  if (next === 'waiting' && prev === 'starting') return 'waiting' // session prête au démarrage
   if (next === 'done') return 'done'
-  return null
+  return null                                                    // attention -> waiting (accusé « vu ») = silencieux
 }
 
 /** Joue une tonalité synthétique courte (Web Audio). Silencieux si indisponible. */

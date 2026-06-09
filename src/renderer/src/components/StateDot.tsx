@@ -5,6 +5,7 @@ const META: Record<SessionState, { color: string; cls: string; glyph: string; la
   starting: { color: '#9cf', cls: 'pulse', glyph: '●', label: 'Démarrage…' },
   active: { color: '#fb3', cls: 'blink', glyph: '●', label: 'Travaille…' },
   waiting: { color: '#7fd', cls: '', glyph: '●', label: 'Prêt' },
+  attention: { color: '#f55', cls: 'pulse', glyph: '●', label: 'Terminé — non vu' },
   done: { color: '#777', cls: '', glyph: '○', label: 'Terminée' }
 }
 

@@ -30,6 +30,8 @@ export function Sidebar(): React.JSX.Element {
   const [editing, setEditing] = useState<Editing | null>(null)
   const [editValue, setEditValue] = useState('')
   const editRef = useRef<HTMLInputElement>(null)
+  const [dragGroupId, setDragGroupId] = useState<string | null>(null)
+  const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null)
 
   // Ferme les menus ··· et ＋ au clic extérieur.
   useEffect(() => {
@@ -165,10 +167,19 @@ export function Sidebar(): React.JSX.Element {
         {groups.map((g) => (
           <div
             key={g.id}
-            className={`group${g.id === activeGroupId ? ' active-group' : ''}`}
+            className={`group${g.id === activeGroupId ? ' active-group' : ''}${dragOverGroupId === g.id && dragGroupId && dragGroupId !== g.id ? ' drag-over-group' : ''}`}
             style={g.color ? ({ '--gc': g.color, '--gcd': darken(g.color), '--gt': textOn(g.color), '--gtd': textOn(darken(g.color)) } as React.CSSProperties) : undefined}
+            onDragOver={(e) => { if (dragGroupId && dragGroupId !== g.id) { e.preventDefault(); setDragOverGroupId(g.id) } }}
+            onDragLeave={(e) => { if (dragOverGroupId === g.id && !e.currentTarget.contains(e.relatedTarget as Node)) setDragOverGroupId(null) }}
+            onDrop={(e) => { if (dragGroupId && dragGroupId !== g.id) { e.preventDefault(); useHub.getState().moveGroup(dragGroupId, g.id) } setDragGroupId(null); setDragOverGroupId(null) }}
           >
-            <div className="group-head" onContextMenu={(e) => { e.preventDefault(); setMenu(g.id) }}>
+            <div
+              className="group-head"
+              draggable={!(editing && editing.kind === 'group' && editing.id === g.id)}
+              onDragStart={(e) => { setMenu(null); setAddFor(null); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', g.id); const id = g.id; setTimeout(() => setDragGroupId(id), 0) }}
+              onDragEnd={() => { setDragGroupId(null); setDragOverGroupId(null) }}
+              onContextMenu={(e) => { e.preventDefault(); setMenu(g.id) }}
+            >
               <span className="group-chevron" onClick={() => useHub.getState().toggleGroupCollapsed(g.id)}>{g.collapsed ? '▸' : '▾'}</span>
               <span className="group-name-wrap" onClick={() => useHub.getState().setActiveGroup(g.id)}>{nameOrEditor('group', g.id, g.name, 'group-name')}</span>
               <span className="group-actions">
@@ -204,7 +215,7 @@ export function Sidebar(): React.JSX.Element {
                 <span className="item-ic">{it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : <ClaudeIcon />}</span>
                 {nameOrEditor('item', it.id, it.name, 'item-name')}
                 <span className="item-pin">{it.pinned && <PinIcon />}</span>
-                <span className="item-state">{it.kind === 'ado' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>
+                <span className="item-state">{it.kind === 'ado' || it.kind === 'cmd' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>
                 <span className="ic-btn menu-btn item-menu" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}>···</span>
                 {menu === it.id && (
                   <div className="ctx-menu" onClick={(e) => e.stopPropagation()}>

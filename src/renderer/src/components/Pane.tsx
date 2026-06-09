@@ -183,9 +183,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                   }}
                 >
                   <span className="tab-ic">{t.item.kind === 'cmd' ? <TerminalIcon /> : <ClaudeIcon />}</span>
-                  {t.item.kind === 'cmd'
-                    ? <span className="statedot" title={t.item.tabId ? 'En cours' : 'Terminé'} style={{ color: t.item.tabId ? '#7fd' : '#777' }}>{t.item.tabId ? '●' : '○'}</span>
-                    : <StateDot state={t.item.state} />}
+                  {t.item.kind === 'cmd' ? null : <StateDot state={t.item.state} />}
                   {editingId === t.item.id ? (
                     <input
                       ref={editRef}
