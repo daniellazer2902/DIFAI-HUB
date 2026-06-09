@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { basename } from '../src/renderer/src/util'
 import { isBusy, hasBusySession } from '../src/renderer/src/util'
+import { dirOf, joinPath } from '../src/renderer/src/util'
 
 describe('basename', () => {
   it('extrait le dernier segment (Windows)', () => {
@@ -40,5 +41,19 @@ describe('hasBusySession', () => {
   })
   it('faux si aucune', () => {
     expect(hasBusySession([{ items: [busyItem({ state: 'done' })] }])).toBe(false)
+  })
+})
+
+describe('dirOf', () => {
+  it('renvoie le dossier (Windows et POSIX)', () => {
+    expect(dirOf('C:\\v\\sub\\a.md')).toBe('C:\\v\\sub')
+    expect(dirOf('/v/sub/a.md')).toBe('/v/sub')
+  })
+})
+
+describe('joinPath', () => {
+  it('joint en conservant le séparateur du dossier', () => {
+    expect(joinPath('C:\\v\\sub', 'img/x.png')).toBe('C:\\v\\sub\\img\\x.png')
+    expect(joinPath('/v/sub', '../a.md')).toBe('/v/a.md')
   })
 })
