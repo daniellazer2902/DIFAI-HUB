@@ -230,7 +230,7 @@ export function Sidebar(): React.JSX.Element {
                 <span className="item-ic">{it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : <ClaudeIcon />}</span>
                 {nameOrEditor('item', it.id, it.name, 'item-name')}
                 <span className="item-pin">{it.pinned && <PinIcon />}</span>
-                <span className="item-state">{it.kind === 'ado' || it.kind === 'cmd' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>
+                <span className="item-state">{it.kind === 'ado' || it.kind === 'cmd' || it.kind === 'note' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>
                 <span className="ic-btn menu-btn item-menu" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}>···</span>
                 {menu === it.id && (
                   <div className="ctx-menu" onClick={(e) => e.stopPropagation()}>
