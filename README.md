@@ -46,10 +46,16 @@ vite entre des dizaines de terminaux. DIFAI-IDE centralise tout dans une seule f
   - **filtre par personne** assignée ;
   - **vue détail riche** d'une US ou d'une tâche : description, critères d'acceptation,
     story points, priorité, assigné, commentaires et **images** (rendu HTML assaini).
+- **Lecteur Markdown / Obsidian** (lecture seule) — ouvre un **vault** (dossier de `.md`,
+  avec arborescence) ou un **fichier** isolé, rendu propre : titres, tables, code coloré,
+  images, callouts, **wikilinks `[[…]]` cliquables**, embeds `![[…]]`, frontmatter masqué.
+  Liens internes navigables (historique avant/arrière), liens externes ouverts dans le
+  navigateur, **live-reload** quand le fichier change sur disque. Un *vault par défaut* peut
+  être mémorisé dans les Réglages.
 - **Garde-fou `~/.claude.json`** — surveille ce fichier (que Claude Code écrit de façon non
   atomique) et restaure automatiquement la dernière version valide si des sessions
   parallèles le corrompent.
-- **Réglages** — dossier par défaut, confirmation à la fermeture, son on/off.
+- **Réglages** — dossier par défaut, vault Obsidian par défaut, confirmation à la fermeture, son on/off.
 
 ## Captures d'écran
 

@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon } from './icons'
+import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon } from './icons'
 import { GroupColorModal } from './GroupColorModal'
 import { AdoBindModal } from './AdoBindModal'
 import { ClaudeAdvancedModal } from './ClaudeAdvancedModal'
 import { parseClaudeArgs } from '../claudeArgs'
 import { darken, textOn } from '../color'
 import { basename, isBusy } from '../util'
+import { readDefaultVault } from '../settings'
 import { confirm } from '../confirm'
 
 /** Ouvre une session pour un item éteint et la lie. */
@@ -115,6 +116,17 @@ export function Sidebar(): React.JSX.Element {
     })
   }
 
+  function addNoteItem(group: Group, root: string, rootKind: 'vault' | 'file'): void {
+    useHub.getState().addItem(group.id, {
+      id: crypto.randomUUID(), name: basename(root), cwd: '', pinned: false, tabId: null, state: 'done',
+      agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
+      kind: 'note', note: { root, rootKind, activePath: rootKind === 'file' ? root : null }
+    })
+  }
+  async function addNoteFolder(group: Group): Promise<void> { setAddFor(null); const f = await window.hub.notesPickFolder(); if (f) addNoteItem(group, f, 'vault') }
+  async function addNoteFile(group: Group): Promise<void> { setAddFor(null); const f = await window.hub.notesPickFile(); if (f) addNoteItem(group, f, 'file') }
+  function addDefaultVault(group: Group): void { setAddFor(null); const v = readDefaultVault(); if (v) addNoteItem(group, v, 'vault') }
+
   async function setGroupDefault(groupId: string): Promise<void> {
     setMenu(null)
     const cwd = await window.hub.pickFolder()
@@ -193,6 +205,9 @@ export function Sidebar(): React.JSX.Element {
                   <div onClick={() => { setAddFor(null); setAdvancedFor(g.id) }}><ClaudeIcon /> Claude avancé…</div>
                   <div onClick={() => addCmdItem(g)}><TerminalIcon /> Terminal</div>
                   <div onClick={() => addAdoItem(g)}><AzureIcon /> ADO – Azure</div>
+                  {readDefaultVault() && <div onClick={() => addDefaultVault(g)}><NotesIcon /> Vault par défaut</div>}
+                  <div onClick={() => addNoteFolder(g)}><NotesIcon /> Markdown : ouvrir un dossier…</div>
+                  <div onClick={() => addNoteFile(g)}><NotesIcon /> Markdown : ouvrir un fichier…</div>
                 </div>
               )}
               {menu === g.id && (
@@ -215,7 +230,7 @@ export function Sidebar(): React.JSX.Element {
                 <span className="item-ic">{it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : <ClaudeIcon />}</span>
                 {nameOrEditor('item', it.id, it.name, 'item-name')}
                 <span className="item-pin">{it.pinned && <PinIcon />}</span>
-                <span className="item-state">{it.kind === 'ado' || it.kind === 'cmd' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>
+                <span className="item-state">{it.kind === 'ado' || it.kind === 'cmd' || it.kind === 'note' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>
                 <span className="ic-btn menu-btn item-menu" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}>···</span>
                 {menu === it.id && (
                   <div className="ctx-menu" onClick={(e) => e.stopPropagation()}>

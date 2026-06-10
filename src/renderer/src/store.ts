@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ConsoleLine, SessionState, WorkspaceTree, AdoBoard } from '../../shared/ipc'
+import type { ConsoleLine, SessionState, WorkspaceTree, AdoBoard, PersistNote } from '../../shared/ipc'
 
 export interface AgentView {
   id: string
@@ -10,13 +10,16 @@ export interface AgentView {
 }
 
 export type Pane = 'left' | 'right'
-export type TabKind = 'session' | 'find' | 'agents' | 'ado'
+export type TabKind = 'session' | 'find' | 'agents' | 'ado' | 'note'
 
 export interface AdoView { view: 'tree' | 'board'; iterationPath: string | null }
 export interface GroupAdo { connId: string; project: string; team: string | null }
 
 /** État de recherche dans un board (Ctrl+F sur page, éphémère). */
 export interface AdoFindState { open: boolean; query: string; filter: boolean }
+
+/** État de recherche dans une note (Ctrl+F sur page, éphémère). Pas de filtre : rien à masquer. */
+export interface NoteFindState { open: boolean; query: string }
 
 /** Cache board en session (non persisté) : clé = itemId + sprint. */
 export interface AdoBoardCacheEntry { board: AdoBoard; at: number }
@@ -37,12 +40,14 @@ export interface Item {
   findOpen: boolean
   agentsOpen: boolean
   searchQuery: string
-  kind: 'claude' | 'ado' | 'cmd'
+  kind: 'claude' | 'ado' | 'cmd' | 'note'
   /** Arguments de lancement supplémentaires (Claude avancé) — persistés pour relance à l'identique. */
   claudeArgs?: string[]
   ado?: AdoView
   /** Board ado épinglé dont l'onglet a été fermé (reste en sidebar, masqué des onglets). Éphémère. */
   adoClosed?: boolean
+  /** État d'un item note (lecteur Markdown/Obsidian). */
+  note?: PersistNote
 }
 
 export interface Group {
@@ -72,6 +77,7 @@ interface HubState {
   globalDefaultCwd: string | null
   adoCache: Record<string, AdoBoardCacheEntry>
   adoFind: Record<string, AdoFindState>
+  noteFind: Record<string, NoteFindState>
 
   itemById: (itemId: string) => Item | undefined
   itemByTab: (tabId: string) => Item | undefined
@@ -99,6 +105,8 @@ interface HubState {
   setAdoClosed: (itemId: string, closed: boolean) => void
   setAdoCache: (key: string, board: AdoBoard) => void
   setAdoFind: (itemId: string, patch: Partial<AdoFindState>) => void
+  setNoteFind: (itemId: string, patch: Partial<NoteFindState>) => void
+  setNoteActivePath: (itemId: string, path: string) => void
 
   bindSession: (itemId: string, tabId: string) => void
   clearSession: (itemId: string) => void
@@ -138,7 +146,7 @@ function uid(prefix: string): string {
   return `${prefix}-${counter}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-const KIND_PREFIX: Record<TabKind, string> = { session: 's', find: 'f', agents: 'a', ado: 'd' }
+const KIND_PREFIX: Record<TabKind, string> = { session: 's', find: 'f', agents: 'a', ado: 'd', note: 'n' }
 export function tabRef(kind: TabKind, itemId: string): string {
   return `${KIND_PREFIX[kind]}:${itemId}`
 }
@@ -147,8 +155,15 @@ export function parseRef(ref: string): { kind: TabKind; itemId: string } {
   if (i < 0) return { kind: 'session', itemId: ref }
   const p = ref.slice(0, i)
   const itemId = ref.slice(i + 1)
-  const kind: TabKind = p === 's' ? 'session' : p === 'f' ? 'find' : p === 'a' ? 'agents' : p === 'd' ? 'ado' : 'session'
+  const kind: TabKind = p === 's' ? 'session' : p === 'f' ? 'find' : p === 'a' ? 'agents' : p === 'd' ? 'ado' : p === 'n' ? 'note' : 'session'
   return { kind, itemId }
+}
+
+/** Ref de l'onglet principal d'un item selon son kind (session par défaut). */
+export function mainRef(item: { id: string; kind: Item['kind'] }): string {
+  if (item.kind === 'ado') return tabRef('ado', item.id)
+  if (item.kind === 'note') return tabRef('note', item.id)
+  return tabRef('session', item.id)
 }
 
 /** Volet opposé à celui de la session (Find/Agents s'y ouvrent → split garanti). */
@@ -164,6 +179,7 @@ function paneRefs(group: Group, pane: Pane): string[] {
   for (const i of group.items) {
     if (i.split === sessionSplit) {
       if (i.kind === 'ado') { if (!i.adoClosed) refs.push(tabRef('ado', i.id)) }
+      else if (i.kind === 'note') refs.push(tabRef('note', i.id))
       else if (i.tabId) refs.push(tabRef('session', i.id))
     }
     if (i.split === auxOwnerSplit && i.findOpen) refs.push(tabRef('find', i.id))
@@ -201,7 +217,8 @@ const initial = {
   confirmOnClose: true,
   globalDefaultCwd: null as string | null,
   adoCache: {} as Record<string, AdoBoardCacheEntry>,
-  adoFind: {} as Record<string, AdoFindState>
+  adoFind: {} as Record<string, AdoFindState>,
+  noteFind: {} as Record<string, NoteFindState>
 }
 
 function mapItems(groups: Group[], match: (i: Item) => boolean, fn: (i: Item) => Item): Group[] {
@@ -250,11 +267,18 @@ export const useHub = create<HubState>((set, get) => ({
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view: i.ado?.view ?? 'tree', iterationPath } })) })),
   setAdoClosed: (itemId, closed) =>
     set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, adoClosed: closed }))) })),
+  setNoteActivePath: (itemId, path) =>
+    set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, note: i.note ? { ...i.note, activePath: path } : i.note })) })),
   setAdoCache: (key, board) => set((s) => ({ adoCache: { ...s.adoCache, [key]: { board, at: Date.now() } } })),
   setAdoFind: (itemId, patch) =>
     set((s) => {
       const cur = s.adoFind[itemId] ?? { open: false, query: '', filter: false }
       return { adoFind: { ...s.adoFind, [itemId]: { ...cur, ...patch } } }
+    }),
+  setNoteFind: (itemId, patch) =>
+    set((s) => {
+      const cur = s.noteFind[itemId] ?? { open: false, query: '' }
+      return { noteFind: { ...s.noteFind, [itemId]: { ...cur, ...patch } } }
     }),
   setActiveGroup: (groupId) =>
     set((s) => {
@@ -283,7 +307,7 @@ export const useHub = create<HubState>((set, get) => ({
   addItem: (groupId, item) =>
     set((s) => {
       const pane: Pane = item.split === 2 ? 'right' : 'left'
-      const ref = item.kind === 'ado' ? tabRef('ado', item.id) : tabRef('session', item.id)
+      const ref = mainRef(item)
       const groups = s.groups.map((g) => {
         if (g.id !== groupId) return g
         const ng = { ...g, items: [...g.items, item] }
@@ -297,7 +321,8 @@ export const useHub = create<HubState>((set, get) => ({
       const prefix = `${itemId}::`
       const adoCache = Object.fromEntries(Object.entries(s.adoCache).filter(([k]) => !k.startsWith(prefix)))
       const adoFind = Object.fromEntries(Object.entries(s.adoFind).filter(([k]) => k !== itemId))
-      return { groups, activeItemId: s.activeItemId === itemId ? null : s.activeItemId, adoCache, adoFind }
+      const noteFind = Object.fromEntries(Object.entries(s.noteFind).filter(([k]) => k !== itemId))
+      return { groups, activeItemId: s.activeItemId === itemId ? null : s.activeItemId, adoCache, adoFind, noteFind }
     }),
   renameItem: (itemId, name) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, name })) })),
   togglePin: (itemId) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, pinned: !i.pinned })) })),
@@ -307,7 +332,7 @@ export const useHub = create<HubState>((set, get) => ({
       if (!g) return { activeItemId: itemId }
       const item = g.items.find((i) => i.id === itemId) as Item
       const pane: Pane = item.split === 2 ? 'right' : 'left'
-      const ref = item.kind === 'ado' ? tabRef('ado', itemId) : tabRef('session', itemId)
+      const ref = mainRef(item)
       const groups = setPaneActive(s.groups, itemId, pane, ref)
       return { activeItemId: itemId, activeGroupId: g.id, focusedPane: pane, groups }
     }),
@@ -334,7 +359,7 @@ export const useHub = create<HubState>((set, get) => ({
     set((s) => {
       const moved = mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, split }))
       const item = moved.flatMap((g) => g.items).find((i) => i.id === itemId)
-      const ref = item?.kind === 'ado' ? tabRef('ado', itemId) : tabRef('session', itemId)
+      const ref = item ? mainRef(item) : tabRef('session', itemId)
       const groups = setPaneActive(moved, itemId, split === 2 ? 'right' : 'left', ref)
       return { groups: normalizeAll(groups), focusedPane: split === 2 ? 'right' : 'left', activeItemId: itemId }
     }),
@@ -443,6 +468,7 @@ export const useHub = create<HubState>((set, get) => ({
         items: g.items.filter((i) => i.pinned).map((i) => ({
           id: i.id, name: i.name, cwd: i.cwd, split: i.split, kind: i.kind,
           ...(i.kind === 'ado' && i.ado ? { ado: i.ado } : {}),
+          ...(i.kind === 'note' && i.note ? { note: i.note } : {}),
           ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {})
         }))
       }))
@@ -461,6 +487,7 @@ export const useHub = create<HubState>((set, get) => ({
             id: i.id, name: i.name, cwd: i.cwd, pinned: true, tabId: null, state: 'done', agents: [], openAgentId: null,
             split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: '',
             kind: i.kind ?? 'claude', ...(i.kind === 'ado' ? { ado: i.ado ?? { view: 'tree', iterationPath: null } } : {}),
+            ...(i.kind === 'note' ? { note: i.note ?? { root: '', rootKind: 'file', activePath: null } } : {}),
             ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {})
           }))
         }))

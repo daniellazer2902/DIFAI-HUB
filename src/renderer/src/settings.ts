@@ -19,3 +19,16 @@ export function writeGlobalDefaultCwd(v: string | null): void {
     else localStorage.removeItem(GLOBAL_CWD_KEY)
   } catch { /* ignore */ }
 }
+
+const DEFAULT_VAULT_KEY = 'difai.defaultVault'
+
+/** Chemin du vault Obsidian par défaut (null = non défini). */
+export function readDefaultVault(): string | null {
+  try { return localStorage.getItem(DEFAULT_VAULT_KEY) } catch { return null }
+}
+export function writeDefaultVault(v: string | null): void {
+  try {
+    if (v) localStorage.setItem(DEFAULT_VAULT_KEY, v)
+    else localStorage.removeItem(DEFAULT_VAULT_KEY)
+  } catch { /* ignore */ }
+}

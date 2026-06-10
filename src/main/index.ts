@@ -16,6 +16,7 @@ import { createAgentsModule } from './modules/agentsModule'
 import { createAdoModule } from './modules/adoModule'
 import { createClaudeGuardModule } from './modules/claudeGuardModule'
 import { createCmdModule } from './modules/cmdModule'
+import { createNotesModule } from './modules/notesModule'
 import { IPC } from '../shared/ipc'
 
 let hooksSettingsPath = ''
@@ -48,7 +49,8 @@ const modules: HubModule[] = [
   createAgentsModule(),
   createAdoModule(),
   createClaudeGuardModule(),
-  createCmdModule({ shellPath: resolvePowerShellPath(), shellArgs: process.platform === 'win32' ? ['-NoLogo'] : [] })
+  createCmdModule({ shellPath: resolvePowerShellPath(), shellArgs: process.platform === 'win32' ? ['-NoLogo'] : [] }),
+  createNotesModule()
 ]
 for (const m of modules) m.register(ctx)
 

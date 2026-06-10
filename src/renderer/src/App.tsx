@@ -30,6 +30,7 @@ export function App(): React.JSX.Element {
           const item = s.itemById(itemId)
           // Board ADO = page DOM → recherche in-page ; session Claude → Find transcript ; terminal cmd → rien (pas de transcript).
           if (kind === 'ado') s.setAdoFind(itemId, { open: !(s.adoFind[itemId]?.open) })
+          else if (item?.kind === 'note') s.setNoteFind(itemId, { open: !(s.noteFind[itemId]?.open) })
           else if (item?.kind === 'cmd') { /* pas de recherche sur un terminal */ }
           else s.toggleFind(itemId)
         }
@@ -103,7 +104,7 @@ export function App(): React.JSX.Element {
       }
       for (const g of tree.groups) {
         for (const i of g.items) {
-          if (i.kind === 'ado') continue // board ADO : pas de pty à relancer
+          if (i.kind === 'ado' || i.kind === 'note') continue // board ADO / note : pas de pty à relancer
           const tabId = i.kind === 'cmd' ? await window.hub.newCmd(i.cwd) : await window.hub.newSession(i.cwd, i.claudeArgs)
           if (!active) return
           useHub.getState().bindSession(i.id, tabId)

@@ -320,3 +320,36 @@ describe('store ADO (lot 4.2)', () => {
     expect(useHub.getState().itemById('adv')!.claudeArgs).toEqual(['--dangerously-skip-permissions'])
   })
 })
+
+describe('items note', () => {
+  beforeEach(() => useHub.getState().reset())
+
+  it('ajoute un item note, persiste root/rootKind/activePath et recharge', () => {
+    const gid = useHub.getState().addGroup('Docs')
+    useHub.getState().addItem(gid, {
+      id: 'n1', name: 'Vault', cwd: '', pinned: true, tabId: null, state: 'done', agents: [],
+      openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
+      kind: 'note', note: { root: '/v', rootKind: 'vault', activePath: '/v/a.md' }
+    })
+    const tree = useHub.getState().toPersistable()
+    const persisted = tree.groups[0].items[0]
+    expect(persisted.kind).toBe('note')
+    expect(persisted.note).toEqual({ root: '/v', rootKind: 'vault', activePath: '/v/a.md' })
+
+    useHub.getState().reset()
+    useHub.getState().loadWorkspace(tree)
+    const back = useHub.getState().itemById('n1')!
+    expect(back.note).toEqual({ root: '/v', rootKind: 'vault', activePath: '/v/a.md' })
+  })
+
+  it('setNoteActivePath met à jour le fichier ouvert', () => {
+    const gid = useHub.getState().addGroup('Docs')
+    useHub.getState().addItem(gid, {
+      id: 'n2', name: 'Vault', cwd: '', pinned: true, tabId: null, state: 'done', agents: [],
+      openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
+      kind: 'note', note: { root: '/v', rootKind: 'vault', activePath: null }
+    })
+    useHub.getState().setNoteActivePath('n2', '/v/b.md')
+    expect(useHub.getState().itemById('n2')!.note!.activePath).toBe('/v/b.md')
+  })
+})

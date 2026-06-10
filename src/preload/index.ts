@@ -39,7 +39,16 @@ const hub: HubApi = {
   adoListIterations: (id, project, team) => ipcRenderer.invoke(IPC.AdoListIterations, id, project, team),
   adoListBoard: (p) => ipcRenderer.invoke(IPC.AdoListBoard, p),
   adoGetChildren: (id, parentId) => ipcRenderer.invoke(IPC.AdoGetChildren, id, parentId),
-  adoGetDetail: (connId, project, id) => ipcRenderer.invoke(IPC.AdoGetDetail, connId, project, id)
+  adoGetDetail: (connId, project, id) => ipcRenderer.invoke(IPC.AdoGetDetail, connId, project, id),
+  notesPickFolder: () => ipcRenderer.invoke(IPC.NotesPickFolder),
+  notesPickFile: () => ipcRenderer.invoke(IPC.NotesPickFile),
+  notesTree: (root) => ipcRenderer.invoke(IPC.NotesTree, root),
+  notesRead: (root, path) => ipcRenderer.invoke(IPC.NotesRead, root, path),
+  notesAsset: (root, path) => ipcRenderer.invoke(IPC.NotesAsset, root, path),
+  notesOpenExternal: (url) => ipcRenderer.send(IPC.NotesOpenExternal, url),
+  notesWatch: (itemId, root) => ipcRenderer.send(IPC.NotesWatch, itemId, root),
+  notesUnwatch: (itemId) => ipcRenderer.send(IPC.NotesUnwatch, itemId),
+  onNotesChanged: (cb) => on(IPC.NotesChanged, (itemId, event, path) => cb(itemId as string, event as string, path as string))
 }
 
 contextBridge.exposeInMainWorld('hub', hub)
