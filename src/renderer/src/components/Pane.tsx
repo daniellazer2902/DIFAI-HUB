@@ -29,7 +29,7 @@ type Ctx = { id: string; x: number; y: number }
 
 function tabLabel(t: PaneTab): string {
   if (t.kind === 'session' || t.kind === 'ado' || t.kind === 'note') return t.item.name
-  return `${t.item.name} - ${t.kind === 'find' ? 'Find' : 'Agents'}`
+  return `${t.item.name} - ${t.kind === 'find' ? 'Find' : 'Exécutions'}`
 }
 
 export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, setDragId }: Props): React.JSX.Element {
@@ -214,7 +214,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                     <span className="tab-title">{t.item.name}</span>
                   )}
                   {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
-                  {t.item.kind !== 'cmd' && <span className="tab-agents">· {t.item.agents.filter((a) => !a.done).length} agents</span>}
+                  {t.item.kind !== 'cmd' && <span className="tab-agents">· {t.item.agents.filter((a) => !a.done).length} en cours</span>}
                   <span className="tab-close" title="Fermer l'onglet" onClick={(e) => closeSession(e, t.item.id, t.item.tabId)}>✕</span>
                 </div>
               )
@@ -333,7 +333,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
           <div onClick={() => startRename(ctxItem.id, ctxItem.name)}><EditIcon /> Renommer</div>
           <div onClick={() => { useHub.getState().togglePin(ctxItem.id); setCtx(null) }}><PinIcon /> {ctxItem.pinned ? 'Désépingler' : 'Épingler'}</div>
           {ctxItem.kind === 'claude' && (
-            <div onClick={() => { if (ctxItem.agentsOpen) useHub.getState().closeAgentsTab(ctxItem.id); else useHub.getState().openAgentsTab(ctxItem.id); setCtx(null) }}><TerminalIcon /> {ctxItem.agentsOpen ? 'Cacher Agents' : 'Afficher Agents'}</div>
+            <div onClick={() => { if (ctxItem.agentsOpen) useHub.getState().closeAgentsTab(ctxItem.id); else useHub.getState().openAgentsTab(ctxItem.id); setCtx(null) }}><TerminalIcon /> {ctxItem.agentsOpen ? 'Cacher Exécutions' : 'Afficher Exécutions'}</div>
           )}
           <div className="danger" onClick={(e) => { if (ctxItem.kind === 'ado') { e.stopPropagation(); useHub.getState().removeItem(ctxItem.id) } else closeSession(e, ctxItem.id, ctxItem.tabId); setCtx(null) }}><TrashIcon /> Supprimer</div>
         </div>

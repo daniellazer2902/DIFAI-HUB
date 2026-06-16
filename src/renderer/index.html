@@ -191,6 +191,11 @@
       .agent .desc { color: #aaa; }
       .agent.done .type { color: #888; }
       .agent.done .desc { color: #777; }
+      .agent.failed .type { color: #f88; }
+      .abadge { display: inline-block; font-size: 8px; font-weight: 700; letter-spacing: .5px; line-height: 1; padding: 2px 4px; border-radius: 3px; vertical-align: middle; margin-right: 3px; }
+      .abadge.agent { background: #14333a; color: #7fd; border: 1px solid #2a5f6a; }
+      .abadge.shell { background: #3a2a14; color: #fb7; border: 1px solid #6a4f2a; }
+      .agent.done .abadge { opacity: .55; }
       .aclose { position: absolute; top: 4px; right: 6px; font-size: 10px; opacity: 0; cursor: pointer; color: #888; user-select: none; }
       .agent:hover .aclose { opacity: 1; }
       .aclose:hover { color: #f66; }
