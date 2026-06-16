@@ -23,11 +23,11 @@ const hub: HubApi = {
   onExit: (cb) => on(IPC.PtyExit, (tabId, code) => cb(tabId as string, code as number)),
   onSessionState: (cb) => on(IPC.SessionState, (tabId, state) => cb(tabId as string, state as SessionState)),
   onAgentAdded: (cb) =>
-    on(IPC.AgentAdded, (tabId, agentId, type, desc) =>
-      cb(tabId as string, agentId as string, type as string, desc as string)),
+    on(IPC.AgentAdded, (tabId, agentId, type, desc, kind) =>
+      cb(tabId as string, agentId as string, type as string, desc as string, (kind as 'agent' | 'shell') ?? 'agent')),
   onAgentLines: (cb) =>
     on(IPC.AgentLines, (tabId, agentId, lines) => cb(tabId as string, agentId as string, lines as ConsoleLine[])),
-  onAgentDone: (cb) => on(IPC.AgentDone, (tabId, agentId) => cb(tabId as string, agentId as string)),
+  onAgentDone: (cb) => on(IPC.AgentDone, (tabId, agentId, failed) => cb(tabId as string, agentId as string, Boolean(failed))),
   onCloseRequest: (cb) => on(IPC.CloseRequest, () => cb()),
   confirmClose: () => ipcRenderer.send(IPC.CloseConfirm),
   adoConnList: () => ipcRenderer.invoke(IPC.AdoConnList),

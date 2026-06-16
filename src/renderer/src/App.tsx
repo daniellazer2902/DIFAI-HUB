@@ -60,10 +60,10 @@ export function App(): React.JSX.Element {
         if (snd && useHub.getState().soundEnabled) playSound(snd)
       }
     }))
-    unsubs.push(window.hub.onAgentAdded((tid, agentId, type, desc) =>
-      useHub.getState().addAgent(tid, { id: agentId, type, desc, lines: [], done: false })))
+    unsubs.push(window.hub.onAgentAdded((tid, agentId, type, desc, kind) =>
+      useHub.getState().addAgent(tid, { id: agentId, type, desc, lines: [], done: false, kind })))
     unsubs.push(window.hub.onAgentLines((tid, agentId, lines) => useHub.getState().appendLines(tid, agentId, lines)))
-    unsubs.push(window.hub.onAgentDone((tid, agentId) => useHub.getState().setAgentDone(tid, agentId)))
+    unsubs.push(window.hub.onAgentDone((tid, agentId, failed) => useHub.getState().setAgentDone(tid, agentId, failed)))
     unsubs.push(window.hub.onExit((tid) => {
       const it = useHub.getState().itemByTab(tid)
       if (it) useHub.getState().clearSession(it.id)

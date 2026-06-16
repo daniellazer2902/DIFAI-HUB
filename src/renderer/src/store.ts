@@ -7,6 +7,10 @@ export interface AgentView {
   desc: string
   lines: ConsoleLine[]
   done: boolean
+  /** Distingue un sous-agent Claude d'un shell lancé en tâche de fond. */
+  kind: 'agent' | 'shell'
+  /** Pour un shell terminé : true si exit non nul / statut d'échec. */
+  failed?: boolean
 }
 
 export type Pane = 'left' | 'right'
@@ -116,7 +120,7 @@ interface HubState {
   addAgent: (tabId: string, agent: AgentView) => void
   appendLines: (tabId: string, agentId: string, lines: ConsoleLine[]) => void
   removeAgent: (tabId: string, agentId: string) => void
-  setAgentDone: (tabId: string, agentId: string) => void
+  setAgentDone: (tabId: string, agentId: string, failed?: boolean) => void
   openAgent: (itemId: string, agentId: string | null) => void
 
   toggleFind: (itemId: string) => void
@@ -398,10 +402,10 @@ export const useHub = create<HubState>((set, get) => ({
         ...i, agents: i.agents.filter((a) => a.id !== agentId), openAgentId: i.openAgentId === agentId ? null : i.openAgentId
       }))
     })),
-  setAgentDone: (tabId, agentId) =>
+  setAgentDone: (tabId, agentId, failed) =>
     set((s) => ({
       groups: mapItems(s.groups, (i) => i.tabId === tabId, (i) => ({
-        ...i, agents: i.agents.map((a) => (a.id === agentId ? { ...a, done: true } : a))
+        ...i, agents: i.agents.map((a) => (a.id === agentId ? { ...a, done: true, failed: failed ?? a.failed } : a))
       }))
     })),
   openAgent: (itemId, agentId) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, openAgentId: agentId })) })),

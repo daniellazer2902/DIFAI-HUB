@@ -1,11 +1,13 @@
 import { IPC } from '../../shared/ipc'
 import { TranscriptWatcher } from '../TranscriptWatcher'
+import { ShellWatcher } from '../ShellWatcher'
 import { applyHookEvent, type HookEvent } from '../hookEvents'
 import type { AppContext, HubModule } from '../AppContext'
 
-/** Corrélation session via hooks, démarrage des watchers, et flux agents -> renderer. */
+/** Corrélation session via hooks, démarrage des watchers, et flux agents/shells -> renderer. */
 export function createAgentsModule(): HubModule {
   const watchers = new Map<string, TranscriptWatcher>()
+  const shellWatchers = new Map<string, ShellWatcher>()
   // sessionId actuellement surveillé par onglet : si la session est reprise (resume /
   // clear / compaction) son sessionId change, et les nouveaux subagents vont dans un autre
   // dossier `<sessionId>/subagents` — il faut alors re-pointer le watcher.
@@ -34,13 +36,27 @@ export function createAgentsModule(): HubModule {
           if (!w) {
             w = new TranscriptWatcher({
               onAgentAdded: (agentId, meta) =>
-                ctx.sender.send(IPC.AgentAdded, tabId, agentId, meta.agentType, meta.description),
+                ctx.sender.send(IPC.AgentAdded, tabId, agentId, meta.agentType, meta.description, 'agent'),
               onAgentLines: (agentId, lines) =>
                 ctx.sender.send(IPC.AgentLines, tabId, agentId, lines)
             })
             watchers.set(tabId, w)
           }
           w.watch(s.transcriptPath, s.sessionId)
+
+          let sw = shellWatchers.get(tabId)
+          if (!sw) {
+            sw = new ShellWatcher({
+              onShellAdded: (taskId, title, detail) =>
+                ctx.sender.send(IPC.AgentAdded, tabId, taskId, title, detail, 'shell'),
+              onShellLines: (taskId, lines) =>
+                ctx.sender.send(IPC.AgentLines, tabId, taskId, lines),
+              onShellDone: (taskId, failed) =>
+                ctx.sender.send(IPC.AgentDone, tabId, taskId, failed)
+            })
+            shellWatchers.set(tabId, sw)
+          }
+          sw.watch(s.transcriptPath)
           watchedSession.set(tabId, s.sessionId)
         }
       })
@@ -48,6 +64,8 @@ export function createAgentsModule(): HubModule {
       ctx.pty.onExit((tabId) => {
         watchers.get(tabId)?.stop()
         watchers.delete(tabId)
+        shellWatchers.get(tabId)?.stop()
+        shellWatchers.delete(tabId)
         watchedSession.delete(tabId)
       })
     }

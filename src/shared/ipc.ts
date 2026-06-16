@@ -147,9 +147,9 @@ export interface HubApi {
   onData(cb: (tabId: string, data: string) => void): Unsub
   onExit(cb: (tabId: string, code: number) => void): Unsub
   onSessionState(cb: (tabId: string, state: SessionState) => void): Unsub
-  onAgentAdded(cb: (tabId: string, agentId: string, agentType: string, description: string) => void): Unsub
+  onAgentAdded(cb: (tabId: string, agentId: string, agentType: string, description: string, kind: 'agent' | 'shell') => void): Unsub
   onAgentLines(cb: (tabId: string, agentId: string, lines: ConsoleLine[]) => void): Unsub
-  onAgentDone(cb: (tabId: string, agentId: string) => void): Unsub
+  onAgentDone(cb: (tabId: string, agentId: string, failed: boolean) => void): Unsub
   onCloseRequest(cb: () => void): Unsub
   confirmClose(): void
   adoConnList(): Promise<AdoConnection[]>
