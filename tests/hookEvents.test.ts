@@ -35,6 +35,36 @@ describe('applyHookEvent', () => {
     expect(reg.get('tab1')?.state).toBe('attention')
   })
 
+  it('PreToolUse AskUserQuestion passe la session en attention (attend une réponse)', () => {
+    const reg = new SessionRegistry()
+    reg.register('tab1', 'C:\\p')
+    applyHookEvent(reg, { hook_event_name: 'PreToolUse', tabId: 'tab1', tool_name: 'AskUserQuestion' })
+    expect(reg.get('tab1')?.state).toBe('attention')
+  })
+
+  it('PreToolUse ExitPlanMode passe la session en attention', () => {
+    const reg = new SessionRegistry()
+    reg.register('tab1', 'C:\\p')
+    applyHookEvent(reg, { hook_event_name: 'PreToolUse', tabId: 'tab1', tool_name: 'ExitPlanMode' })
+    expect(reg.get('tab1')?.state).toBe('attention')
+  })
+
+  it('PreToolUse sur un outil non interactif ne change pas l’état', () => {
+    const reg = new SessionRegistry()
+    reg.register('tab1', 'C:\\p')
+    reg.setState('tab1', 'active')
+    applyHookEvent(reg, { hook_event_name: 'PreToolUse', tabId: 'tab1', tool_name: 'Read' })
+    expect(reg.get('tab1')?.state).toBe('active')
+  })
+
+  it('PostToolUse AskUserQuestion repasse la session en active (réponse donnée)', () => {
+    const reg = new SessionRegistry()
+    reg.register('tab1', 'C:\\p')
+    reg.setState('tab1', 'attention')
+    applyHookEvent(reg, { hook_event_name: 'PostToolUse', tabId: 'tab1', tool_name: 'AskUserQuestion' })
+    expect(reg.get('tab1')?.state).toBe('active')
+  })
+
   it('ignore un event sans tabId', () => {
     const reg = new SessionRegistry()
     reg.register('tab1', 'C:\\p')
