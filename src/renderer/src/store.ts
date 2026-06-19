@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { ConsoleLine, SessionState, WorkspaceTree, AdoBoard, PersistNote } from '../../shared/ipc'
+import { basename } from './util'
 
 export interface AgentView {
   id: string
@@ -107,6 +108,7 @@ interface HubState {
   setAdoFind: (itemId: string, patch: Partial<AdoFindState>) => void
   setNoteFind: (itemId: string, patch: Partial<NoteFindState>) => void
   setNoteActivePath: (itemId: string, path: string) => void
+  openNoteFile: (absPath: string, nearItemId: string) => void
 
   bindSession: (itemId: string, tabId: string) => void
   clearSession: (itemId: string) => void
@@ -269,6 +271,20 @@ export const useHub = create<HubState>((set, get) => ({
     set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, adoClosed: closed }))) })),
   setNoteActivePath: (itemId, path) =>
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, note: i.note ? { ...i.note, activePath: path } : i.note })) })),
+  openNoteFile: (absPath, nearItemId) => {
+    const s = get()
+    const existing = s.groups.flatMap((g) => g.items).find((i) => i.kind === 'note' && i.note?.root === absPath)
+    if (existing) { get().setActiveItem(existing.id); return }
+    const group = s.groups.find((g) => g.items.some((i) => i.id === nearItemId))
+    if (!group) return
+    const src = group.items.find((i) => i.id === nearItemId)
+    const split: 1 | 2 = src?.split === 2 ? 1 : 2
+    get().addItem(group.id, {
+      id: uid('note'), name: basename(absPath), cwd: '', pinned: false, tabId: null, state: 'done',
+      agents: [], openAgentId: null, split, findOpen: false, agentsOpen: false, searchQuery: '',
+      kind: 'note', note: { root: absPath, rootKind: 'file', activePath: absPath }
+    })
+  },
   setAdoCache: (key, board) => set((s) => ({ adoCache: { ...s.adoCache, [key]: { board, at: Date.now() } } })),
   setAdoFind: (itemId, patch) =>
     set((s) => {
