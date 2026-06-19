@@ -1,10 +1,9 @@
 import React, { useEffect, useRef } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
-import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
 import { useHub } from '../store'
-import { MD_PATH_RE } from '../mdLinks'
+import { mdLinkRanges } from '../mdLinks'
 import { confirm } from '../confirm'
 
 export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
@@ -17,12 +16,21 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     const term = new XTerm({ fontFamily: 'Consolas, monospace', fontSize: 13, cursorBlink: true, scrollback: 5000 })
     const fit = new FitAddon()
     term.loadAddon(fit)
-    const links = new WebLinksAddon(
-      (_event, uri) => { void openMdLink(uri) },
-      { urlRegex: MD_PATH_RE }
-    )
-    term.loadAddon(links)
     term.open(container)
+
+    const linkProvider = term.registerLinkProvider({
+      provideLinks(y, callback) {
+        const line = term.buffer.active.getLine(y - 1)
+        if (!line) { callback(undefined); return }
+        const ranges = mdLinkRanges(line.translateToString(true), y)
+        const links = ranges.map((r) => ({
+          range: r.range,
+          text: r.text,
+          activate: () => { void openMdLink(r.text) }
+        }))
+        callback(links.length ? links : undefined)
+      }
+    })
 
     let lastCols = 0
     let lastRows = 0
@@ -83,6 +91,7 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
       onInput.dispose()
       ro.disconnect()
       window.removeEventListener('resize', doFit)
+      linkProvider.dispose()
       term.dispose()
     }
   }, [tabId])

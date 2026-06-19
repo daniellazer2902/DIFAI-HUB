@@ -11,8 +11,16 @@ export function findMdLinks(text: string): MdLink[] {
   const out: MdLink[] = []
   let m: RegExpExecArray | null
   while ((m = re.exec(text)) !== null) {
-    if (m[0].length === 0) { re.lastIndex++; continue }
     out.push({ start: m.index, end: m.index + m[0].length, token: m[0] })
   }
   return out
+}
+
+/** Liens .md d'une ligne de terminal, en coordonnées xterm (1-based, end.x inclusif). */
+export interface MdLinkRange { text: string; range: { start: { x: number; y: number }; end: { x: number; y: number } } }
+export function mdLinkRanges(lineText: string, y: number): MdLinkRange[] {
+  return findMdLinks(lineText).map((l) => ({
+    text: l.token,
+    range: { start: { x: l.start + 1, y }, end: { x: l.end, y } }
+  }))
 }

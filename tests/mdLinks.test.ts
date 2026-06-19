@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { findMdLinks } from '../src/renderer/src/mdLinks'
+import { findMdLinks, mdLinkRanges } from '../src/renderer/src/mdLinks'
 
 const tokens = (s: string): string[] => findMdLinks(s).map((l) => l.token)
 
@@ -31,5 +31,18 @@ describe('findMdLinks', () => {
   it('renvoie les bornes du token nettoyé', () => {
     const [l] = findMdLinks('x `a.md`')
     expect('x `a.md`'.slice(l.start, l.end)).toBe('a.md')
+  })
+})
+
+describe('mdLinkRanges', () => {
+  it('mappe le token en coordonnées xterm 1-based (end.x inclusif)', () => {
+    const r = mdLinkRanges('voir docs/r.md', 3)
+    expect(r).toHaveLength(1)
+    expect(r[0].text).toBe('docs/r.md')
+    // 'docs/r.md' commence à l'index 5 (0-based) -> start.x = 6 ; longueur 9 -> end.x = 14
+    expect(r[0].range).toEqual({ start: { x: 6, y: 3 }, end: { x: 14, y: 3 } })
+  })
+  it('aucun lien -> tableau vide', () => {
+    expect(mdLinkRanges('rien ici', 1)).toEqual([])
   })
 })
