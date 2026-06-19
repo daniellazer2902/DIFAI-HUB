@@ -51,7 +51,9 @@ vite entre des dizaines de terminaux. DIFAI-IDE centralise tout dans une seule f
   images, callouts, **wikilinks `[[…]]` cliquables**, embeds `![[…]]`, frontmatter masqué.
   Liens internes navigables (historique avant/arrière), liens externes ouverts dans le
   navigateur, **live-reload** quand le fichier change sur disque. Un *vault par défaut* peut
-  être mémorisé dans les Réglages.
+  être mémorisé dans les Réglages. Les **chemins `.md` affichés dans le terminal sont
+  cliquables** : un clic ouvre le fichier dans un onglet Markdown (volet opposé), en réutilisant
+  l'onglet s'il est déjà ouvert.
 - **Garde-fou `~/.claude.json`** — surveille ce fichier (que Claude Code écrit de façon non
   atomique) et restaure automatiquement la dernière version valide si des sessions
   parallèles le corrompent.
