@@ -1,8 +1,11 @@
 import React, { useEffect, useRef } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
 import { useHub } from '../store'
+import { MD_PATH_RE } from '../mdLinks'
+import { confirm } from '../confirm'
 
 export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -14,6 +17,11 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
     const term = new XTerm({ fontFamily: 'Consolas, monospace', fontSize: 13, cursorBlink: true, scrollback: 5000 })
     const fit = new FitAddon()
     term.loadAddon(fit)
+    const links = new WebLinksAddon(
+      (_event, uri) => { void openMdLink(uri) },
+      { urlRegex: MD_PATH_RE }
+    )
+    term.loadAddon(links)
     term.open(container)
 
     let lastCols = 0
@@ -55,6 +63,17 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
       }
       return true
     })
+
+    async function openMdLink(token: string): Promise<void> {
+      const item = useHub.getState().itemByTab(tabId)
+      if (!item) return
+      const abs = await window.hub.notesResolveFile(item.cwd, token)
+      if (!abs) {
+        await confirm({ title: 'Fichier introuvable', message: token, confirmLabel: 'OK' })
+        return
+      }
+      useHub.getState().openNoteFile(abs, item.id)
+    }
 
     const offData = window.hub.onData((id, data) => { if (id === tabId) term.write(data) })
     const onInput = term.onData((data) => window.hub.sendInput(tabId, data))
