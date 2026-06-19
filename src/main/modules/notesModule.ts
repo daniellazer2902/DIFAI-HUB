@@ -1,5 +1,5 @@
 // src/main/modules/notesModule.ts
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs'
 import { extname } from 'node:path'
 import { dialog, shell } from 'electron'
 import chokidar, { type FSWatcher } from 'chokidar'
@@ -7,6 +7,7 @@ import { IPC } from '../../shared/ipc'
 import type { AppContext, HubModule } from '../AppContext'
 import type { NotesResult, NotesTree, NoteFile, NoteAsset } from '../../shared/ipc'
 import { buildNoteTree, type DirEntry } from '../notes/noteTree'
+import { resolveMdPath } from '../notes/resolveMd'
 import { isInside } from '../notes/paths'
 import { readAssetDataUri } from '../notes/assets'
 
@@ -64,6 +65,9 @@ export function createNotesModule(): HubModule {
         watchers.get(itemId)?.close()
         watchers.delete(itemId)
       })
+      ctx.ipc.handle(IPC.NotesResolveFile, (_e, cwd: string, token: string): string | null =>
+        resolveMdPath(cwd, token, (p) => existsSync(p) && statSync(p).isFile())
+      )
     }
   }
 }
