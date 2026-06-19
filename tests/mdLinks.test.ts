@@ -34,6 +34,30 @@ describe('findMdLinks', () => {
   })
 })
 
+describe('chemins avec espaces', () => {
+  it('chemin absolu Windows avec un espace dans un dossier', () => {
+    expect(tokens('rapport dans C:\\Users\\dg\\BE.WEAPON\\av vente\\ESTIMATION_CLAUDE_BE.WEAPON_DG.md'))
+      .toEqual(['C:\\Users\\dg\\BE.WEAPON\\av vente\\ESTIMATION_CLAUDE_BE.WEAPON_DG.md'])
+  })
+  it('chemin POSIX avec espace', () => {
+    expect(tokens('voir /home/d/av vente/r.md')).toEqual(['/home/d/av vente/r.md'])
+  })
+  it('relatif ancré ./ avec espace', () => {
+    expect(tokens('cf ./av vente/r.md ok')).toEqual(['./av vente/r.md'])
+  })
+  it('relatif avec espace via backticks', () => {
+    expect(tokens('le fichier `av vente\\r.md` existe')).toEqual(['av vente\\r.md'])
+  })
+  it('relatif avec espace via guillemets', () => {
+    expect(tokens('ouvre "av vente/notes.md" stp')).toEqual(['av vente/notes.md'])
+  })
+  it('borne correcte d\'un chemin ancré avec espace', () => {
+    const s = 'x C:\\a b\\f.md y'
+    const [l] = findMdLinks(s)
+    expect(s.slice(l.start, l.end)).toBe('C:\\a b\\f.md')
+  })
+})
+
 describe('mdLinkRanges', () => {
   it('mappe le token en coordonnées xterm 1-based (end.x inclusif)', () => {
     const r = mdLinkRanges('voir docs/r.md', 3)
