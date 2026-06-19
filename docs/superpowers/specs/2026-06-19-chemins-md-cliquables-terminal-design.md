@@ -130,4 +130,21 @@ clic sur token .md  ──► notesResolveFile(cwd, token)  [main]
   (vérif d'existence on-hover pour ne souligner que les fichiers réels).
 - Pas de menu contextuel (clic droit), pas de commande/skill côté Claude.
 - Liens limités au Markdown (`.md`/`.markdown`) — pas d'autres types de fichiers.
+
+## Note d'implémentation (déviation par rapport au mécanisme initial)
+
+Le mécanisme prévu (`@xterm/addon-web-links` + `urlRegex`) **ne fonctionne pas**
+pour des chemins de fichiers : l'addon valide chaque token via `new URL()` et ne
+crée de lien que pour des URL `http(s)`. `urlRegex` ne sert qu'à pré-filtrer.
+
+Remplacé par un **`term.registerLinkProvider` maison** basé sur `findMdLinks` /
+`mdLinkRanges` (aucune validation URL). La dépendance `@xterm/addon-web-links` a
+été retirée.
+
+**Limite induite** : le provider analyse chaque ligne tampon indépendamment ; un
+chemin `.md` qui *wrappe* sur deux lignes du terminal n'est pas détecté (le
+mécanisme initial gérait ce cas — c'était sa raison d'être). Acceptable pour V1 :
+les chemins de rapports tiennent en général sur une ligne, et l'utilisateur peut
+élargir le volet. La gestion du wrapping (reconstruction de la ligne logique +
+mapping des colonnes avec caractères larges) est une amélioration ultérieure.
 ```
