@@ -12,16 +12,22 @@ function normItem(x: unknown): PersistItem | null {
   const o = x as Record<string, unknown>
   if (typeof o.id !== 'string' || typeof o.name !== 'string' || typeof o.cwd !== 'string') return null
   const split: 1 | 2 | undefined = o.split === 2 ? 2 : o.split === 1 ? 1 : undefined
-  const kind: 'claude' | 'ado' | 'cmd' | undefined = o.kind === 'ado' ? 'ado' : o.kind === 'cmd' ? 'cmd' : o.kind === 'claude' ? 'claude' : undefined
+  const kind: PersistItem['kind'] =
+    o.kind === 'ado' ? 'ado' : o.kind === 'cmd' ? 'cmd' : o.kind === 'note' ? 'note' : o.kind === 'claude' ? 'claude' : undefined
   let ado: PersistItem['ado'] | undefined
   const a = o.ado as Record<string, unknown> | undefined
   if (a && (a.view === 'tree' || a.view === 'board')) {
     ado = { view: a.view, iterationPath: typeof a.iterationPath === 'string' ? a.iterationPath : null }
   }
+  let note: PersistItem['note'] | undefined
+  const n = o.note as Record<string, unknown> | undefined
+  if (n && typeof n.root === 'string' && (n.rootKind === 'vault' || n.rootKind === 'file')) {
+    note = { root: n.root, rootKind: n.rootKind, activePath: typeof n.activePath === 'string' ? n.activePath : null }
+  }
   const claudeArgs = Array.isArray(o.claudeArgs) && o.claudeArgs.every((a) => typeof a === 'string')
     ? (o.claudeArgs as string[])
     : undefined
-  return { id: o.id, name: o.name, cwd: o.cwd, ...(split ? { split } : {}), ...(kind ? { kind } : {}), ...(claudeArgs ? { claudeArgs } : {}), ...(ado ? { ado } : {}) }
+  return { id: o.id, name: o.name, cwd: o.cwd, ...(split ? { split } : {}), ...(kind ? { kind } : {}), ...(claudeArgs ? { claudeArgs } : {}), ...(ado ? { ado } : {}), ...(note ? { note } : {}) }
 }
 
 function normGroup(x: unknown): PersistGroup | null {

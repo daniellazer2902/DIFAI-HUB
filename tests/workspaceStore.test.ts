@@ -74,3 +74,28 @@ describe('workspaceStore ADO (lot 4.2)', () => {
     expect(t.groups[0].items[0].kind).toBe('ado')
   })
 })
+
+describe('workspaceStore note (lecteur Markdown)', () => {
+  it('parse un item note (kind + note conservés)', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'G', collapsed: false, defaultCwd: null,
+      items: [{ id: 'n1', name: 'Doc', cwd: '', kind: 'note', note: { root: 'C:/vault', rootKind: 'vault', activePath: 'C:/vault/a.md' } }] }] })
+    const t = parseWorkspace(raw)
+    expect(t.groups[0].items[0]).toMatchObject({ id: 'n1', kind: 'note', note: { root: 'C:/vault', rootKind: 'vault', activePath: 'C:/vault/a.md' } })
+  })
+
+  it('round-trip d\'un item note (régression : kind ne retombe pas en claude)', () => {
+    const tree: WorkspaceTree = { activeGroupId: 'g1', groups: [{ id: 'g1', name: 'X', collapsed: false, defaultCwd: null,
+      items: [{ id: 'n1', name: 'F', cwd: '', kind: 'note', note: { root: 'C:/f.md', rootKind: 'file', activePath: 'C:/f.md' } }] }] }
+    const parsed = parseWorkspace(serializeWorkspace(tree))
+    expect(parsed.groups[0].items[0].kind).toBe('note')
+    expect(parsed.groups[0].items[0].note).toEqual({ root: 'C:/f.md', rootKind: 'file', activePath: 'C:/f.md' })
+  })
+
+  it('ignore une note mal formée (rootKind invalide)', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'G', collapsed: false, defaultCwd: null,
+      items: [{ id: 'n1', name: 'B', cwd: '', kind: 'note', note: { root: 'C:/v', rootKind: 'wrong' } }] }] })
+    const t = parseWorkspace(raw)
+    expect(t.groups[0].items[0].note).toBeUndefined()
+    expect(t.groups[0].items[0].kind).toBe('note')
+  })
+})

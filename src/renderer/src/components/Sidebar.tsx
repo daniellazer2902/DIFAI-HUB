@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon } from './icons'
+import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, FolderOpenIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon } from './icons'
 import { GroupColorModal } from './GroupColorModal'
 import { AdoBindModal } from './AdoBindModal'
 import { ClaudeAdvancedModal } from './ClaudeAdvancedModal'
@@ -124,13 +124,19 @@ export function Sidebar(): React.JSX.Element {
     })
   }
   async function addNoteFolder(group: Group): Promise<void> { setAddFor(null); const f = await window.hub.notesPickFolder(); if (f) addNoteItem(group, f, 'vault') }
-  async function addNoteFile(group: Group): Promise<void> { setAddFor(null); const f = await window.hub.notesPickFile(); if (f) addNoteItem(group, f, 'file') }
   function addDefaultVault(group: Group): void { setAddFor(null); const v = readDefaultVault(); if (v) addNoteItem(group, v, 'vault') }
 
   async function setGroupDefault(groupId: string): Promise<void> {
     setMenu(null)
     const cwd = await window.hub.pickFolder()
     if (cwd) useHub.getState().setGroupDefaultCwd(groupId, cwd)
+  }
+
+  // Ouvre le dossier du groupe dans l'explorateur de l'OS (défaut groupe → réglages → défaut système).
+  async function openGroupFolder(group: Group): Promise<void> {
+    setMenu(null)
+    const cwd = group.defaultCwd ?? useHub.getState().globalDefaultCwd ?? (await window.hub.defaultCwd())
+    if (cwd) window.hub.openPath(cwd)
   }
 
   function addGroup(): void {
@@ -207,13 +213,13 @@ export function Sidebar(): React.JSX.Element {
                   <div onClick={() => addAdoItem(g)}><AzureIcon /> ADO – Azure</div>
                   {readDefaultVault() && <div onClick={() => addDefaultVault(g)}><NotesIcon /> Vault par défaut</div>}
                   <div onClick={() => addNoteFolder(g)}><NotesIcon /> Markdown : ouvrir un dossier…</div>
-                  <div onClick={() => addNoteFile(g)}><NotesIcon /> Markdown : ouvrir un fichier…</div>
                 </div>
               )}
               {menu === g.id && (
                 <div className="ctx-menu">
                   <div onClick={() => startRename('group', g.id, g.name)}><EditIcon /> Renommer</div>
                   <div onClick={() => setGroupDefault(g.id)}><FolderIcon /> Dossier par défaut…</div>
+                  <div onClick={() => openGroupFolder(g)}><FolderOpenIcon /> Ouvrir Dossier</div>
                   <div onClick={() => { setMenu(null); setColorFor(g.id) }}><PaletteIcon /> Attribuer une couleur</div>
                   <div onClick={() => { setMenu(null); setAdoFor(g.id) }}><SettingsIcon size={12} /> Configurer ADO…</div>
                   <div className="danger" onClick={() => removeGroup(g.id, g.name)}><TrashIcon /> Supprimer</div>
@@ -227,7 +233,7 @@ export function Sidebar(): React.JSX.Element {
                 onClick={() => onItemClick(it)}
                 onContextMenu={(e) => { e.preventDefault(); setMenu(it.id) }}
               >
-                <span className="item-ic">{it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : <ClaudeIcon />}</span>
+                <span className="item-ic">{it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : it.kind === 'note' ? <NotesIcon /> : <ClaudeIcon />}</span>
                 {nameOrEditor('item', it.id, it.name, 'item-name')}
                 <span className="item-pin">{it.pinned && <PinIcon />}</span>
                 <span className="item-state">{it.kind === 'ado' || it.kind === 'cmd' || it.kind === 'note' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>

@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import type { NoteTreeNode } from '../../../shared/ipc'
 import { Chevron } from './Chevron'
-import { NotesIcon, FolderIcon } from './icons'
+import { NotesIcon, FolderIcon, FolderOpenIcon } from './icons'
 
 interface Props { node: NoteTreeNode; activePath: string | null; onOpen: (path: string) => void; depth?: number }
 
@@ -25,7 +25,7 @@ function NoteTreeEntry({ node, activePath, onOpen, depth }: Required<Props>): Re
       <div className="nt-folder">
         <div className="nt-row" style={pad} onClick={() => setOpen((o) => !o)}>
           <Chevron open={open} />
-          <span className="nt-ic"><FolderIcon /></span>
+          <span className="nt-ic">{open ? <FolderOpenIcon /> : <FolderIcon />}</span>
           <span className="nt-name">{node.name}</span>
         </div>
         {open && (node.children ?? []).map((c) => <NoteTreeEntry key={c.path} node={c} activePath={activePath} onOpen={onOpen} depth={depth + 1} />)}

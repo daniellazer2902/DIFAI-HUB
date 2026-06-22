@@ -8,6 +8,7 @@ export const IPC = {
   SessionResize: 'session:resize',
   SessionKill: 'session:kill',
   PickFolder: 'dialog:pick-folder',
+  OpenPath: 'shell:open-path',
   DefaultCwd: 'session:default-cwd',
   SearchTranscript: 'transcript:search',
   LoadWorkspace: 'workspace:load',
@@ -140,6 +141,8 @@ export interface HubApi {
   resize(tabId: string, cols: number, rows: number): void
   killSession(tabId: string): void
   pickFolder(): Promise<string | null>
+  /** Ouvre un dossier (ou fichier) dans l'explorateur de l'OS. */
+  openPath(path: string): void
   defaultCwd(): Promise<string>
   searchTranscript(tabId: string, query: string): Promise<TranscriptMatch[]>
   loadWorkspace(): Promise<WorkspaceTree>
