@@ -49,6 +49,7 @@ const hub: HubApi = {
   notesOpenExternal: (url) => ipcRenderer.send(IPC.NotesOpenExternal, url),
   notesWatch: (itemId, root) => ipcRenderer.send(IPC.NotesWatch, itemId, root),
   notesUnwatch: (itemId) => ipcRenderer.send(IPC.NotesUnwatch, itemId),
+  notesResolveFile: (cwd, token) => ipcRenderer.invoke(IPC.NotesResolveFile, cwd, token),
   onNotesChanged: (cb) => on(IPC.NotesChanged, (itemId, event, path) => cb(itemId as string, event as string, path as string))
 }
 

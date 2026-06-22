@@ -34,6 +34,7 @@ export const IPC = {
   NotesOpenExternal: 'notes:open-external',
   NotesWatch: 'notes:watch',
   NotesUnwatch: 'notes:unwatch',
+  NotesResolveFile: 'notes:resolve-file',
   // main -> renderer
   CloseRequest: 'app:close-request',
   PtyData: 'pty:data',
@@ -173,5 +174,6 @@ export interface HubApi {
   notesOpenExternal(url: string): void
   notesWatch(itemId: string, root: string): void
   notesUnwatch(itemId: string): void
+  notesResolveFile(cwd: string, token: string): Promise<string | null>
   onNotesChanged(cb: (itemId: string, event: string, path: string) => void): Unsub
 }

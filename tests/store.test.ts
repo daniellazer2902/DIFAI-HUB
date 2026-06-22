@@ -353,3 +353,31 @@ describe('items note', () => {
     expect(useHub.getState().itemById('n2')!.note!.activePath).toBe('/v/b.md')
   })
 })
+
+describe('openNoteFile', () => {
+  beforeEach(() => useHub.getState().reset())
+
+  it('crée un item note dans le volet opposé au terminal', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkItem('term', { split: 1 }))
+    useHub.getState().openNoteFile('C:/proj/rapport.md', 'term')
+    const items = useHub.getState().groups.find((x) => x.id === g)!.items
+    const note = items.find((i) => i.kind === 'note')!
+    expect(note.note).toEqual({ root: 'C:/proj/rapport.md', rootKind: 'file', activePath: 'C:/proj/rapport.md' })
+    expect(note.name).toBe('rapport.md')
+    expect(note.split).toBe(2)
+    expect(note.pinned).toBe(false)
+    expect(useHub.getState().activeItemId).toBe(note.id)
+  })
+
+  it('réutilise l\'onglet si le .md est déjà ouvert', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkItem('term', { split: 1 }))
+    useHub.getState().openNoteFile('C:/proj/r.md', 'term')
+    const firstId = useHub.getState().groups.find((x) => x.id === g)!.items.find((i) => i.kind === 'note')!.id
+    useHub.getState().openNoteFile('C:/proj/r.md', 'term')
+    const notes = useHub.getState().groups.find((x) => x.id === g)!.items.filter((i) => i.kind === 'note')
+    expect(notes).toHaveLength(1)
+    expect(useHub.getState().activeItemId).toBe(firstId)
+  })
+})
