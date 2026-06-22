@@ -15,6 +15,7 @@ const hub: HubApi = {
   resize: (tabId, cols, rows) => ipcRenderer.send(IPC.SessionResize, tabId, cols, rows),
   killSession: (tabId) => ipcRenderer.send(IPC.SessionKill, tabId),
   pickFolder: () => ipcRenderer.invoke(IPC.PickFolder),
+  openPath: (path) => ipcRenderer.send(IPC.OpenPath, path),
   defaultCwd: () => ipcRenderer.invoke(IPC.DefaultCwd),
   searchTranscript: (tabId, query) => ipcRenderer.invoke(IPC.SearchTranscript, tabId, query),
   loadWorkspace: () => ipcRenderer.invoke(IPC.LoadWorkspace),

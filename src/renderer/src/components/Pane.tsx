@@ -195,8 +195,8 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                     setCtx(ctx?.id === t.item.id ? null : { id: t.item.id, x, y })
                   }}
                 >
-                  <span className="tab-ic">{t.item.kind === 'cmd' ? <TerminalIcon /> : <ClaudeIcon />}</span>
-                  {t.item.kind === 'cmd' ? null : <StateDot state={t.item.state} />}
+                  <span className="tab-ic">{t.item.kind === 'cmd' ? <TerminalIcon /> : t.item.kind === 'note' ? <NotesIcon /> : <ClaudeIcon />}</span>
+                  {t.item.kind === 'cmd' || t.item.kind === 'note' ? null : <StateDot state={t.item.state} />}
                   {editingId === t.item.id ? (
                     <input
                       ref={editRef}
