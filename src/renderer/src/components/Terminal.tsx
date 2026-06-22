@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import { useHub } from '../store'
 import { mdLinkRanges } from '../mdLinks'
+import { urlLinkRanges } from '../urlLinks'
 import { confirm } from '../confirm'
 
 export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
@@ -22,12 +23,16 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
       provideLinks(y, callback) {
         const line = term.buffer.active.getLine(y - 1)
         if (!line) { callback(undefined); return }
-        const ranges = mdLinkRanges(line.translateToString(true), y)
-        const links = ranges.map((r) => ({
-          range: r.range,
-          text: r.text,
-          activate: () => { void openMdLink(r.text) }
-        }))
+        const text = line.translateToString(true)
+        const urls = urlLinkRanges(text, y)
+        // Une URL finissant en .md matcherait aussi le détecteur .md : l'URL prime (on écarte les .md qui chevauchent une URL).
+        const overlapsUrl = (r: { range: { start: { x: number }; end: { x: number } } }): boolean =>
+          urls.some((u) => r.range.start.x <= u.range.end.x && u.range.start.x <= r.range.end.x)
+        const mds = mdLinkRanges(text, y).filter((r) => !overlapsUrl(r))
+        const links = [
+          ...urls.map((r) => ({ range: r.range, text: r.text, activate: () => window.hub.notesOpenExternal(r.href) })),
+          ...mds.map((r) => ({ range: r.range, text: r.text, activate: () => { void openMdLink(r.text) } }))
+        ]
         callback(links.length ? links : undefined)
       }
     })
