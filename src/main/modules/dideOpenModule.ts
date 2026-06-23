@@ -19,7 +19,7 @@ export function createDideOpenModule(): HubModule {
         const cwd = (tabId && ctx.registry.get(tabId)?.cwd) || ctx.defaultCwd
         const target = resolveDideTarget(e.path, cwd, {
           exists: (p) => existsSync(p),
-          isDir: (p) => statSync(p).isDirectory()
+          isDir: (p) => statSync(p, { throwIfNoEntry: false })?.isDirectory() ?? false
         })
         if (!target) { console.warn(`[dide-open] cible introuvable: ${e.path} (cwd=${cwd})`); return }
         const payload: DideOpenPayload = { tabId, absPath: target.absPath, isDir: target.isDir }
