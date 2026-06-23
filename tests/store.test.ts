@@ -381,3 +381,34 @@ describe('openNoteFile', () => {
     expect(useHub.getState().activeItemId).toBe(firstId)
   })
 })
+
+describe('openNoteRoot', () => {
+  beforeEach(() => useHub.getState().reset())
+
+  it('ouvre un vault dans le groupe de l\'item de référence (activePath null)', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('it1'))
+    useHub.getState().openNoteRoot('/some/vault', 'vault', 'it1')
+    const note = useHub.getState().groups.flatMap((x) => x.items).find((i) => i.kind === 'note')
+    expect(note?.note).toEqual({ root: '/some/vault', rootKind: 'vault', activePath: null })
+  })
+
+  it('ouvre un fichier (activePath = le fichier)', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('it1'))
+    useHub.getState().openNoteRoot('/some/file.md', 'file', 'it1')
+    const note = useHub.getState().groups.flatMap((x) => x.items).find((i) => i.kind === 'note')
+    expect(note?.note).toEqual({ root: '/some/file.md', rootKind: 'file', activePath: '/some/file.md' })
+  })
+
+  it('déduplique : même root => réactive l\'item existant sans en créer un nouveau', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('it1'))
+    useHub.getState().openNoteRoot('/some/vault', 'vault', 'it1')
+    const countAfterFirst = useHub.getState().groups.flatMap((x) => x.items).filter((i) => i.kind === 'note').length
+    useHub.getState().openNoteRoot('/some/vault', 'vault', 'it1')
+    const countAfterSecond = useHub.getState().groups.flatMap((x) => x.items).filter((i) => i.kind === 'note').length
+    expect(countAfterFirst).toBe(1)
+    expect(countAfterSecond).toBe(1)
+  })
+})
