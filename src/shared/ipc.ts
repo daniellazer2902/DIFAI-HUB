@@ -46,7 +46,8 @@ export const IPC = {
   AgentAdded: 'agent:added',
   AgentLines: 'agent:lines',
   AgentDone: 'agent:done',
-  NotesChanged: 'notes:changed'
+  NotesChanged: 'notes:changed',
+  DideOpen: 'dide:open'
 } as const
 
 export type ConsoleLineKind = 'prompt' | 'text' | 'tool' | 'result'
@@ -139,6 +140,8 @@ export interface PersistNote { root: string; rootKind: 'vault' | 'file'; activeP
 /** Fonction de désabonnement renvoyée par tous les `on*` (évite les fuites de listeners). */
 export type Unsub = () => void
 
+export interface DideOpenPayload { tabId: string | null; absPath: string; isDir: boolean }
+
 /** Contrat exposé au renderer via contextBridge. Le preload l'implémente, le renderer le consomme. */
 export interface HubApi {
   newSession(cwd: string, extraArgs?: string[]): Promise<string>
@@ -182,4 +185,5 @@ export interface HubApi {
   notesUnwatch(itemId: string): void
   notesResolveFile(cwd: string, token: string): Promise<string | null>
   onNotesChanged(cb: (itemId: string, event: string, path: string) => void): Unsub
+  onDideOpen(cb: (p: DideOpenPayload) => void): Unsub
 }

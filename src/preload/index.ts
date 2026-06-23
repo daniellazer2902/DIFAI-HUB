@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { IPC, type HubApi, type Unsub, type SessionState, type ConsoleLine, type WorkspaceTree } from '../shared/ipc'
+import { IPC, type HubApi, type Unsub, type SessionState, type ConsoleLine, type WorkspaceTree, type DideOpenPayload } from '../shared/ipc'
 
 /** Abonne un canal et renvoie un désabonnement (retire le bon listener). */
 function on(channel: string, handler: (...args: unknown[]) => void): Unsub {
@@ -51,7 +51,8 @@ const hub: HubApi = {
   notesWatch: (itemId, root) => ipcRenderer.send(IPC.NotesWatch, itemId, root),
   notesUnwatch: (itemId) => ipcRenderer.send(IPC.NotesUnwatch, itemId),
   notesResolveFile: (cwd, token) => ipcRenderer.invoke(IPC.NotesResolveFile, cwd, token),
-  onNotesChanged: (cb) => on(IPC.NotesChanged, (itemId, event, path) => cb(itemId as string, event as string, path as string))
+  onNotesChanged: (cb) => on(IPC.NotesChanged, (itemId, event, path) => cb(itemId as string, event as string, path as string)),
+  onDideOpen: (cb) => on(IPC.DideOpen, (p) => cb(p as DideOpenPayload))
 }
 
 contextBridge.exposeInMainWorld('hub', hub)
