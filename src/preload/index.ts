@@ -45,6 +45,7 @@ const hub: HubApi = {
   notesPickFile: () => ipcRenderer.invoke(IPC.NotesPickFile),
   notesTree: (root) => ipcRenderer.invoke(IPC.NotesTree, root),
   notesRead: (root, path) => ipcRenderer.invoke(IPC.NotesRead, root, path),
+  notesReadRaw: (root, path) => ipcRenderer.invoke(IPC.NotesReadRaw, root, path),
   notesAsset: (root, path) => ipcRenderer.invoke(IPC.NotesAsset, root, path),
   notesOpenExternal: (url) => ipcRenderer.send(IPC.NotesOpenExternal, url),
   notesWatch: (itemId, root) => ipcRenderer.send(IPC.NotesWatch, itemId, root),

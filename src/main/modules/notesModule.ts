@@ -5,11 +5,12 @@ import { dialog, shell } from 'electron'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { IPC } from '../../shared/ipc'
 import type { AppContext, HubModule } from '../AppContext'
-import type { NotesResult, NotesTree, NoteFile, NoteAsset } from '../../shared/ipc'
+import type { NotesResult, NotesTree, NoteFile, NoteAsset, NoteRaw } from '../../shared/ipc'
 import { buildNoteTree, type DirEntry } from '../notes/noteTree'
 import { resolveMdPath } from '../notes/resolveMd'
 import { isInside } from '../notes/paths'
 import { readAssetDataUri } from '../notes/assets'
+import { readHtmlRaw } from '../notes/htmlRaw'
 
 const MD_RE = /\.(md|markdown)$/i
 
@@ -41,6 +42,9 @@ export function createNotesModule(): HubModule {
           return { ok: true, data: { path, markdown: readFileSync(path, 'utf8') } }
         } catch (err) { return { ok: false, error: (err as Error).message } }
       })
+      ctx.ipc.handle(IPC.NotesReadRaw, (_e, root: string, path: string): NotesResult<NoteRaw> =>
+        readHtmlRaw(root, path, { read: (p) => readFileSync(p, 'utf8'), size: (p) => statSync(p).size })
+      )
       ctx.ipc.handle(IPC.NotesAsset, (_e, root: string, path: string): NotesResult<NoteAsset> => {
         if (!isInside(root, path)) return { ok: false, error: 'Asset hors vault' }
         const dataUri = readAssetDataUri(path)
