@@ -1,5 +1,7 @@
 // Source de vérité unique des canaux IPC + types partagés main/preload/renderer.
 
+import type { NoteKind } from './noteKind'
+
 export const IPC = {
   // renderer -> main
   SessionNew: 'session:new',
@@ -118,6 +120,7 @@ export interface NoteTreeNode {
   name: string            // nom affiché (fichier ou dossier)
   path: string            // chemin absolu
   dir: boolean
+  kind?: NoteKind         // présent sur les fichiers (md/image/html) ; absent sur les dossiers
   children?: NoteTreeNode[] // présent si dir
 }
 export interface NotesTree {
