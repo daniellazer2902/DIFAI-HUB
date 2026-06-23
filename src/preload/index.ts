@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { IPC, type HubApi, type Unsub, type SessionState, type ConsoleLine, type WorkspaceTree } from '../shared/ipc'
+import { IPC, type HubApi, type Unsub, type SessionState, type ConsoleLine, type WorkspaceTree, type DideOpenPayload } from '../shared/ipc'
 
 /** Abonne un canal et renvoie un désabonnement (retire le bon listener). */
 function on(channel: string, handler: (...args: unknown[]) => void): Unsub {
@@ -45,12 +45,14 @@ const hub: HubApi = {
   notesPickFile: () => ipcRenderer.invoke(IPC.NotesPickFile),
   notesTree: (root) => ipcRenderer.invoke(IPC.NotesTree, root),
   notesRead: (root, path) => ipcRenderer.invoke(IPC.NotesRead, root, path),
+  notesReadRaw: (root, path) => ipcRenderer.invoke(IPC.NotesReadRaw, root, path),
   notesAsset: (root, path) => ipcRenderer.invoke(IPC.NotesAsset, root, path),
   notesOpenExternal: (url) => ipcRenderer.send(IPC.NotesOpenExternal, url),
   notesWatch: (itemId, root) => ipcRenderer.send(IPC.NotesWatch, itemId, root),
   notesUnwatch: (itemId) => ipcRenderer.send(IPC.NotesUnwatch, itemId),
   notesResolveFile: (cwd, token) => ipcRenderer.invoke(IPC.NotesResolveFile, cwd, token),
-  onNotesChanged: (cb) => on(IPC.NotesChanged, (itemId, event, path) => cb(itemId as string, event as string, path as string))
+  onNotesChanged: (cb) => on(IPC.NotesChanged, (itemId, event, path) => cb(itemId as string, event as string, path as string)),
+  onDideOpen: (cb) => on(IPC.DideOpen, (p) => cb(p as DideOpenPayload))
 }
 
 contextBridge.exposeInMainWorld('hub', hub)

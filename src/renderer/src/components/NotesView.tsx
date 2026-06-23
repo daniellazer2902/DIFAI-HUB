@@ -2,8 +2,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useHub, type Item } from '../store'
 import type { NotesTree } from '../../../shared/ipc'
+import { classifyNoteFile } from '../../../shared/noteKind'
 import { MarkdownView } from './MarkdownView'
 import { NoteTree } from './NoteTree'
+import { ImageView } from './ImageView'
+import { HtmlView } from './HtmlView'
 import { basename } from '../util'
 
 interface Props { item: Item }
@@ -29,6 +32,7 @@ export function NotesView({ item }: Props): React.JSX.Element {
   const histRef = useRef<{ stack: string[]; pos: number }>({ stack: [], pos: -1 })
   const [, force] = useState(0)
   const activePath = note.activePath
+  const activeKind = activePath ? classifyNoteFile(activePath) : null
 
   // Recherche in-page (Ctrl+F) — état partagé via le store (déclenché par App.tsx).
   const find = useHub((s) => s.noteFind[item.id])
@@ -38,6 +42,7 @@ export function NotesView({ item }: Props): React.JSX.Element {
   const query = find?.open ? find.query : ''
 
   const readFile = useCallback(async (path: string) => {
+    if (classifyNoteFile(path) !== 'md') { setMarkdown(''); setErr(null); return }
     const r = await window.hub.notesRead(note.root, path)
     if (r.ok) { setMarkdown(r.data.markdown); setErr(null) }
     else { setErr(r.error); setMarkdown('') }
@@ -132,9 +137,13 @@ export function NotesView({ item }: Props): React.JSX.Element {
         <div className="notes-content">
           {err
             ? <div className="notes-center notes-err">{err}</div>
-            : activePath
-              ? <MarkdownView root={note.root} filePath={activePath} markdown={markdown} index={index} onOpenInternal={(p) => open(p)} query={query} activeIdx={activeIdx} onMatchCount={setMatchCount} />
-              : <div className="notes-center">Aucun fichier.</div>}
+            : !activePath
+              ? <div className="notes-center">Aucun fichier.</div>
+              : activeKind === 'image'
+                ? <ImageView root={note.root} filePath={activePath} />
+                : activeKind === 'html'
+                  ? <HtmlView root={note.root} filePath={activePath} />
+                  : <MarkdownView root={note.root} filePath={activePath} markdown={markdown} index={index} onOpenInternal={(p) => open(p)} query={query} activeIdx={activeIdx} onMatchCount={setMatchCount} />}
         </div>
       </div>
     </div>

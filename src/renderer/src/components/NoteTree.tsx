@@ -32,10 +32,15 @@ function NoteTreeEntry({ node, activePath, onOpen, depth }: Required<Props>): Re
       </div>
     )
   }
+  const isMd = node.kind === 'md' || node.kind === undefined
+  const label = isMd ? node.name.replace(/\.(md|markdown)$/i, '') : node.name
+  const icon = node.kind === 'image' ? <span className="nt-emoji">🖼</span>
+    : node.kind === 'html' ? <span className="nt-emoji">🌐</span>
+    : <NotesIcon />
   return (
     <div className={`nt-row file${node.path === activePath ? ' active' : ''}`} style={pad} onClick={() => onOpen(node.path)} title={node.name}>
-      <span className="nt-ic"><NotesIcon /></span>
-      <span className="nt-name">{node.name.replace(/\.(md|markdown)$/i, '')}</span>
+      <span className="nt-ic">{icon}</span>
+      <span className="nt-name">{label}</span>
     </div>
   )
 }

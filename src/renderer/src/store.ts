@@ -113,6 +113,7 @@ interface HubState {
   setNoteFind: (itemId: string, patch: Partial<NoteFindState>) => void
   setNoteActivePath: (itemId: string, path: string) => void
   openNoteFile: (absPath: string, nearItemId: string) => void
+  openNoteRoot: (absPath: string, rootKind: 'vault' | 'file', nearItemId: string) => void
 
   bindSession: (itemId: string, tabId: string) => void
   clearSession: (itemId: string) => void
@@ -275,7 +276,8 @@ export const useHub = create<HubState>((set, get) => ({
     set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, adoClosed: closed }))) })),
   setNoteActivePath: (itemId, path) =>
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, note: i.note ? { ...i.note, activePath: path } : i.note })) })),
-  openNoteFile: (absPath, nearItemId) => {
+  openNoteFile: (absPath, nearItemId) => get().openNoteRoot(absPath, 'file', nearItemId),
+  openNoteRoot: (absPath, rootKind, nearItemId) => {
     const s = get()
     const existing = s.groups.flatMap((g) => g.items).find((i) => i.kind === 'note' && i.note?.root === absPath)
     if (existing) { get().setActiveItem(existing.id); return }
@@ -286,7 +288,7 @@ export const useHub = create<HubState>((set, get) => ({
     get().addItem(group.id, {
       id: uid('note'), name: basename(absPath), cwd: '', pinned: false, tabId: null, state: 'done',
       agents: [], openAgentId: null, split, findOpen: false, agentsOpen: false, searchQuery: '',
-      kind: 'note', note: { root: absPath, rootKind: 'file', activePath: absPath }
+      kind: 'note', note: { root: absPath, rootKind, activePath: rootKind === 'file' ? absPath : null }
     })
   },
   setAdoCache: (key, board) => set((s) => ({ adoCache: { ...s.adoCache, [key]: { board, at: Date.now() } } })),

@@ -1,5 +1,7 @@
 // Source de vérité unique des canaux IPC + types partagés main/preload/renderer.
 
+import type { NoteKind } from './noteKind'
+
 export const IPC = {
   // renderer -> main
   SessionNew: 'session:new',
@@ -30,6 +32,7 @@ export const IPC = {
   NotesPickFile: 'notes:pick-file',
   NotesTree: 'notes:tree',
   NotesRead: 'notes:read',
+  NotesReadRaw: 'notes:read-raw',
   NotesAsset: 'notes:asset',
   NotesOpenExternal: 'notes:open-external',
   NotesWatch: 'notes:watch',
@@ -43,7 +46,8 @@ export const IPC = {
   AgentAdded: 'agent:added',
   AgentLines: 'agent:lines',
   AgentDone: 'agent:done',
-  NotesChanged: 'notes:changed'
+  NotesChanged: 'notes:changed',
+  DideOpen: 'dide:open'
 } as const
 
 export type ConsoleLineKind = 'prompt' | 'text' | 'tool' | 'result'
@@ -118,6 +122,7 @@ export interface NoteTreeNode {
   name: string            // nom affiché (fichier ou dossier)
   path: string            // chemin absolu
   dir: boolean
+  kind?: NoteKind         // présent sur les fichiers (md/image/html) ; absent sur les dossiers
   children?: NoteTreeNode[] // présent si dir
 }
 export interface NotesTree {
@@ -126,6 +131,7 @@ export interface NotesTree {
   index: Record<string, string>      // clé = nom de fichier .md sans extension, en minuscules -> chemin absolu
 }
 export interface NoteFile { path: string; markdown: string }
+export interface NoteRaw { path: string; content: string }
 export interface NoteAsset { dataUri: string }
 export type NotesResult<T> = { ok: true; data: T } | { ok: false; error: string }
 /** Sous-ensemble persistable d'un item note. */
@@ -133,6 +139,8 @@ export interface PersistNote { root: string; rootKind: 'vault' | 'file'; activeP
 
 /** Fonction de désabonnement renvoyée par tous les `on*` (évite les fuites de listeners). */
 export type Unsub = () => void
+
+export interface DideOpenPayload { tabId: string | null; absPath: string; isDir: boolean }
 
 /** Contrat exposé au renderer via contextBridge. Le preload l'implémente, le renderer le consomme. */
 export interface HubApi {
@@ -170,10 +178,12 @@ export interface HubApi {
   notesPickFile(): Promise<string | null>
   notesTree(root: string): Promise<NotesResult<NotesTree>>
   notesRead(root: string, path: string): Promise<NotesResult<NoteFile>>
+  notesReadRaw(root: string, path: string): Promise<NotesResult<NoteRaw>>
   notesAsset(root: string, path: string): Promise<NotesResult<NoteAsset>>
   notesOpenExternal(url: string): void
   notesWatch(itemId: string, root: string): void
   notesUnwatch(itemId: string): void
   notesResolveFile(cwd: string, token: string): Promise<string | null>
   onNotesChanged(cb: (itemId: string, event: string, path: string) => void): Unsub
+  onDideOpen(cb: (p: DideOpenPayload) => void): Unsub
 }

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { join } from 'node:path'
 import { buildNoteTree, type DirEntry } from '../src/main/notes/noteTree'
 
-const V = join('/', 'v')        // sépérateur natif (\v sur Windows, /v sur POSIX)
+const V = join('/', 'v')        // séparateur natif (\v sur Windows, /v sur POSIX)
 const SUB = join(V, 'sub')
 
 const fsMap: Record<string, DirEntry[]> = {
@@ -12,6 +12,7 @@ const fsMap: Record<string, DirEntry[]> = {
     { name: 'sub', dir: true },
     { name: '.obsidian', dir: true },
     { name: 'image.png', dir: false },
+    { name: 'page.html', dir: false },
     { name: 'notes.txt', dir: false }
   ],
   [SUB]: [{ name: 'a.md', dir: false }]
@@ -19,9 +20,23 @@ const fsMap: Record<string, DirEntry[]> = {
 const listDir = (dir: string): DirEntry[] => fsMap[dir] ?? []
 
 describe('buildNoteTree', () => {
-  it('ne garde que les .md et les dossiers, dossiers en premier puis tri alpha', () => {
+  it('garde md/image/html + dossiers, dossiers en premier puis tri alpha', () => {
     const t = buildNoteTree(V, listDir)
-    expect(t.tree.children!.map((c) => c.name)).toEqual(['sub', 'a.md', 'b.md'])
+    expect(t.tree.children!.map((c) => c.name)).toEqual(['sub', 'a.md', 'b.md', 'image.png', 'page.html'])
+  })
+
+  it('exclut les types non supportés (.txt)', () => {
+    const t = buildNoteTree(V, listDir)
+    expect(t.tree.children!.some((c) => c.name === 'notes.txt')).toBe(false)
+  })
+
+  it('renseigne kind sur les fichiers', () => {
+    const t = buildNoteTree(V, listDir)
+    const byName = Object.fromEntries(t.tree.children!.map((c) => [c.name, c]))
+    expect(byName['a.md'].kind).toBe('md')
+    expect(byName['image.png'].kind).toBe('image')
+    expect(byName['page.html'].kind).toBe('html')
+    expect(byName['sub'].kind).toBeUndefined()
   })
 
   it('ignore .obsidian et les dotfolders', () => {
@@ -29,9 +44,11 @@ describe('buildNoteTree', () => {
     expect(t.tree.children!.some((c) => c.name === '.obsidian')).toBe(false)
   })
 
-  it('construit un index nom->chemin, plus court chemin en cas de collision', () => {
+  it('index nom->chemin md-only (pas image/html), plus court chemin si collision', () => {
     const t = buildNoteTree(V, listDir)
     expect(t.index['a']).toBe(join(V, 'a.md'))
     expect(t.index['b']).toBe(join(V, 'b.md'))
+    expect(t.index['image']).toBeUndefined()
+    expect(t.index['page']).toBeUndefined()
   })
 })
