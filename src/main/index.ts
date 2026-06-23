@@ -17,6 +17,7 @@ import { createAdoModule } from './modules/adoModule'
 import { createClaudeGuardModule } from './modules/claudeGuardModule'
 import { createCmdModule } from './modules/cmdModule'
 import { createNotesModule } from './modules/notesModule'
+import { createDideOpenModule } from './modules/dideOpenModule'
 import { IPC } from '../shared/ipc'
 
 let hooksSettingsPath = ''
@@ -50,7 +51,8 @@ const modules: HubModule[] = [
   createAdoModule(),
   createClaudeGuardModule(),
   createCmdModule({ shellPath: resolvePowerShellPath(), shellArgs: process.platform === 'win32' ? ['-NoLogo'] : [] }),
-  createNotesModule()
+  createNotesModule(),
+  createDideOpenModule()
 ]
 for (const m of modules) m.register(ctx)
 
