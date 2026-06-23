@@ -68,6 +68,13 @@ export function App(): React.JSX.Element {
       const it = useHub.getState().itemByTab(tid)
       if (it) useHub.getState().clearSession(it.id)
     }))
+    unsubs.push(window.hub.onDideOpen((p) => {
+      const s = useHub.getState()
+      // Item de la session émettrice → on ouvre dans SON groupe ; sinon fallback sur le groupe actif.
+      const near = (p.tabId && s.itemByTab(p.tabId)) || s.groups.find((g) => g.id === s.activeGroupId)?.items[0]
+      if (!near) return
+      useHub.getState().openNoteRoot(p.absPath, p.isDir ? 'vault' : 'file', near.id)
+    }))
     return () => unsubs.forEach((u) => u())
   }, [])
 
