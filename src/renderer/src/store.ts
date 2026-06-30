@@ -83,6 +83,8 @@ interface HubState {
   adoCache: Record<string, AdoBoardCacheEntry>
   adoFind: Record<string, AdoFindState>
   noteFind: Record<string, NoteFindState>
+  /** Dossiers dépliés dans l'arbre d'une note (par item), pour survivre au switch d'onglet. Éphémère. */
+  noteExpanded: Record<string, string[]>
 
   itemById: (itemId: string) => Item | undefined
   itemByTab: (tabId: string) => Item | undefined
@@ -111,6 +113,7 @@ interface HubState {
   setAdoCache: (key: string, board: AdoBoard) => void
   setAdoFind: (itemId: string, patch: Partial<AdoFindState>) => void
   setNoteFind: (itemId: string, patch: Partial<NoteFindState>) => void
+  setNoteExpanded: (itemId: string, paths: string[]) => void
   setNoteActivePath: (itemId: string, path: string) => void
   openNoteFile: (absPath: string, nearItemId: string) => void
   openNoteRoot: (absPath: string, rootKind: 'vault' | 'file', nearItemId: string) => void
@@ -225,7 +228,8 @@ const initial = {
   globalDefaultCwd: null as string | null,
   adoCache: {} as Record<string, AdoBoardCacheEntry>,
   adoFind: {} as Record<string, AdoFindState>,
-  noteFind: {} as Record<string, NoteFindState>
+  noteFind: {} as Record<string, NoteFindState>,
+  noteExpanded: {} as Record<string, string[]>
 }
 
 function mapItems(groups: Group[], match: (i: Item) => boolean, fn: (i: Item) => Item): Group[] {
@@ -302,6 +306,8 @@ export const useHub = create<HubState>((set, get) => ({
       const cur = s.noteFind[itemId] ?? { open: false, query: '' }
       return { noteFind: { ...s.noteFind, [itemId]: { ...cur, ...patch } } }
     }),
+  setNoteExpanded: (itemId, paths) =>
+    set((s) => ({ noteExpanded: { ...s.noteExpanded, [itemId]: paths } })),
   setActiveGroup: (groupId) =>
     set((s) => {
       const g = s.groups.find((x) => x.id === groupId)
@@ -344,7 +350,8 @@ export const useHub = create<HubState>((set, get) => ({
       const adoCache = Object.fromEntries(Object.entries(s.adoCache).filter(([k]) => !k.startsWith(prefix)))
       const adoFind = Object.fromEntries(Object.entries(s.adoFind).filter(([k]) => k !== itemId))
       const noteFind = Object.fromEntries(Object.entries(s.noteFind).filter(([k]) => k !== itemId))
-      return { groups, activeItemId: s.activeItemId === itemId ? null : s.activeItemId, adoCache, adoFind, noteFind }
+      const noteExpanded = Object.fromEntries(Object.entries(s.noteExpanded).filter(([k]) => k !== itemId))
+      return { groups, activeItemId: s.activeItemId === itemId ? null : s.activeItemId, adoCache, adoFind, noteFind, noteExpanded }
     }),
   renameItem: (itemId, name) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, name })) })),
   togglePin: (itemId) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, pinned: !i.pinned })) })),
