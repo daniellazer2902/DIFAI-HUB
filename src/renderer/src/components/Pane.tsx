@@ -135,7 +135,6 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
     })
   }
   async function addNoteFolder(): Promise<void> { closeMenus(); const f = await window.hub.notesPickFolder(); if (f) addNoteItem(f, 'vault') }
-  async function addNoteFile(): Promise<void> { closeMenus(); const f = await window.hub.notesPickFile(); if (f) addNoteItem(f, 'file') }
   function addDefaultVault(): void { closeMenus(); const v = readDefaultVault(); if (v) addNoteItem(v, 'vault') }
 
   function closeSession(e: React.MouseEvent, itemId: string, tabId: string | null): void {
@@ -291,7 +290,6 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                   <div className="ovf-add" onClick={() => { setOverflowOpen(false); addAdo() }}><AzureIcon /> ADO – Azure</div>
                   {readDefaultVault() && <div className="ovf-add" onClick={() => { setOverflowOpen(false); addDefaultVault() }}><NotesIcon /> Vault par défaut</div>}
                   <div className="ovf-add" onClick={() => { setOverflowOpen(false); addNoteFolder() }}><NotesIcon /> Markdown : dossier…</div>
-                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addNoteFile() }}><NotesIcon /> Markdown : fichier…</div>
                 </div>
               )}
             </div>
@@ -325,7 +323,6 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
           <div onClick={addAdo}><AzureIcon /> ADO – Azure</div>
           {readDefaultVault() && <div onClick={addDefaultVault}><NotesIcon /> Vault par défaut</div>}
           <div onClick={addNoteFolder}><NotesIcon /> Markdown : ouvrir un dossier…</div>
-          <div onClick={addNoteFile}><NotesIcon /> Markdown : ouvrir un fichier…</div>
         </div>
       )}
       {ctx && ctxItem && (
