@@ -214,7 +214,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                     <span className="tab-title">{t.item.name}</span>
                   )}
                   {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
-                  {t.item.kind === 'claude' && <span className="tab-agents" title="Processus en cours"><ActivityIcon size={12} />{t.item.agents.filter((a) => !a.done).length}</span>}
+                  {t.item.kind === 'claude' && <span className="tab-agents" title="Processus en cours">{t.item.agents.filter((a) => !a.done).length}<ActivityIcon size={12} /></span>}
                   <span className="tab-close" title="Fermer l'onglet" onClick={(e) => closeSession(e, t.item.id, t.item.tabId)}>✕</span>
                 </div>
               )

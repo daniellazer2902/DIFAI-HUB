@@ -48,7 +48,7 @@
       .sound-toggle { background: none; border: 1px solid var(--border); border-radius: var(--r); color: var(--text-3); cursor: pointer; padding: 2px 8px; font-family: inherit; -webkit-app-region: no-drag; }
       .sound-toggle:hover { background: var(--ghost-hover); color: var(--text); }
 
-      .tab { position: relative; flex: none; display: flex; align-items: center; gap: 7px; padding: 0 12px; height: 100%; background: transparent; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; font-size: 12.5px; min-width: 0; color: var(--text-3); transition: background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease); }
+      .tab { position: relative; flex: none; box-sizing: border-box; display: flex; align-items: center; gap: 7px; padding: 0 12px; height: 100%; background: transparent; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; font-size: 12.5px; min-width: 0; color: var(--text-3); transition: background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease); }
       .tab:hover { color: var(--text-2); background: var(--ghost-hover); }
       .tab-pin { display: inline-flex; color: var(--text-3); flex: none; }
       .tab.act { background: var(--card); color: var(--text); border-bottom-color: var(--gc, var(--accent)); }
@@ -103,9 +103,10 @@
       .ic-btn { cursor: pointer; color: var(--text-muted); user-select: none; display: inline-flex; align-items: center; }
       .ic-btn:hover { color: var(--text); }
       /* Conteneur d'items : trait vertical de rattachement au groupe (couleur du groupe). */
-      .items { position: relative; }
-      .items::before { content: ''; position: absolute; left: 13px; top: 2px; bottom: 5px; width: 1px; background: color-mix(in srgb, var(--gc, var(--border-2)) 55%, transparent); }
-      .item { position: relative; display: flex; align-items: center; gap: 8px; margin: 1px 6px 1px 20px; padding: 0 8px; height: 31px; border-radius: var(--r); font-size: 12px; cursor: pointer; color: var(--text-3); }
+      .items { position: relative; padding-top: 5px; }
+      .items::before { content: ''; position: absolute; left: 14px; top: 6px; bottom: 6px; width: 1px; background: color-mix(in srgb, var(--gc, var(--border-2)) 55%, transparent); }
+      /* item margin-left = 24 : la pastille d'état (cercle) s'aligne verticalement avec le carré du groupe. */
+      .item { position: relative; display: flex; align-items: center; gap: 8px; margin: 1px 6px 1px 24px; padding: 0 8px; height: 31px; border-radius: var(--r); font-size: 12px; cursor: pointer; color: var(--text-3); }
       .item .item-ic { color: var(--text-muted); display: inline-flex; flex: none; }
       .item .item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .item .item-pin { width: 13px; flex: none; display: inline-flex; justify-content: center; color: var(--text-3); }
