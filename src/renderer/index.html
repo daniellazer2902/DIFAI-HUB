@@ -41,19 +41,23 @@
       .xterm-viewport::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
       #header { display: flex; align-items: center; justify-content: space-between; height: 36px; box-sizing: border-box; padding: 0 10px; padding-right: 145px; background: var(--surface); -webkit-app-region: drag; }
-      #header .brand { font-weight: bold; color: var(--text); }
+      #header .crumb { display: flex; align-items: center; gap: 7px; font-size: 13px; -webkit-app-region: no-drag; overflow: hidden; }
+      #header .crumb-group { color: var(--text-3); white-space: nowrap; }
+      #header .crumb-sep { color: var(--text-muted); }
+      #header .crumb-item { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .sound-toggle { background: none; border: 1px solid var(--border); border-radius: var(--r); color: var(--text-3); cursor: pointer; padding: 2px 8px; font-family: inherit; -webkit-app-region: no-drag; }
       .sound-toggle:hover { background: var(--ghost-hover); color: var(--text); }
 
-      .tab { position: relative; flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 9px; background: var(--bg); border: 1px solid var(--border); border-bottom: none; border-radius: var(--r) var(--r) 0 0; cursor: pointer; white-space: nowrap; font-size: 12px; min-width: 0; color: var(--text-3); transition: background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease); }
-      .tab-pin { display: inline-flex; color: var(--text-2); flex: none; }
-      .tab.act { background: var(--card); color: var(--text); border-color: var(--border-2); border-bottom-color: var(--gc, var(--accent)); margin-bottom: -1px; padding-bottom: 5px; position: relative; z-index: 1; }
+      .tab { position: relative; flex: none; display: flex; align-items: center; gap: 7px; padding: 0 12px; height: 100%; background: transparent; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; font-size: 12.5px; min-width: 0; color: var(--text-3); transition: background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease); }
+      .tab:hover { color: var(--text-2); background: var(--ghost-hover); }
+      .tab-pin { display: inline-flex; color: var(--text-3); flex: none; }
+      .tab.act { background: var(--card); color: var(--text); border-bottom-color: var(--gc, var(--accent)); }
       .tab-title { color: inherit; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .tab-agents { color: var(--text-3); font-size: 11px; }
       .tab-close { color: var(--text-3); }
       .tab-close:hover { color: var(--err); }
-      .tab-new { position: relative; align-self: flex-end; margin-bottom: -1px; }
-      .tab-new button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px dashed var(--border-2); border-bottom: unset; border-radius: var(--r) var(--r) 0 0; color: var(--text-3); cursor: pointer; padding: 5px 11px; font-family: inherit; font-size: 13px; line-height: 16px; }
+      .tab-new { position: relative; align-self: center; }
+      .tab-new button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-3); cursor: pointer; width: 26px; height: 26px; padding: 0; font-family: inherit; font-size: 13px; }
       .tab-new button:hover { color: var(--text); border-color: var(--border-hover); }
       .tab-new-menu { position: absolute; top: 30px; left: 0; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r); overflow: hidden; width: 220px; z-index: 5; }
       .tab-new-menu div { padding: 6px 10px; cursor: pointer; font-size: 12px; color: var(--text-2); }
@@ -66,64 +70,69 @@
       .pulse { animation: pulse 1.4s ease-in-out infinite; }
 
       #sidebar { width: 250px; min-width: 250px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-      .sidebar-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
-      .group-head { position: relative; display: flex; align-items: center; gap: 4px; padding: 6px 8px; color: var(--text-3); font-size: 12px; text-transform: uppercase; background: var(--gc, transparent); }
-      .group.active-group > .group-head { color: var(--text-2); background: var(--gc, var(--ghost-hover)); }
-      .group-chevron { cursor: pointer; width: 12px; flex: none; }
+      .side-head { display: flex; align-items: center; gap: 9px; height: 44px; flex: none; padding: 0 8px 0 12px; border-bottom: 1px solid var(--border); }
+      .side-logo { width: 20px; height: 20px; border-radius: var(--r-sm); flex: none; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #000)); }
+      .side-brand { font-size: 13.5px; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
+      .side-add { margin-left: auto; width: 26px; height: 26px; justify-content: center; border-radius: var(--r-sm); }
+      .side-add:hover { background: var(--ghost-hover); }
+      .sidebar-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding-top: 6px; }
+      .group-head { position: relative; display: flex; align-items: center; gap: 7px; margin: 0 6px; padding: 6px 6px; color: var(--text-3); font-size: 11.5px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; border-radius: var(--r-sm); }
+      .group-head:hover { background: var(--ghost-hover); }
+      .group.active-group > .group-head { color: var(--text-2); }
+      .group-chevron { cursor: pointer; display: inline-flex; align-items: center; color: var(--text-muted); flex: none; transition: transform .15s var(--ease); }
+      .group:not(.collapsed) > .group-head .group-chevron { transform: rotate(90deg); }
+      .group-dot { width: 8px; height: 8px; border-radius: 3px; flex: none; background: var(--gc, var(--text-muted)); }
       .group-name-wrap { flex: 1; cursor: pointer; overflow: hidden; }
       .group-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .group-actions { display: flex; gap: 6px; opacity: 0; flex: none; }
+      .group-count { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+      .group-actions { display: flex; gap: 2px; opacity: 0; flex: none; }
       .group-head:hover .group-actions { opacity: 1; }
+      .group-head:hover .group-count { display: none; }
+      .group-actions .ic-btn { width: 22px; height: 22px; justify-content: center; border-radius: var(--r-sm); }
+      .group-actions .ic-btn:hover { background: rgba(255,255,255,.1); }
+      .item .item-menu.ic-btn { width: 22px; height: 22px; justify-content: center; border-radius: var(--r-sm); }
+      .item .item-menu.ic-btn:hover { background: rgba(255,255,255,.1); }
       .group-head { cursor: grab; }
       .group-head:active { cursor: grabbing; }
       .group.drag-over-group { box-shadow: inset 0 2px 0 0 var(--gc, var(--accent)); }
       .ic-btn { cursor: pointer; color: var(--text-muted); user-select: none; display: inline-flex; align-items: center; }
       .ic-btn:hover { color: var(--text); }
       .item { position: relative; display: flex; align-items: center; gap: 6px; margin: 1px 6px 1px 12px; padding: 0 8px; height: 31px; border-radius: var(--r); font-size: 12px; cursor: pointer; color: var(--text-3); }
-      .item .item-ic { color: #9bd; display: inline-flex; flex: none; }
+      .item .item-ic { color: var(--text-muted); display: inline-flex; flex: none; }
       .item .item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .item .item-pin { width: 13px; flex: none; display: inline-flex; justify-content: center; color: #ddd; }
+      .item .item-pin { width: 13px; flex: none; display: inline-flex; justify-content: center; color: var(--text-3); }
       .item .item-state { width: 13px; flex: none; display: inline-flex; justify-content: center; }
-      .item .off { color: #666; }
+      .item .off { color: var(--text-muted); }
       .item .item-menu { flex: none; opacity: 0; }
       .item:hover .item-menu { opacity: 1; }
       .item:hover { background: var(--ghost-hover); color: var(--text-2); }
-      .item.active-group-item { background: var(--gc, var(--fill-active)); color: var(--gt, var(--text)); }
-      .item.active-group-item:hover { background: var(--gcd, var(--fill-active)); color: var(--gtd, var(--text)); }
-      .item.active-item { background: var(--gcd, var(--fill-active)); color: var(--gtd, var(--text)); }
-      /* Icônes d'action et épingle : suivent la couleur de contraste sur fond coloré (fallback = styles neutres). */
-      .group-head .ic-btn { color: var(--gt, var(--text-muted)); }
-      .group-head .ic-btn:hover { color: var(--gt, var(--text)); }
-      .item.active-group-item .ic-btn { color: var(--gt, var(--text-muted)); }
-      .item.active-group-item .ic-btn:hover { color: var(--gt, var(--text)); }
-      .item.active-item .ic-btn { color: var(--gtd, var(--text-muted)); }
-      .item.active-item .ic-btn:hover { color: var(--gtd, var(--text)); }
-      .item.active-group-item .item-pin { color: var(--gt, #ddd); }
-      .item.active-item .item-pin { color: var(--gtd, #ddd); }
-      .item.active-group-item .off { color: var(--gt, #666); }
-      .item.active-item .off { color: var(--gtd, #666); }
+      /* Groupe actif : items neutres (juste texte plus clair) ; seul l'item actif prend un tint doux à la couleur du groupe. */
+      .item.active-group-item { color: var(--text-2); }
+      .item.active-group-item:hover { background: var(--ghost-hover); color: var(--text-2); }
+      .item.active-item { background: color-mix(in srgb, var(--gc, var(--accent)) 20%, transparent); color: var(--text); }
+      .item.active-item:hover { background: color-mix(in srgb, var(--gc, var(--accent)) 26%, transparent); color: var(--text); }
       .inline-edit { flex: 1; min-width: 0; background: var(--surface-2); border: 1px solid var(--ring); border-radius: var(--r-sm); color: var(--text); font-family: inherit; font-size: 12px; padding: 1px 4px; outline: none; }
       .new-group { padding: 8px; color: var(--text-3); cursor: pointer; border-top: 1px solid var(--border); margin-top: auto; }
       .new-group:hover { color: var(--text); }
       .ctx-menu { position: absolute; top: 24px; right: 6px; z-index: 20; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r); overflow: hidden; min-width: 160px; }
       .ctx-menu div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; color: var(--text-2); }
       .ctx-menu div:hover { background: var(--ghost-hover); }
-      .ctx-menu div svg { color: #9ab; flex: none; }
+      .ctx-menu div svg { color: var(--text-muted); flex: none; }
       .ctx-menu div.danger { color: var(--err); }
       .ctx-menu div.danger svg { color: var(--err); }
-      .tab-ic { color: #9bd; display: inline-flex; }
+      .tab-ic { color: var(--text-muted); display: inline-flex; }
       .tab-new-menu div { display: flex; align-items: center; gap: 8px; }
-      .tab-new-menu div svg { color: #9ab; flex: none; }
+      .tab-new-menu div svg { color: var(--text-muted); flex: none; }
       .sound-toggle { display: inline-flex; align-items: center; justify-content: center; }
       #panes { flex: 1; min-height: 0; min-width: 0; display: flex; overflow: hidden; }
       /* Un conteneur par groupe (display:flex si actif, none sinon) : garde tous les terminaux montés. */
       .group-panes { flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
       .pane { display: flex; flex-direction: column; min-width: 0; height: 100%; }
-      .pane-tabstrip { display: flex; align-items: flex-end; gap: 5px; padding: 6px 8px 0; background: var(--bg); border-bottom: 1px solid var(--border); min-height: 34px; }
-      .tab-row { flex: 1; min-width: 0; display: flex; align-items: flex-end; gap: 5px; overflow: hidden; }
-      .tab-controls { flex: none; display: flex; align-items: flex-end; gap: 5px; }
-      .tab-overflow { position: relative; align-self: flex-end; margin-bottom: -1px; }
-      .tab-overflow button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--border-2); border-bottom: unset; border-radius: var(--r) var(--r) 0 0; color: var(--text-3); cursor: pointer; padding: 5px 9px; font-family: inherit; font-size: 12px; line-height: 16px; }
+      .pane-tabstrip { display: flex; align-items: stretch; gap: 2px; padding: 0 6px; background: var(--bg); border-bottom: 1px solid var(--border); height: 38px; }
+      .tab-row { flex: 1; min-width: 0; display: flex; align-items: stretch; gap: 2px; overflow: hidden; }
+      .tab-controls { flex: none; display: flex; align-items: center; gap: 4px; }
+      .tab-overflow { position: relative; align-self: center; }
+      .tab-overflow button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-3); cursor: pointer; width: 26px; height: 26px; padding: 0; font-family: inherit; font-size: 12px; }
       .tab-overflow button:hover { color: var(--text); border-color: var(--border-hover); }
       .tab-overflow-menu { position: absolute; top: 30px; right: 0; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r); overflow-y: auto; max-height: 320px; min-width: 200px; z-index: 20; }
       .tab-overflow-menu div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; color: var(--text-2); white-space: nowrap; }
@@ -131,11 +140,11 @@
       .tab-overflow-menu div.sel { color: var(--gc, var(--accent)); }
       .tab-overflow-menu .ovf-add { color: var(--text-2); }
       .tab-overflow-menu .ovf-sep { border-top: 1px solid var(--border-2); margin-top: 4px; padding-top: 8px; }
-      .tab-overflow-menu .ovf-add svg { color: #9ab; flex: none; }
+      .tab-overflow-menu .ovf-add svg { color: var(--text-muted); flex: none; }
       .pane-body { flex: 1; min-height: 0; position: relative; display: flex; }
       .body-slot { position: absolute; inset: 0; }
-      .tab.aux { background: var(--bg); border-color: var(--border); color: var(--text-3); }
-      .tab.aux.act { background: var(--card); color: var(--text); border-color: var(--border-2); border-bottom-color: var(--gc, var(--accent)); }
+      .tab.aux { color: var(--text-3); }
+      .tab.aux.act { background: var(--card); color: var(--text); border-bottom-color: var(--gc, var(--accent)); }
       .drop-zone { flex: none; width: 180px; min-width: 120px; align-self: stretch; display: flex; align-items: center; justify-content: center; margin: 8px; border: 2px dashed var(--gc, var(--accent)); border-radius: var(--r-card); color: var(--gc, var(--accent)); font-size: 12px; background: var(--card); }
       .term-screen { flex: 1; min-width: 0; width: 100%; height: 100%; }
 

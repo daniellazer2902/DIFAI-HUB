@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, FolderOpenIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon } from './icons'
+import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, FolderOpenIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon, ChevronIcon, PlusIcon, MoreIcon } from './icons'
 import { GroupColorModal } from './GroupColorModal'
 import { AdoBindModal } from './AdoBindModal'
 import { ClaudeAdvancedModal } from './ClaudeAdvancedModal'
@@ -181,6 +181,11 @@ export function Sidebar(): React.JSX.Element {
 
   return (
     <div id="sidebar">
+      <div className="side-head">
+        <span className="side-logo" />
+        <b className="side-brand">DIFAI-IDE</b>
+        <span className="ic-btn side-add" title="Nouveau groupe" onClick={addGroup}><PlusIcon size={15} /></span>
+      </div>
       <div className="sidebar-scroll">
         {groups.map((g) => (
           <div
@@ -198,11 +203,13 @@ export function Sidebar(): React.JSX.Element {
               onDragEnd={() => { setDragGroupId(null); setDragOverGroupId(null) }}
               onContextMenu={(e) => { e.preventDefault(); setMenu(g.id) }}
             >
-              <span className="group-chevron" onClick={() => useHub.getState().toggleGroupCollapsed(g.id)}>{g.collapsed ? '▸' : '▾'}</span>
+              <span className="group-chevron" onClick={() => useHub.getState().toggleGroupCollapsed(g.id)}><ChevronIcon size={13} /></span>
+              <span className="group-dot" />
               <span className="group-name-wrap" onClick={() => useHub.getState().setActiveGroup(g.id)}>{nameOrEditor('group', g.id, g.name, 'group-name')}</span>
+              {g.items.length > 0 && <span className="group-count">{g.items.length}</span>}
               <span className="group-actions">
-                <span className="ic-btn add-btn" title="Ajouter…" onClick={() => { setMenu(null); setAddFor(addFor === g.id ? null : g.id) }}>＋</span>
-                <span className="ic-btn menu-btn" title="Menu" onClick={() => { setAddFor(null); setMenu(menu === g.id ? null : g.id) }}>···</span>
+                <span className="ic-btn add-btn" title="Ajouter…" onClick={() => { setMenu(null); setAddFor(addFor === g.id ? null : g.id) }}><PlusIcon size={15} /></span>
+                <span className="ic-btn menu-btn" title="Menu" onClick={() => { setAddFor(null); setMenu(menu === g.id ? null : g.id) }}><MoreIcon size={15} /></span>
               </span>
               {addFor === g.id && (
                 <div className="tab-new-menu">
@@ -237,7 +244,7 @@ export function Sidebar(): React.JSX.Element {
                 {nameOrEditor('item', it.id, it.name, 'item-name')}
                 <span className="item-pin">{it.pinned && <PinIcon />}</span>
                 <span className="item-state">{it.kind === 'ado' || it.kind === 'cmd' || it.kind === 'note' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>
-                <span className="ic-btn menu-btn item-menu" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}>···</span>
+                <span className="ic-btn menu-btn item-menu" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}><MoreIcon size={15} /></span>
                 {menu === it.id && (
                   <div className="ctx-menu" onClick={(e) => e.stopPropagation()}>
                     <div onClick={() => startRename('item', it.id, it.name)}><EditIcon /> Renommer</div>

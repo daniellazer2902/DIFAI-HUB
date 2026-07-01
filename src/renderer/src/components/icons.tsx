@@ -112,3 +112,32 @@ export function NotesIcon({ size = 12 }: IconProps): React.JSX.Element {
     </svg>
   )
 }
+
+/** Chevron droit (repli de groupe) — style lucide outline ; pivoté à 90° via CSS quand déplié. */
+export function ChevronIcon({ size = 14 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  )
+}
+
+/** Plus (ajouter) — style lucide outline. */
+export function PlusIcon({ size = 15 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+/** Trois points horizontaux (menu ···) — style lucide outline. */
+export function MoreIcon({ size = 15 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <circle cx="5" cy="12" r="1.6" />
+      <circle cx="12" cy="12" r="1.6" />
+      <circle cx="19" cy="12" r="1.6" />
+    </svg>
+  )
+}
