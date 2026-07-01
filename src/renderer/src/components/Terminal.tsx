@@ -39,9 +39,11 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
 
     let lastCols = 0
     let lastRows = 0
+    // Vrai tant que l'onglet est resté caché : au retour visible, on recolle le viewport en bas.
+    let wasHidden = true
     const doFit = (): void => {
       // Onglet caché (display:none) => offsetParent null : ne pas fit/resize (taille 0).
-      if (container.offsetParent === null) return
+      if (container.offsetParent === null) { wasHidden = true; return }
       try {
         fit.fit()
         // Ne propager au pty QUE si la taille a vraiment changé (évite le spam de resize
@@ -51,6 +53,9 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
           lastRows = term.rows
           window.hub.resize(tabId, term.cols, term.rows)
         }
+        // Au passage caché -> visible (switch de groupe/onglet), le scroll du viewport n'est pas
+        // recalé : on force le retour en bas pour voir la dernière ligne (= le contournement flèche-bas).
+        if (wasHidden) { wasHidden = false; term.scrollToBottom() }
       } catch { /* conteneur pas encore dimensionné */ }
     }
     const ro = new ResizeObserver(() => doFit())

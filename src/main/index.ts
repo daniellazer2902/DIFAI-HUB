@@ -63,7 +63,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#121212', symbolColor: '#dddddd', height: 36 },
+    titleBarOverlay: { color: '#171717', symbolColor: '#dddddd', height: 36 },
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false,

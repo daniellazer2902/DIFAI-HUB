@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, parseRef, type Group, type PaneTab, type Pane as Side } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, EditIcon, PinIcon, TrashIcon, AzureIcon, ClaudeIcon, NotesIcon } from './icons'
+import { TerminalIcon, EditIcon, PinIcon, TrashIcon, AzureIcon, ClaudeIcon, NotesIcon, ActivityIcon, PlusIcon } from './icons'
 import { NotesView } from './NotesView'
 import { readDefaultVault } from '../settings'
 import { Terminal } from './Terminal'
@@ -194,8 +194,9 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                     setCtx(ctx?.id === t.item.id ? null : { id: t.item.id, x, y })
                   }}
                 >
-                  <span className="tab-ic">{t.item.kind === 'cmd' ? <TerminalIcon /> : t.item.kind === 'note' ? <NotesIcon /> : <ClaudeIcon />}</span>
-                  {t.item.kind === 'cmd' || t.item.kind === 'note' ? null : <StateDot state={t.item.state} />}
+                  {t.item.kind === 'cmd' ? <span className="tab-ic"><TerminalIcon /></span>
+                    : t.item.kind === 'note' ? <span className="tab-ic"><NotesIcon /></span>
+                    : <StateDot state={t.item.state} />}
                   {editingId === t.item.id ? (
                     <input
                       ref={editRef}
@@ -213,7 +214,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                     <span className="tab-title">{t.item.name}</span>
                   )}
                   {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
-                  {t.item.kind !== 'cmd' && <span className="tab-agents">· {t.item.agents.filter((a) => !a.done).length} en cours</span>}
+                  {t.item.kind === 'claude' && <span className="tab-agents" title="Processus en cours">{t.item.agents.filter((a) => !a.done).length}<ActivityIcon size={12} /></span>}
                   <span className="tab-close" title="Fermer l'onglet" onClick={(e) => closeSession(e, t.item.id, t.item.tabId)}>✕</span>
                 </div>
               )
@@ -267,7 +268,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
             )
           })}
           <div className="tab-new">
-            <button title="Nouvel onglet" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setAddMenu(addMenu ? null : { x: Math.max(4, Math.min(r.left, window.innerWidth - 228)), y: r.bottom + 2 }) }}>＋</button>
+            <button title="Nouvel onglet" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setAddMenu(addMenu ? null : { x: Math.max(4, Math.min(r.left, window.innerWidth - 228)), y: r.bottom + 2 }) }}><PlusIcon size={16} /></button>
           </div>
         </div>
         {overflowing && (
