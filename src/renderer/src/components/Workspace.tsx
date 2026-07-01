@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, paneTabs } from '../store'
 import { clampConsoleWidth, writeConsoleWidth } from '../util'
+import { darken, textOn } from '../color'
 import { Pane } from './Pane'
 
 const VP_KEY = 'difai.consoleWidthViewport'
@@ -79,7 +80,14 @@ export function Workspace(): React.JSX.Element {
         const lt = paneTabs(g, 'left')
         const rt = paneTabs(g, 'right')
         return (
-          <div key={g.id} className="group-panes" style={{ display: isActive ? 'flex' : 'none' }}>
+          <div
+            key={g.id}
+            className="group-panes"
+            style={{
+              display: isActive ? 'flex' : 'none',
+              ...(g.color ? ({ '--gc': g.color, '--gcd': darken(g.color), '--gt': textOn(g.color), '--gtd': textOn(darken(g.color)) } as React.CSSProperties) : {})
+            }}
+          >
             {isActive && dragId && lt.length === 0 && rt.length > 0 && (
               <div className="drop-zone" onDragOver={(e) => e.preventDefault()} onDrop={() => dropTo(1)}>← Déposer à gauche</div>
             )}

@@ -45,18 +45,19 @@
       .sound-toggle { background: none; border: 1px solid var(--border); border-radius: var(--r); color: var(--text-3); cursor: pointer; padding: 2px 8px; font-family: inherit; -webkit-app-region: no-drag; }
       .sound-toggle:hover { background: var(--ghost-hover); color: var(--text); }
 
-      .tab { position: relative; flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 9px; background: #1e1e1e; border: 1px solid #333; border-bottom: none; border-radius: 6px 6px 0 0; cursor: pointer; white-space: nowrap; font-size: 12px; min-width: 0; }
-      .tab-pin { display: inline-flex; color: #ddd; flex: none; }
-      .tab.act { background: #23262b; border-color: #c80; margin-bottom: -1px; padding-bottom: 5px; position: relative; z-index: 1; }
-      .tab-title { color: #ddd; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .tab-agents { color: #888; font-size: 11px; }
-      .tab-close { color: #888; }
-      .tab-close:hover { color: #f66; }
+      .tab { position: relative; flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 9px; background: var(--bg); border: 1px solid var(--border); border-bottom: none; border-radius: var(--r) var(--r) 0 0; cursor: pointer; white-space: nowrap; font-size: 12px; min-width: 0; color: var(--text-3); transition: background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease); }
+      .tab-pin { display: inline-flex; color: var(--text-2); flex: none; }
+      .tab.act { background: var(--card); color: var(--text); border-color: var(--border-2); border-bottom-color: var(--gc, var(--accent)); margin-bottom: -1px; padding-bottom: 5px; position: relative; z-index: 1; }
+      .tab-title { color: inherit; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .tab-agents { color: var(--text-3); font-size: 11px; }
+      .tab-close { color: var(--text-3); }
+      .tab-close:hover { color: var(--err); }
       .tab-new { position: relative; align-self: flex-end; margin-bottom: -1px; }
-      .tab-new button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px dashed #444; border-bottom: unset; border-radius: 6px 6px 0 0; color: #9c9; cursor: pointer; padding: 5px 11px; font-family: inherit; font-size: 13px; line-height: 16px; }
-      .tab-new-menu { position: absolute; top: 30px; left: 0; background: #202227; border: 1px solid #3a3d44; border-radius: 6px; overflow: hidden; width: 220px; z-index: 5; }
-      .tab-new-menu div { padding: 6px 10px; cursor: pointer; font-size: 12px; color: #ddd; }
-      .tab-new-menu div:hover { background: #2a2d33; }
+      .tab-new button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px dashed var(--border-2); border-bottom: unset; border-radius: var(--r) var(--r) 0 0; color: var(--text-3); cursor: pointer; padding: 5px 11px; font-family: inherit; font-size: 13px; line-height: 16px; }
+      .tab-new button:hover { color: var(--text); border-color: var(--border-hover); }
+      .tab-new-menu { position: absolute; top: 30px; left: 0; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r); overflow: hidden; width: 220px; z-index: 5; }
+      .tab-new-menu div { padding: 6px 10px; cursor: pointer; font-size: 12px; color: var(--text-2); }
+      .tab-new-menu div:hover { background: var(--ghost-hover); }
 
       .statedot { font-size: 10px; }
       @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
@@ -118,23 +119,24 @@
       /* Un conteneur par groupe (display:flex si actif, none sinon) : garde tous les terminaux montés. */
       .group-panes { flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
       .pane { display: flex; flex-direction: column; min-width: 0; height: 100%; }
-      .pane-tabstrip { display: flex; align-items: flex-end; gap: 5px; padding: 6px 8px 0; background: #181818; border-bottom: 1px solid #333; min-height: 34px; }
+      .pane-tabstrip { display: flex; align-items: flex-end; gap: 5px; padding: 6px 8px 0; background: var(--bg); border-bottom: 1px solid var(--border); min-height: 34px; }
       .tab-row { flex: 1; min-width: 0; display: flex; align-items: flex-end; gap: 5px; overflow: hidden; }
       .tab-controls { flex: none; display: flex; align-items: flex-end; gap: 5px; }
       .tab-overflow { position: relative; align-self: flex-end; margin-bottom: -1px; }
-      .tab-overflow button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid #444; border-bottom: unset; border-radius: 6px 6px 0 0; color: #9c9; cursor: pointer; padding: 5px 9px; font-family: inherit; font-size: 12px; line-height: 16px; }
-      .tab-overflow-menu { position: absolute; top: 30px; right: 0; background: #202227; border: 1px solid #3a3d44; border-radius: 6px; overflow-y: auto; max-height: 320px; min-width: 200px; z-index: 20; }
-      .tab-overflow-menu div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; color: #ddd; white-space: nowrap; }
-      .tab-overflow-menu div:hover { background: #2a2d33; }
-      .tab-overflow-menu div.sel { color: #fc8; }
-      .tab-overflow-menu .ovf-add { color: #ddd; }
-      .tab-overflow-menu .ovf-sep { border-top: 1px solid #3a3d44; margin-top: 4px; padding-top: 8px; }
+      .tab-overflow button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--border-2); border-bottom: unset; border-radius: var(--r) var(--r) 0 0; color: var(--text-3); cursor: pointer; padding: 5px 9px; font-family: inherit; font-size: 12px; line-height: 16px; }
+      .tab-overflow button:hover { color: var(--text); border-color: var(--border-hover); }
+      .tab-overflow-menu { position: absolute; top: 30px; right: 0; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r); overflow-y: auto; max-height: 320px; min-width: 200px; z-index: 20; }
+      .tab-overflow-menu div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; color: var(--text-2); white-space: nowrap; }
+      .tab-overflow-menu div:hover { background: var(--ghost-hover); }
+      .tab-overflow-menu div.sel { color: var(--gc, var(--accent)); }
+      .tab-overflow-menu .ovf-add { color: var(--text-2); }
+      .tab-overflow-menu .ovf-sep { border-top: 1px solid var(--border-2); margin-top: 4px; padding-top: 8px; }
       .tab-overflow-menu .ovf-add svg { color: #9ab; flex: none; }
       .pane-body { flex: 1; min-height: 0; position: relative; display: flex; }
       .body-slot { position: absolute; inset: 0; }
-      .tab.aux { background: #1a1d22; border-color: #2f3a44; color: #9cc; }
-      .tab.aux.act { background: #23262b; border-color: #c80; }
-      .drop-zone { flex: none; width: 180px; min-width: 120px; align-self: stretch; display: flex; align-items: center; justify-content: center; margin: 8px; border: 2px dashed #c80; border-radius: 8px; color: #c80; font-size: 12px; background: rgba(204, 136, 0, 0.06); }
+      .tab.aux { background: var(--bg); border-color: var(--border); color: var(--text-3); }
+      .tab.aux.act { background: var(--card); color: var(--text); border-color: var(--border-2); border-bottom-color: var(--gc, var(--accent)); }
+      .drop-zone { flex: none; width: 180px; min-width: 120px; align-self: stretch; display: flex; align-items: center; justify-content: center; margin: 8px; border: 2px dashed var(--gc, var(--accent)); border-radius: var(--r-card); color: var(--gc, var(--accent)); font-size: 12px; background: var(--card); }
       .term-screen { flex: 1; min-width: 0; width: 100%; height: 100%; }
 
       /* Taskboard ADO : grille swimlanes (US figée à gauche) × colonnes d'états de tâches */
@@ -197,8 +199,8 @@
       .search-text { color: #cde; font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
       .search-text mark { background: #cc8800; color: #1e1e1e; border-radius: 2px; padding: 0 1px; }
 
-      .splitter { flex: none; width: 5px; cursor: col-resize; background: #2a2a2a; }
-      .splitter:hover { background: #c80; }
+      .splitter { flex: none; width: 5px; cursor: col-resize; background: var(--border); }
+      .splitter:hover { background: var(--gc, var(--border-hover)); }
       .console { flex: 1; min-width: 0; overflow-y: auto; font-size: 12px; }
       .rail { width: 150px; border-left: 1px solid #333; overflow-y: auto; background: #181818; }
       .agents-tab { display: flex; flex: 1; min-width: 0; height: 100%; }
