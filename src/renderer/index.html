@@ -64,10 +64,10 @@
       @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
       .pulse { animation: pulse 1.4s ease-in-out infinite; }
 
-      #sidebar { width: 230px; min-width: 230px; background: #161616; border-right: 1px solid #333; display: flex; flex-direction: column; }
+      #sidebar { width: 250px; min-width: 250px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
       .sidebar-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
-      .group-head { position: relative; display: flex; align-items: center; gap: 4px; padding: 6px 8px; color: var(--gt, #9aa); font-size: 12px; background: var(--gc, transparent); }
-      .group.active-group > .group-head { color: var(--gt, #cfe); background: var(--gc, #202020); }
+      .group-head { position: relative; display: flex; align-items: center; gap: 4px; padding: 6px 8px; color: var(--text-3); font-size: 12px; text-transform: uppercase; background: var(--gc, transparent); }
+      .group.active-group > .group-head { color: var(--text-2); background: var(--gc, var(--ghost-hover)); }
       .group-chevron { cursor: pointer; width: 12px; flex: none; }
       .group-name-wrap { flex: 1; cursor: pointer; overflow: hidden; }
       .group-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -76,9 +76,9 @@
       .group-head { cursor: grab; }
       .group-head:active { cursor: grabbing; }
       .group.drag-over-group { box-shadow: inset 0 2px 0 0 #7fd; }
-      .ic-btn { cursor: pointer; color: #888; user-select: none; display: inline-flex; align-items: center; }
-      .ic-btn:hover { color: #fff; }
-      .item { position: relative; display: flex; align-items: center; gap: 6px; padding: 4px 8px 4px 22px; font-size: 12px; cursor: pointer; color: #ccc; }
+      .ic-btn { cursor: pointer; color: var(--text-muted); user-select: none; display: inline-flex; align-items: center; }
+      .ic-btn:hover { color: var(--text); }
+      .item { position: relative; display: flex; align-items: center; gap: 6px; margin: 1px 6px 1px 12px; padding: 0 8px; height: 31px; border-radius: var(--r); font-size: 12px; cursor: pointer; color: var(--text-3); }
       .item .item-ic { color: #9bd; display: inline-flex; flex: none; }
       .item .item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .item .item-pin { width: 13px; flex: none; display: inline-flex; justify-content: center; color: #ddd; }
@@ -86,30 +86,30 @@
       .item .off { color: #666; }
       .item .item-menu { flex: none; opacity: 0; }
       .item:hover .item-menu { opacity: 1; }
-      .item:hover { background: #202020; }
-      .item.active-group-item { background: var(--gc, #202020); color: var(--gt, #ccc); }
-      .item.active-group-item:hover { background: var(--gcd, #262626); color: var(--gtd, #ccc); }
-      .item.active-item { background: var(--gcd, #2a2a2a); color: var(--gtd, #ccc); box-shadow: inset 3px 0 0 #c80; }
+      .item:hover { background: var(--ghost-hover); color: var(--text-2); }
+      .item.active-group-item { background: var(--gc, var(--fill-active)); color: var(--gt, var(--text)); }
+      .item.active-group-item:hover { background: var(--gcd, var(--fill-active)); color: var(--gtd, var(--text)); }
+      .item.active-item { background: var(--gcd, var(--fill-active)); color: var(--gtd, var(--text)); }
       /* Icônes d'action et épingle : suivent la couleur de contraste sur fond coloré (fallback = styles neutres). */
-      .group-head .ic-btn { color: var(--gt, #888); }
-      .group-head .ic-btn:hover { color: var(--gt, #fff); }
-      .item.active-group-item .ic-btn { color: var(--gt, #888); }
-      .item.active-group-item .ic-btn:hover { color: var(--gt, #fff); }
-      .item.active-item .ic-btn { color: var(--gtd, #888); }
-      .item.active-item .ic-btn:hover { color: var(--gtd, #fff); }
+      .group-head .ic-btn { color: var(--gt, var(--text-muted)); }
+      .group-head .ic-btn:hover { color: var(--gt, var(--text)); }
+      .item.active-group-item .ic-btn { color: var(--gt, var(--text-muted)); }
+      .item.active-group-item .ic-btn:hover { color: var(--gt, var(--text)); }
+      .item.active-item .ic-btn { color: var(--gtd, var(--text-muted)); }
+      .item.active-item .ic-btn:hover { color: var(--gtd, var(--text)); }
       .item.active-group-item .item-pin { color: var(--gt, #ddd); }
       .item.active-item .item-pin { color: var(--gtd, #ddd); }
       .item.active-group-item .off { color: var(--gt, #666); }
       .item.active-item .off { color: var(--gtd, #666); }
-      .inline-edit { flex: 1; min-width: 0; background: #0d0d0d; border: 1px solid #c80; border-radius: 3px; color: #ddd; font-family: inherit; font-size: 12px; padding: 1px 4px; outline: none; }
-      .new-group { padding: 8px; color: #9c9; cursor: pointer; border-top: 1px solid #2a2a2a; margin-top: auto; }
-      .new-group:hover { color: #cfc; }
-      .ctx-menu { position: absolute; top: 24px; right: 6px; z-index: 20; background: #202227; border: 1px solid #3a3d44; border-radius: 6px; overflow: hidden; min-width: 160px; }
-      .ctx-menu div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; color: #ddd; }
-      .ctx-menu div:hover { background: #2a2d33; }
+      .inline-edit { flex: 1; min-width: 0; background: var(--surface-2); border: 1px solid var(--ring); border-radius: var(--r-sm); color: var(--text); font-family: inherit; font-size: 12px; padding: 1px 4px; outline: none; }
+      .new-group { padding: 8px; color: var(--text-3); cursor: pointer; border-top: 1px solid var(--border); margin-top: auto; }
+      .new-group:hover { color: var(--text); }
+      .ctx-menu { position: absolute; top: 24px; right: 6px; z-index: 20; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r); overflow: hidden; min-width: 160px; }
+      .ctx-menu div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; color: var(--text-2); }
+      .ctx-menu div:hover { background: var(--ghost-hover); }
       .ctx-menu div svg { color: #9ab; flex: none; }
-      .ctx-menu div.danger { color: #f77; }
-      .ctx-menu div.danger svg { color: #f77; }
+      .ctx-menu div.danger { color: var(--err); }
+      .ctx-menu div.danger svg { color: var(--err); }
       .tab-ic { color: #9bd; display: inline-flex; }
       .tab-new-menu div { display: flex; align-items: center; gap: 8px; }
       .tab-new-menu div svg { color: #9ab; flex: none; }
