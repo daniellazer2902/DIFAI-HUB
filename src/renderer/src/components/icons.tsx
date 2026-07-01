@@ -11,12 +11,11 @@ export function TerminalIcon({ size = 12 }: IconProps): React.JSX.Element {
   )
 }
 
-/** Icône épingle contour (d'après Font Awesome « map-pin », trait). */
-export function PinIcon({ size = 12 }: IconProps): React.JSX.Element {
+/** Épingle (pushpin) — style lucide outline, comme le compagnon. */
+export function PinIcon({ size = 13 }: IconProps): React.JSX.Element {
   return (
-    <svg viewBox="0 0 384 512" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="36" aria-hidden="true">
-      <path d="M192 36c-83 0-150 67-150 150 0 96 150 290 150 290S342 282 342 186c0-83-67-150-150-150z" />
-      <circle cx="192" cy="186" r="56" />
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 4h6l-1 6 3 3H7l3-3-1-6zM12 16v5" />
     </svg>
   )
 }

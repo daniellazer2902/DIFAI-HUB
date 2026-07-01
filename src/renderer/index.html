@@ -76,12 +76,13 @@
       .side-add { margin-left: auto; width: 26px; height: 26px; justify-content: center; border-radius: var(--r-sm); }
       .side-add:hover { background: var(--ghost-hover); }
       .sidebar-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding-top: 6px; }
-      .group-head { position: relative; display: flex; align-items: center; gap: 7px; margin: 0 6px; padding: 6px 6px; color: var(--text-3); font-size: 11.5px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; border-radius: var(--r-sm); }
-      .group-head:hover { background: var(--ghost-hover); }
+      .group-head { position: relative; display: flex; align-items: center; gap: 7px; margin: 0 6px; padding: 6px 6px; color: var(--text-3); font-size: 11.5px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; border-radius: var(--r-sm); background: color-mix(in srgb, var(--gc, transparent) 9%, transparent); }
+      .group-head:hover { background: color-mix(in srgb, var(--gc, #ffffff) 14%, transparent); }
       .group.active-group > .group-head { color: var(--text-2); }
       .group-chevron { cursor: pointer; display: inline-flex; align-items: center; color: var(--text-muted); flex: none; transition: transform .15s var(--ease); }
       .group:not(.collapsed) > .group-head .group-chevron { transform: rotate(90deg); }
-      .group-dot { width: 8px; height: 8px; border-radius: 3px; flex: none; background: var(--gc, var(--text-muted)); }
+      /* Repère de groupe : CARRÉ (distinct des pastilles d'état rondes des sessions Claude). */
+      .group-dot { width: 9px; height: 9px; border-radius: 2px; flex: none; background: var(--gc, var(--text-muted)); }
       .group-name-wrap { flex: 1; cursor: pointer; overflow: hidden; }
       .group-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .group-count { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
@@ -97,7 +98,10 @@
       .group.drag-over-group { box-shadow: inset 0 2px 0 0 var(--gc, var(--accent)); }
       .ic-btn { cursor: pointer; color: var(--text-muted); user-select: none; display: inline-flex; align-items: center; }
       .ic-btn:hover { color: var(--text); }
-      .item { position: relative; display: flex; align-items: center; gap: 6px; margin: 1px 6px 1px 12px; padding: 0 8px; height: 31px; border-radius: var(--r); font-size: 12px; cursor: pointer; color: var(--text-3); }
+      /* Conteneur d'items : trait vertical de rattachement au groupe (couleur du groupe). */
+      .items { position: relative; }
+      .items::before { content: ''; position: absolute; left: 13px; top: 2px; bottom: 5px; width: 1px; background: color-mix(in srgb, var(--gc, var(--border-2)) 55%, transparent); }
+      .item { position: relative; display: flex; align-items: center; gap: 8px; margin: 1px 6px 1px 20px; padding: 0 8px; height: 31px; border-radius: var(--r); font-size: 12px; cursor: pointer; color: var(--text-3); }
       .item .item-ic { color: var(--text-muted); display: inline-flex; flex: none; }
       .item .item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .item .item-pin { width: 13px; flex: none; display: inline-flex; justify-content: center; color: var(--text-3); }
@@ -111,9 +115,7 @@
       .item.active-group-item:hover { background: var(--ghost-hover); color: var(--text-2); }
       .item.active-item { background: color-mix(in srgb, var(--gc, var(--accent)) 20%, transparent); color: var(--text); }
       .item.active-item:hover { background: color-mix(in srgb, var(--gc, var(--accent)) 26%, transparent); color: var(--text); }
-      .inline-edit { flex: 1; min-width: 0; background: var(--surface-2); border: 1px solid var(--ring); border-radius: var(--r-sm); color: var(--text); font-family: inherit; font-size: 12px; padding: 1px 4px; outline: none; }
-      .new-group { padding: 8px; color: var(--text-3); cursor: pointer; border-top: 1px solid var(--border); margin-top: auto; }
-      .new-group:hover { color: var(--text); }
+      .inline-edit { flex: 1; min-width: 0; box-sizing: border-box; height: 24px; line-height: 22px; background: var(--surface-2); border: 1px solid var(--ring); border-radius: var(--r-sm); color: var(--text); font-family: inherit; font-size: 12px; text-transform: none; letter-spacing: normal; padding: 0 6px; outline: none; }
       .ctx-menu { position: absolute; top: 24px; right: 6px; z-index: 20; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r); overflow: hidden; min-width: 160px; }
       .ctx-menu div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; color: var(--text-2); }
       .ctx-menu div:hover { background: var(--ghost-hover); }

@@ -190,7 +190,7 @@ export function Sidebar(): React.JSX.Element {
         {groups.map((g) => (
           <div
             key={g.id}
-            className={`group${g.id === activeGroupId ? ' active-group' : ''}${dragOverGroupId === g.id && dragGroupId && dragGroupId !== g.id ? ' drag-over-group' : ''}`}
+            className={`group${g.collapsed ? ' collapsed' : ''}${g.id === activeGroupId ? ' active-group' : ''}${dragOverGroupId === g.id && dragGroupId && dragGroupId !== g.id ? ' drag-over-group' : ''}`}
             style={g.color ? ({ '--gc': g.color, '--gcd': darken(g.color), '--gt': textOn(g.color), '--gtd': textOn(darken(g.color)) } as React.CSSProperties) : undefined}
             onDragOver={(e) => { if (dragGroupId && dragGroupId !== g.id) { e.preventDefault(); setDragOverGroupId(g.id) } }}
             onDragLeave={(e) => { if (dragOverGroupId === g.id && !e.currentTarget.contains(e.relatedTarget as Node)) setDragOverGroupId(null) }}
@@ -233,30 +233,36 @@ export function Sidebar(): React.JSX.Element {
                 </div>
               )}
             </div>
-            {!g.collapsed && g.items.map((it) => (
-              <div
-                key={it.id}
-                className={`item${it.id === activeItemId ? ' active-item' : g.id === activeGroupId ? ' active-group-item' : ''}`}
-                onClick={() => onItemClick(it)}
-                onContextMenu={(e) => { e.preventDefault(); setMenu(it.id) }}
-              >
-                <span className="item-ic">{it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : it.kind === 'note' ? <NotesIcon /> : <ClaudeIcon />}</span>
-                {nameOrEditor('item', it.id, it.name, 'item-name')}
-                <span className="item-pin">{it.pinned && <PinIcon />}</span>
-                <span className="item-state">{it.kind === 'ado' || it.kind === 'cmd' || it.kind === 'note' ? null : (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)}</span>
-                <span className="ic-btn menu-btn item-menu" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}><MoreIcon size={15} /></span>
-                {menu === it.id && (
-                  <div className="ctx-menu" onClick={(e) => e.stopPropagation()}>
-                    <div onClick={() => startRename('item', it.id, it.name)}><EditIcon /> Renommer</div>
-                    <div onClick={() => { useHub.getState().togglePin(it.id); setMenu(null) }}><PinIcon /> {it.pinned ? 'Désépingler' : 'Épingler'}</div>
-                    <div className="danger" onClick={() => removeItem(it)}><TrashIcon /> Supprimer</div>
+            {!g.collapsed && (
+              <div className="items">
+                {g.items.map((it) => (
+                  <div
+                    key={it.id}
+                    className={`item${it.id === activeItemId ? ' active-item' : g.id === activeGroupId ? ' active-group-item' : ''}`}
+                    onClick={() => onItemClick(it)}
+                    onContextMenu={(e) => { e.preventDefault(); setMenu(it.id) }}
+                  >
+                    <span className="item-ic">
+                      {it.kind === 'claude'
+                        ? (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)
+                        : it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : <NotesIcon />}
+                    </span>
+                    {nameOrEditor('item', it.id, it.name, 'item-name')}
+                    <span className="item-pin">{it.pinned && <PinIcon />}</span>
+                    <span className="ic-btn menu-btn item-menu" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}><MoreIcon size={15} /></span>
+                    {menu === it.id && (
+                      <div className="ctx-menu" onClick={(e) => e.stopPropagation()}>
+                        <div onClick={() => startRename('item', it.id, it.name)}><EditIcon /> Renommer</div>
+                        <div onClick={() => { useHub.getState().togglePin(it.id); setMenu(null) }}><PinIcon /> {it.pinned ? 'Désépingler' : 'Épingler'}</div>
+                        <div className="danger" onClick={() => removeItem(it)}><TrashIcon /> Supprimer</div>
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
-            ))}
+            )}
           </div>
         ))}
-        <div className="new-group" onClick={addGroup}>＋ Nouveau groupe</div>
         {colorFor && (
           <GroupColorModal
             current={groups.find((x) => x.id === colorFor)?.color ?? null}
