@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, parseRef, type Group, type PaneTab, type Pane as Side } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, EditIcon, PinIcon, TrashIcon, AzureIcon, ClaudeIcon, NotesIcon, ActivityIcon } from './icons'
+import { TerminalIcon, EditIcon, PinIcon, TrashIcon, AzureIcon, ClaudeIcon, NotesIcon, ActivityIcon, PlusIcon } from './icons'
 import { NotesView } from './NotesView'
 import { readDefaultVault } from '../settings'
 import { Terminal } from './Terminal'
@@ -268,7 +268,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
             )
           })}
           <div className="tab-new">
-            <button title="Nouvel onglet" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setAddMenu(addMenu ? null : { x: Math.max(4, Math.min(r.left, window.innerWidth - 228)), y: r.bottom + 2 }) }}>＋</button>
+            <button title="Nouvel onglet" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setAddMenu(addMenu ? null : { x: Math.max(4, Math.min(r.left, window.innerWidth - 228)), y: r.bottom + 2 }) }}><PlusIcon size={16} /></button>
           </div>
         </div>
         {overflowing && (

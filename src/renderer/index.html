@@ -61,8 +61,8 @@
       .tab-close { color: var(--text-3); }
       .tab-close:hover { color: var(--err); }
       .tab-new { position: relative; align-self: center; }
-      .tab-new button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-3); cursor: pointer; width: 26px; height: 26px; padding: 0; font-family: inherit; font-size: 13px; }
-      .tab-new button:hover { color: var(--text); border-color: var(--border-hover); }
+      .tab-new button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 0; border-radius: var(--r-sm); color: var(--text-muted); cursor: pointer; width: 26px; height: 26px; padding: 0; font-family: inherit; }
+      .tab-new button:hover { background: var(--ghost-hover); color: var(--text); }
       .tab-new-menu { position: absolute; top: 30px; left: 0; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r); padding: 5px; width: 244px; z-index: 5; box-shadow: 0 16px 40px -12px rgba(0,0,0,.7); text-transform: none; letter-spacing: normal; }
       .tab-new-menu div { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: var(--r-sm); cursor: pointer; font-size: 13px; color: var(--text-2); white-space: nowrap; }
       .tab-new-menu div:hover { background: var(--ghost-hover); color: var(--text); }
@@ -90,7 +90,7 @@
       .group:not(.collapsed) > .group-head .group-chevron { transform: rotate(90deg); }
       /* Repère de groupe : CARRÉ (distinct des pastilles d'état rondes des sessions Claude). */
       .group-dot { width: 12px; height: 12px; border-radius: 3px; flex: none; background: var(--gc, var(--text-muted)); }
-      .group-name-wrap { flex: 1; cursor: pointer; overflow: hidden; }
+      .group-name-wrap { flex: 1; min-width: 0; cursor: pointer; }
       .group-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .group-count { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
       .group-actions { display: flex; gap: 2px; opacity: 0; flex: none; }
@@ -123,7 +123,7 @@
       .item.active-group-item:hover { background: var(--ghost-hover); color: var(--text-2); }
       .item.active-item { background: color-mix(in srgb, var(--gc, var(--accent)) 20%, transparent); color: var(--text); }
       .item.active-item:hover { background: color-mix(in srgb, var(--gc, var(--accent)) 26%, transparent); color: var(--text); }
-      .inline-edit { flex: 1; min-width: 0; box-sizing: border-box; height: 24px; line-height: 22px; background: var(--surface-2); border: 1px solid var(--ring); border-radius: var(--r-sm); color: var(--text); font-family: inherit; font-size: 12px; text-transform: none; letter-spacing: normal; padding: 0 6px; outline: none; }
+      .inline-edit { flex: 1; min-width: 0; box-sizing: border-box; height: 24px; line-height: normal; background: var(--surface-2); border: 1px solid var(--ring); border-radius: var(--r-sm); color: var(--text); font-family: inherit; font-size: 12.5px; text-transform: none; letter-spacing: normal; padding: 0 7px; outline: none; }
       .ctx-menu { position: absolute; top: 24px; right: 6px; z-index: 20; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r); padding: 5px; min-width: 210px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.7); text-transform: none; letter-spacing: normal; }
       .ctx-menu div { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: var(--r-sm); cursor: pointer; font-size: 13px; color: var(--text-2); white-space: nowrap; }
       .ctx-menu div:hover { background: var(--ghost-hover); color: var(--text); }
@@ -143,8 +143,8 @@
       .tab-row { flex: 1; min-width: 0; display: flex; align-items: stretch; gap: 2px; overflow: hidden; }
       .tab-controls { flex: none; display: flex; align-items: center; gap: 4px; }
       .tab-overflow { position: relative; align-self: center; }
-      .tab-overflow button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-3); cursor: pointer; width: 26px; height: 26px; padding: 0; font-family: inherit; font-size: 12px; }
-      .tab-overflow button:hover { color: var(--text); border-color: var(--border-hover); }
+      .tab-overflow button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 0; border-radius: var(--r-sm); color: var(--text-muted); cursor: pointer; width: 26px; height: 26px; padding: 0; font-family: inherit; font-size: 12px; }
+      .tab-overflow button:hover { background: var(--ghost-hover); color: var(--text); }
       .tab-overflow-menu { position: absolute; top: 30px; right: 0; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r); padding: 5px; overflow-y: auto; max-height: 340px; min-width: 210px; z-index: 20; box-shadow: 0 16px 40px -12px rgba(0,0,0,.7); text-transform: none; letter-spacing: normal; }
       .tab-overflow-menu div { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: var(--r-sm); cursor: pointer; font-size: 13px; color: var(--text-2); white-space: nowrap; }
       .tab-overflow-menu div:hover { background: var(--ghost-hover); color: var(--text); }
