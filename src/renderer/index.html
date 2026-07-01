@@ -76,7 +76,7 @@
       .group-head:hover .group-actions { opacity: 1; }
       .group-head { cursor: grab; }
       .group-head:active { cursor: grabbing; }
-      .group.drag-over-group { box-shadow: inset 0 2px 0 0 #7fd; }
+      .group.drag-over-group { box-shadow: inset 0 2px 0 0 var(--gc, var(--accent)); }
       .ic-btn { cursor: pointer; color: var(--text-muted); user-select: none; display: inline-flex; align-items: center; }
       .ic-btn:hover { color: var(--text); }
       .item { position: relative; display: flex; align-items: center; gap: 6px; margin: 1px 6px 1px 12px; padding: 0 8px; height: 31px; border-radius: var(--r); font-size: 12px; cursor: pointer; color: var(--text-3); }
@@ -228,7 +228,7 @@
       .cline.tool { color: var(--warn); }
       .cline.text { color: var(--text-2); }
       .cline.prompt { color: var(--text-3); }
-      .cline.result { color: var(--text-muted); }
+      .cline.result { color: var(--text-3); }
       .console-header { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 8px; background: var(--surface); border-bottom: 1px solid var(--border); color: var(--text-3); font-size: 11px; }
       .console-body { padding: 6px 8px; }
       .cclose { cursor: pointer; color: var(--text-muted); user-select: none; }
@@ -320,7 +320,7 @@
       .ado-caret { flex: none; width: 12px; text-align: center; color: var(--text-muted); }
       .ado-caret-btn { flex: none; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; background: none; border: none; color: var(--text-3); cursor: pointer; padding: 0; }
       .ado-caret-btn:hover { color: var(--gc, var(--accent)); }
-      .ado-id { flex: none; font-family: var(--mono); color: var(--text-muted); }
+      .ado-id { flex: none; font-family: var(--mono); color: var(--text-3); }
       .ado-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .ado-state { flex: none; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-3); }
       .ado-assignee { flex: none; color: var(--text-muted); font-size: 11px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -404,6 +404,14 @@
       .img-view img { max-width: 100%; height: auto; }
       .html-view { width: 100%; height: 100%; border: 0; background: #fff; }
       .nt-emoji { font-size: 13px; line-height: 1; }
+
+      /* Focus clavier visible, cohérent sur les contrôles interactifs natifs */
+      button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+      /* Respect de la préférence "mouvement réduit" : neutralise les animations décoratives */
+      @media (prefers-reduced-motion: reduce) {
+        .blink, .pulse, .ado-spin-ico, .ado-spinner, .ado-refresh-dot { animation: none !important; }
+      }
     </style>
   </head>
   <body>
