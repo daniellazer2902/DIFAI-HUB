@@ -1,7 +1,7 @@
 // src/renderer/src/components/NoteTree.tsx
 import React from 'react'
 import type { NoteTreeNode } from '../../../shared/ipc'
-import { ChevronIcon, FolderLineIcon, FileLineIcon } from './icons'
+import { ChevronIcon, FolderLineIcon, FolderOpenLineIcon, FileLineIcon } from './icons'
 
 interface Props {
   node: NoteTreeNode
@@ -41,7 +41,7 @@ function NoteTreeEntry({ node, activePath, onOpen, expanded, onToggle, filter, d
       <div className="nt-folder">
         <div className="nt-row folder" style={pad} onClick={() => onToggle(node.path)}>
           <span className={`nt-chevron${open ? ' open' : ''}`}><ChevronIcon size={13} /></span>
-          <span className="nt-ic"><FolderLineIcon /></span>
+          <span className="nt-ic">{open ? <FolderOpenLineIcon /> : <FolderLineIcon />}</span>
           <span className="nt-name">{node.name}</span>
         </div>
         {open && children.map((c) => <NoteTreeEntry key={c.path} node={c} activePath={activePath} onOpen={onOpen} expanded={expanded} onToggle={onToggle} filter={filter} depth={depth + 1} />)}

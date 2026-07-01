@@ -148,6 +148,15 @@ export function FolderLineIcon({ size = 14 }: IconProps): React.JSX.Element {
   )
 }
 
+/** Dossier ouvert (trait) — style lucide « folder-open ». */
+export function FolderOpenLineIcon({ size = 14 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 14l1.5-3a2 2 0 0 1 1.8-1H21a1 1 0 0 1 .96 1.3l-1.55 5.4a2 2 0 0 1-1.92 1.3H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4a2 2 0 0 1 1.7.9l.6 1a2 2 0 0 0 1.7.9H18a2 2 0 0 1 2 2v2" />
+    </svg>
+  )
+}
+
 /** Fichier texte (trait) — style lucide « file-text ». */
 export function FileLineIcon({ size = 14 }: IconProps): React.JSX.Element {
   return (

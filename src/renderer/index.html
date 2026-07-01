@@ -438,7 +438,8 @@
       .nt-emoji { font-size: 13px; line-height: 1; }
 
       /* Focus clavier visible, cohérent sur les contrôles interactifs natifs */
-      button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+      /* Anneau de focus sur boutons/selects seulement ; les champs texte ont leur propre focus (bordure). */
+      button:focus-visible, select:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
 
       /* Respect de la préférence "mouvement réduit" : neutralise les animations décoratives */
       @media (prefers-reduced-motion: reduce) {
