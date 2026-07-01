@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { IPC, type HubApi, type Unsub, type SessionState, type ConsoleLine, type WorkspaceTree } from '../shared/ipc'
+import { IPC, type HubApi, type Unsub, type SessionState, type ConsoleLine, type WorkspaceTree, type DideOpenPayload } from '../shared/ipc'
 
 /** Abonne un canal et renvoie un désabonnement (retire le bon listener). */
 function on(channel: string, handler: (...args: unknown[]) => void): Unsub {
@@ -15,6 +15,7 @@ const hub: HubApi = {
   resize: (tabId, cols, rows) => ipcRenderer.send(IPC.SessionResize, tabId, cols, rows),
   killSession: (tabId) => ipcRenderer.send(IPC.SessionKill, tabId),
   pickFolder: () => ipcRenderer.invoke(IPC.PickFolder),
+  openPath: (path) => ipcRenderer.send(IPC.OpenPath, path),
   defaultCwd: () => ipcRenderer.invoke(IPC.DefaultCwd),
   searchTranscript: (tabId, query) => ipcRenderer.invoke(IPC.SearchTranscript, tabId, query),
   loadWorkspace: () => ipcRenderer.invoke(IPC.LoadWorkspace),
@@ -23,11 +24,11 @@ const hub: HubApi = {
   onExit: (cb) => on(IPC.PtyExit, (tabId, code) => cb(tabId as string, code as number)),
   onSessionState: (cb) => on(IPC.SessionState, (tabId, state) => cb(tabId as string, state as SessionState)),
   onAgentAdded: (cb) =>
-    on(IPC.AgentAdded, (tabId, agentId, type, desc) =>
-      cb(tabId as string, agentId as string, type as string, desc as string)),
+    on(IPC.AgentAdded, (tabId, agentId, type, desc, kind) =>
+      cb(tabId as string, agentId as string, type as string, desc as string, (kind as 'agent' | 'shell') ?? 'agent')),
   onAgentLines: (cb) =>
     on(IPC.AgentLines, (tabId, agentId, lines) => cb(tabId as string, agentId as string, lines as ConsoleLine[])),
-  onAgentDone: (cb) => on(IPC.AgentDone, (tabId, agentId) => cb(tabId as string, agentId as string)),
+  onAgentDone: (cb) => on(IPC.AgentDone, (tabId, agentId, failed) => cb(tabId as string, agentId as string, Boolean(failed))),
   onCloseRequest: (cb) => on(IPC.CloseRequest, () => cb()),
   confirmClose: () => ipcRenderer.send(IPC.CloseConfirm),
   adoConnList: () => ipcRenderer.invoke(IPC.AdoConnList),
@@ -38,7 +39,20 @@ const hub: HubApi = {
   adoListTeams: (id, project) => ipcRenderer.invoke(IPC.AdoListTeams, id, project),
   adoListIterations: (id, project, team) => ipcRenderer.invoke(IPC.AdoListIterations, id, project, team),
   adoListBoard: (p) => ipcRenderer.invoke(IPC.AdoListBoard, p),
-  adoGetChildren: (id, parentId) => ipcRenderer.invoke(IPC.AdoGetChildren, id, parentId)
+  adoGetChildren: (id, parentId) => ipcRenderer.invoke(IPC.AdoGetChildren, id, parentId),
+  adoGetDetail: (connId, project, id) => ipcRenderer.invoke(IPC.AdoGetDetail, connId, project, id),
+  notesPickFolder: () => ipcRenderer.invoke(IPC.NotesPickFolder),
+  notesPickFile: () => ipcRenderer.invoke(IPC.NotesPickFile),
+  notesTree: (root) => ipcRenderer.invoke(IPC.NotesTree, root),
+  notesRead: (root, path) => ipcRenderer.invoke(IPC.NotesRead, root, path),
+  notesReadRaw: (root, path) => ipcRenderer.invoke(IPC.NotesReadRaw, root, path),
+  notesAsset: (root, path) => ipcRenderer.invoke(IPC.NotesAsset, root, path),
+  notesOpenExternal: (url) => ipcRenderer.send(IPC.NotesOpenExternal, url),
+  notesWatch: (itemId, root) => ipcRenderer.send(IPC.NotesWatch, itemId, root),
+  notesUnwatch: (itemId) => ipcRenderer.send(IPC.NotesUnwatch, itemId),
+  notesResolveFile: (cwd, token) => ipcRenderer.invoke(IPC.NotesResolveFile, cwd, token),
+  onNotesChanged: (cb) => on(IPC.NotesChanged, (itemId, event, path) => cb(itemId as string, event as string, path as string)),
+  onDideOpen: (cb) => on(IPC.DideOpen, (p) => cb(p as DideOpenPayload))
 }
 
 contextBridge.exposeInMainWorld('hub', hub)

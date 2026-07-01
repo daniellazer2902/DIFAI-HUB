@@ -320,3 +320,95 @@ describe('store ADO (lot 4.2)', () => {
     expect(useHub.getState().itemById('adv')!.claudeArgs).toEqual(['--dangerously-skip-permissions'])
   })
 })
+
+describe('items note', () => {
+  beforeEach(() => useHub.getState().reset())
+
+  it('ajoute un item note, persiste root/rootKind/activePath et recharge', () => {
+    const gid = useHub.getState().addGroup('Docs')
+    useHub.getState().addItem(gid, {
+      id: 'n1', name: 'Vault', cwd: '', pinned: true, tabId: null, state: 'done', agents: [],
+      openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
+      kind: 'note', note: { root: '/v', rootKind: 'vault', activePath: '/v/a.md' }
+    })
+    const tree = useHub.getState().toPersistable()
+    const persisted = tree.groups[0].items[0]
+    expect(persisted.kind).toBe('note')
+    expect(persisted.note).toEqual({ root: '/v', rootKind: 'vault', activePath: '/v/a.md' })
+
+    useHub.getState().reset()
+    useHub.getState().loadWorkspace(tree)
+    const back = useHub.getState().itemById('n1')!
+    expect(back.note).toEqual({ root: '/v', rootKind: 'vault', activePath: '/v/a.md' })
+  })
+
+  it('setNoteActivePath met à jour le fichier ouvert', () => {
+    const gid = useHub.getState().addGroup('Docs')
+    useHub.getState().addItem(gid, {
+      id: 'n2', name: 'Vault', cwd: '', pinned: true, tabId: null, state: 'done', agents: [],
+      openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
+      kind: 'note', note: { root: '/v', rootKind: 'vault', activePath: null }
+    })
+    useHub.getState().setNoteActivePath('n2', '/v/b.md')
+    expect(useHub.getState().itemById('n2')!.note!.activePath).toBe('/v/b.md')
+  })
+})
+
+describe('openNoteFile', () => {
+  beforeEach(() => useHub.getState().reset())
+
+  it('crée un item note dans le volet opposé au terminal', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkItem('term', { split: 1 }))
+    useHub.getState().openNoteFile('C:/proj/rapport.md', 'term')
+    const items = useHub.getState().groups.find((x) => x.id === g)!.items
+    const note = items.find((i) => i.kind === 'note')!
+    expect(note.note).toEqual({ root: 'C:/proj/rapport.md', rootKind: 'file', activePath: 'C:/proj/rapport.md' })
+    expect(note.name).toBe('rapport.md')
+    expect(note.split).toBe(2)
+    expect(note.pinned).toBe(false)
+    expect(useHub.getState().activeItemId).toBe(note.id)
+  })
+
+  it('réutilise l\'onglet si le .md est déjà ouvert', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkItem('term', { split: 1 }))
+    useHub.getState().openNoteFile('C:/proj/r.md', 'term')
+    const firstId = useHub.getState().groups.find((x) => x.id === g)!.items.find((i) => i.kind === 'note')!.id
+    useHub.getState().openNoteFile('C:/proj/r.md', 'term')
+    const notes = useHub.getState().groups.find((x) => x.id === g)!.items.filter((i) => i.kind === 'note')
+    expect(notes).toHaveLength(1)
+    expect(useHub.getState().activeItemId).toBe(firstId)
+  })
+})
+
+describe('openNoteRoot', () => {
+  beforeEach(() => useHub.getState().reset())
+
+  it('ouvre un vault dans le groupe de l\'item de référence (activePath null)', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('it1'))
+    useHub.getState().openNoteRoot('/some/vault', 'vault', 'it1')
+    const note = useHub.getState().groups.flatMap((x) => x.items).find((i) => i.kind === 'note')
+    expect(note?.note).toEqual({ root: '/some/vault', rootKind: 'vault', activePath: null })
+  })
+
+  it('ouvre un fichier (activePath = le fichier)', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('it1'))
+    useHub.getState().openNoteRoot('/some/file.md', 'file', 'it1')
+    const note = useHub.getState().groups.flatMap((x) => x.items).find((i) => i.kind === 'note')
+    expect(note?.note).toEqual({ root: '/some/file.md', rootKind: 'file', activePath: '/some/file.md' })
+  })
+
+  it('déduplique : même root => réactive l\'item existant sans en créer un nouveau', () => {
+    const g = useHub.getState().addGroup('M')
+    useHub.getState().addItem(g, mkItem('it1'))
+    useHub.getState().openNoteRoot('/some/vault', 'vault', 'it1')
+    const countAfterFirst = useHub.getState().groups.flatMap((x) => x.items).filter((i) => i.kind === 'note').length
+    useHub.getState().openNoteRoot('/some/vault', 'vault', 'it1')
+    const countAfterSecond = useHub.getState().groups.flatMap((x) => x.items).filter((i) => i.kind === 'note').length
+    expect(countAfterFirst).toBe(1)
+    expect(countAfterSecond).toBe(1)
+  })
+})

@@ -42,3 +42,21 @@ export function isBusy(item: BusyLike): boolean {
 export function hasBusySession(groups: { items: BusyLike[] }[]): boolean {
   return groups.some((g) => g.items.some(isBusy))
 }
+
+/** Dossier parent d'un chemin (Windows ou POSIX), sans le séparateur final. */
+export function dirOf(p: string): string {
+  const i = Math.max(p.lastIndexOf('\\'), p.lastIndexOf('/'))
+  return i <= 0 ? p : p.slice(0, i)
+}
+
+/** Joint un chemin relatif à un dossier, en résolvant `.`/`..`, avec le séparateur du dossier. */
+export function joinPath(dir: string, rel: string): string {
+  const sep = dir.includes('\\') ? '\\' : '/'
+  const parts = dir.split(/[\\/]/)
+  for (const seg of rel.split(/[\\/]/)) {
+    if (seg === '' || seg === '.') continue
+    if (seg === '..') parts.pop()
+    else parts.push(seg)
+  }
+  return parts.join(sep)
+}

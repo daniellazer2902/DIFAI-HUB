@@ -48,6 +48,15 @@ export function FolderIcon({ size = 12 }: IconProps): React.JSX.Element {
   )
 }
 
+/** Dossier ouvert — Font Awesome « folder-open » solid. */
+export function FolderOpenIcon({ size = 12 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 576 512" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M88.7 223.8L0 375.8V96C0 60.7 28.7 32 64 32H181.5c17 0 33.3 6.7 45.3 18.7l26.5 26.5c12 12 28.3 18.7 45.3 18.7H416c35.3 0 64 28.7 64 64v32H144c-22.8 0-43.8 12.1-55.3 31.8zm27.6 16.1C122.1 230 132.6 224 144 224H544c11.5 0 22 6.1 27.7 16.1s5.7 22.2-.1 32.1l-112 192C453.9 474 443.4 480 432 480H32c-11.5 0-22-6.1-27.7-16.1s-5.7-22.2 .1-32.1l112-192z" />
+    </svg>
+  )
+}
+
 /** Cloche (son) — Font Awesome « bell » ; variante barrée si `muted`. */
 export function BellIcon({ size = 14, muted = false }: IconProps & { muted?: boolean }): React.JSX.Element {
   return (
@@ -91,6 +100,15 @@ export function PaletteIcon({ size = 12 }: IconProps): React.JSX.Element {
   return (
     <svg viewBox="0 0 512 512" width={size} height={size} fill="currentColor" aria-hidden="true">
       <path d="M512 256c0 .9 0 1.8 0 2.7c-.4 36.5-33.6 61.3-70.1 61.3H344c-26.5 0-48 21.5-48 48c0 3.4 .4 6.7 1 9.9c2.1 10.2 6.5 20 10.8 29.9c6.1 13.8 12.1 27.5 12.1 42c0 31.8-21.6 60.7-53.4 62c-3.5 .1-7 .2-10.6 .2C114.6 512 0 397.4 0 256S114.6 0 256 0S512 114.6 512 256zM128 288a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm0-96a32 32 0 1 0 0-64 32 32 0 1 0 0 64zM288 96a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm96 96a32 32 0 1 0 0-64 32 32 0 1 0 0 64z" />
+    </svg>
+  )
+}
+
+/** Document/Markdown — Font Awesome « file-lines » solid. */
+export function NotesIcon({ size = 12 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 384 512" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M64 0C28.7 0 0 28.7 0 64V448c0 35.3 28.7 64 64 64H320c35.3 0 64-28.7 64-64V160H256c-17.7 0-32-14.3-32-32V0H64zM256 0V128H384L256 0zM112 256H272c8.8 0 16 7.2 16 16s-7.2 16-16 16H112c-8.8 0-16-7.2-16-16s7.2-16 16-16zm0 64H272c8.8 0 16 7.2 16 16s-7.2 16-16 16H112c-8.8 0-16-7.2-16-16s7.2-16 16-16zm0 64H272c8.8 0 16 7.2 16 16s-7.2 16-16 16H112c-8.8 0-16-7.2-16-16s7.2-16 16-16z" />
     </svg>
   )
 }

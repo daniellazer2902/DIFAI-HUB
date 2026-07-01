@@ -1,5 +1,7 @@
 // Source de vérité unique des canaux IPC + types partagés main/preload/renderer.
 
+import type { NoteKind } from './noteKind'
+
 export const IPC = {
   // renderer -> main
   SessionNew: 'session:new',
@@ -8,6 +10,7 @@ export const IPC = {
   SessionResize: 'session:resize',
   SessionKill: 'session:kill',
   PickFolder: 'dialog:pick-folder',
+  OpenPath: 'shell:open-path',
   DefaultCwd: 'session:default-cwd',
   SearchTranscript: 'transcript:search',
   LoadWorkspace: 'workspace:load',
@@ -23,6 +26,18 @@ export const IPC = {
   AdoListIterations: 'ado:list-iterations',
   AdoListBoard: 'ado:list-board',
   AdoGetChildren: 'ado:get-children',
+  AdoGetDetail: 'ado:get-detail',
+  // Notes / Markdown (renderer -> main)
+  NotesPickFolder: 'notes:pick-folder',
+  NotesPickFile: 'notes:pick-file',
+  NotesTree: 'notes:tree',
+  NotesRead: 'notes:read',
+  NotesReadRaw: 'notes:read-raw',
+  NotesAsset: 'notes:asset',
+  NotesOpenExternal: 'notes:open-external',
+  NotesWatch: 'notes:watch',
+  NotesUnwatch: 'notes:unwatch',
+  NotesResolveFile: 'notes:resolve-file',
   // main -> renderer
   CloseRequest: 'app:close-request',
   PtyData: 'pty:data',
@@ -30,7 +45,9 @@ export const IPC = {
   SessionState: 'session:state',
   AgentAdded: 'agent:added',
   AgentLines: 'agent:lines',
-  AgentDone: 'agent:done'
+  AgentDone: 'agent:done',
+  NotesChanged: 'notes:changed',
+  DideOpen: 'dide:open'
 } as const
 
 export type ConsoleLineKind = 'prompt' | 'text' | 'tool' | 'result'
@@ -39,7 +56,7 @@ export interface ConsoleLine {
   text: string
 }
 
-export type SessionState = 'starting' | 'active' | 'waiting' | 'done'
+export type SessionState = 'starting' | 'active' | 'waiting' | 'attention' | 'done'
 
 /** Un message du transcript contenant le terme recherché (texte entier + nb d'occurrences). */
 export interface TranscriptMatch {
@@ -49,7 +66,7 @@ export interface TranscriptMatch {
 }
 
 /** Sous-ensemble persistable d'un item (config, sans état runtime de session). */
-export interface PersistItem { id: string; name: string; cwd: string; split?: 1 | 2; kind?: 'claude' | 'ado' | 'cmd'; claudeArgs?: string[]; ado?: { view: 'tree' | 'board'; iterationPath: string | null } }
+export interface PersistItem { id: string; name: string; cwd: string; split?: 1 | 2; kind?: 'claude' | 'ado' | 'cmd' | 'note'; claudeArgs?: string[]; ado?: { view: 'tree' | 'board'; iterationPath: string | null }; note?: PersistNote }
 export interface PersistGroup { id: string; name: string; collapsed: boolean; defaultCwd: string | null; color?: string | null; ado?: { connId: string; project: string; team: string | null } | null; items: PersistItem[] }
 /** Arborescence persistée sur disque (groupes + items épinglés). */
 export interface WorkspaceTree { activeGroupId: string | null; groups: PersistGroup[] }
@@ -72,17 +89,58 @@ export interface AdoWorkItem {
   parentId: number | null
   childCount: number
 }
+/** Une colonne du Taskboard (custom) : nom + mapping état→colonne par type de work item. */
+export interface AdoTaskColumn {
+  name: string
+  mappings: { workItemType: string; state: string }[]
+}
 /** Board d'un sprint : colonnes (états du process) + US, chacune avec ses tâches. */
 export interface AdoBoard {
-  states: string[]                 // ordre des colonnes
-  stories: AdoWorkItem[]           // cards (User Stories)
+  states: string[]                 // états User Story — vue cartes-par-état (StateBoardView)
+  taskColumns: AdoTaskColumn[]     // colonnes du Taskboard (ordre d'affichage)
+  stories: AdoWorkItem[]
   tasksByParent: Record<number, AdoWorkItem[]>
+}
+export interface AdoComment { author: string; date: string; html: string }
+export interface AdoWorkItemDetail {
+  id: number
+  type: string
+  title: string
+  state: string
+  assignedTo: string | null
+  storyPoints: number | null
+  priority: number | null
+  descriptionHtml: string          // images déjà inlinées (data: URI), non sanitisé (sanitisation renderer)
+  acceptanceCriteriaHtml: string
+  comments: AdoComment[]
 }
 export interface AdoError { ok: false; error: string; status?: number }
 export type AdoResponse<T> = { ok: true; data: T } | AdoError
 
+// --- Notes / Markdown (lecteur Obsidian) ---
+export interface NoteTreeNode {
+  name: string            // nom affiché (fichier ou dossier)
+  path: string            // chemin absolu
+  dir: boolean
+  kind?: NoteKind         // présent sur les fichiers (md/image/html) ; absent sur les dossiers
+  children?: NoteTreeNode[] // présent si dir
+}
+export interface NotesTree {
+  root: string
+  tree: NoteTreeNode                 // nœud racine (dir)
+  index: Record<string, string>      // clé = nom de fichier .md sans extension, en minuscules -> chemin absolu
+}
+export interface NoteFile { path: string; markdown: string }
+export interface NoteRaw { path: string; content: string }
+export interface NoteAsset { dataUri: string }
+export type NotesResult<T> = { ok: true; data: T } | { ok: false; error: string }
+/** Sous-ensemble persistable d'un item note. */
+export interface PersistNote { root: string; rootKind: 'vault' | 'file'; activePath: string | null }
+
 /** Fonction de désabonnement renvoyée par tous les `on*` (évite les fuites de listeners). */
 export type Unsub = () => void
+
+export interface DideOpenPayload { tabId: string | null; absPath: string; isDir: boolean }
 
 /** Contrat exposé au renderer via contextBridge. Le preload l'implémente, le renderer le consomme. */
 export interface HubApi {
@@ -92,6 +150,8 @@ export interface HubApi {
   resize(tabId: string, cols: number, rows: number): void
   killSession(tabId: string): void
   pickFolder(): Promise<string | null>
+  /** Ouvre un dossier (ou fichier) dans l'explorateur de l'OS. */
+  openPath(path: string): void
   defaultCwd(): Promise<string>
   searchTranscript(tabId: string, query: string): Promise<TranscriptMatch[]>
   loadWorkspace(): Promise<WorkspaceTree>
@@ -99,9 +159,9 @@ export interface HubApi {
   onData(cb: (tabId: string, data: string) => void): Unsub
   onExit(cb: (tabId: string, code: number) => void): Unsub
   onSessionState(cb: (tabId: string, state: SessionState) => void): Unsub
-  onAgentAdded(cb: (tabId: string, agentId: string, agentType: string, description: string) => void): Unsub
+  onAgentAdded(cb: (tabId: string, agentId: string, agentType: string, description: string, kind: 'agent' | 'shell') => void): Unsub
   onAgentLines(cb: (tabId: string, agentId: string, lines: ConsoleLine[]) => void): Unsub
-  onAgentDone(cb: (tabId: string, agentId: string) => void): Unsub
+  onAgentDone(cb: (tabId: string, agentId: string, failed: boolean) => void): Unsub
   onCloseRequest(cb: () => void): Unsub
   confirmClose(): void
   adoConnList(): Promise<AdoConnection[]>
@@ -113,4 +173,17 @@ export interface HubApi {
   adoListIterations(connId: string, project: string, team?: string): Promise<AdoResponse<AdoIteration[]>>
   adoListBoard(p: { connId: string; project: string; team?: string; iterationPath?: string }): Promise<AdoResponse<AdoBoard>>
   adoGetChildren(connId: string, parentId: number): Promise<AdoResponse<AdoWorkItem[]>>
+  adoGetDetail(connId: string, project: string, id: number): Promise<AdoResponse<AdoWorkItemDetail>>
+  notesPickFolder(): Promise<string | null>
+  notesPickFile(): Promise<string | null>
+  notesTree(root: string): Promise<NotesResult<NotesTree>>
+  notesRead(root: string, path: string): Promise<NotesResult<NoteFile>>
+  notesReadRaw(root: string, path: string): Promise<NotesResult<NoteRaw>>
+  notesAsset(root: string, path: string): Promise<NotesResult<NoteAsset>>
+  notesOpenExternal(url: string): void
+  notesWatch(itemId: string, root: string): void
+  notesUnwatch(itemId: string): void
+  notesResolveFile(cwd: string, token: string): Promise<string | null>
+  onNotesChanged(cb: (itemId: string, event: string, path: string) => void): Unsub
+  onDideOpen(cb: (p: DideOpenPayload) => void): Unsub
 }

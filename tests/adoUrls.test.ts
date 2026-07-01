@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { authHeader, projectsUrl, teamsUrl, iterationsUrl, statesUrl, wiqlUrl, batchUrl } from '../src/main/ado/adoUrls'
+import { authHeader, projectsUrl, teamsUrl, iterationsUrl, statesUrl, wiqlUrl, batchUrl, taskboardColumnsUrl, workItemUrl, commentsUrl } from '../src/main/ado/adoUrls'
 
 describe('adoUrls', () => {
   const base = 'https://dev.azure.com/acme'
@@ -28,5 +28,15 @@ describe('adoUrls', () => {
   })
   it('tolère un baseUrl avec slash final', () => {
     expect(projectsUrl('https://dev.azure.com/acme/')).toBe('https://dev.azure.com/acme/_apis/projects?api-version=7.1')
+  })
+  it('taskboardColumnsUrl cible work/taskboardcolumns (preview) avec équipe', () => {
+    const u = taskboardColumnsUrl('https://dev.azure.com/acme', 'Proj', 'Team A')
+    expect(u).toContain('/Proj/')
+    expect(u).toContain('/Team%20A/_apis/work/taskboardcolumns')
+    expect(u).toContain('api-version=7.1-preview.1')
+  })
+  it('workItemUrl + commentsUrl', () => {
+    expect(workItemUrl('https://dev.azure.com/acme', 42)).toBe('https://dev.azure.com/acme/_apis/wit/workitems/42?api-version=7.1')
+    expect(commentsUrl('https://dev.azure.com/acme', 'Proj', 42)).toContain('/Proj/_apis/wit/workItems/42/comments?api-version=7.1-preview.4')
   })
 })

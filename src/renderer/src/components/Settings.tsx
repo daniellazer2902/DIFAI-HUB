@@ -3,7 +3,7 @@ import { useHub } from '../store'
 import { Modal } from './Modal'
 import { AdoConnections } from './AdoConnections'
 import { writeSoundEnabled } from '../sound'
-import { writeConfirmOnClose, writeGlobalDefaultCwd } from '../settings'
+import { writeConfirmOnClose, writeGlobalDefaultCwd, readDefaultVault, writeDefaultVault } from '../settings'
 
 export function Settings({ onClose }: { onClose: () => void }): React.JSX.Element {
   const soundEnabled = useHub((s) => s.soundEnabled)
@@ -17,6 +17,9 @@ export function Settings({ onClose }: { onClose: () => void }): React.JSX.Elemen
     if (f) { useHub.getState().setGlobalDefaultCwd(f); writeGlobalDefaultCwd(f) }
   }
   function reset(): void { useHub.getState().setGlobalDefaultCwd(null); writeGlobalDefaultCwd(null) }
+  const [vault, setVault] = React.useState<string | null>(readDefaultVault())
+  async function pickVault(): Promise<void> { const f = await window.hub.notesPickFolder(); if (f) { setVault(f); writeDefaultVault(f) } }
+  function resetVault(): void { setVault(null); writeDefaultVault(null) }
 
   return (
     <Modal title="Réglages" onClose={onClose} footer={<button className="btn primary" onClick={onClose}>Fermer</button>}>
@@ -33,6 +36,12 @@ export function Settings({ onClose }: { onClose: () => void }): React.JSX.Elemen
         <span className="setting-path" title={globalDefaultCwd ?? ''}>{globalDefaultCwd ?? "(dossier de l'app)"}</span>
         <button className="btn" onClick={pick}>Choisir…</button>
         {globalDefaultCwd && <button className="btn" onClick={reset}>Réinitialiser</button>}
+      </div>
+      <div className="setting-row">
+        <span className="setting-label">Vault Obsidian par défaut</span>
+        <span className="setting-path" title={vault ?? ''}>{vault ?? '(non défini)'}</span>
+        <button className="btn" onClick={pickVault}>Choisir…</button>
+        {vault && <button className="btn" onClick={resetVault}>Réinitialiser</button>}
       </div>
       <div className="settings-section-title">Intégrations</div>
       <AdoConnections />

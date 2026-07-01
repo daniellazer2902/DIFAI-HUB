@@ -26,11 +26,11 @@ export function Console({ itemId }: { itemId: string }): React.JSX.Element | nul
         {item.agents.map((a) => (
           <div
             key={a.id}
-            className={`agent${a.id === item.openAgentId ? ' sel' : ''}${a.done ? ' done' : ''}`}
+            className={`agent ${a.kind}${a.id === item.openAgentId ? ' sel' : ''}${a.done ? ' done' : ''}${a.failed ? ' failed' : ''}`}
             onClick={() => open(itemId, a.id === item.openAgentId ? null : a.id)}
           >
             <span className="aclose" title="Retirer" onClick={(e) => { e.stopPropagation(); if (item.tabId) remove(item.tabId, a.id) }}>✕</span>
-            <div className="type">{a.done ? '✓' : '▸'} {a.type}</div>
+            <div className="type"><span className={`abadge ${a.kind}`}>{a.kind === 'shell' ? 'SHELL' : 'AGENT'}</span> {a.done ? (a.failed ? '✗' : '✓') : '▸'} {a.type}</div>
             <div className="desc">{a.desc.slice(0, 60)}</div>
           </div>
         ))}
@@ -38,7 +38,7 @@ export function Console({ itemId }: { itemId: string }): React.JSX.Element | nul
       <div className="console">
         {agent ? (
           <>
-            <div className="console-header"><span>▸ {agent.type} — {agent.desc.slice(0, 50)}</span></div>
+            <div className="console-header"><span><span className={`abadge ${agent.kind}`}>{agent.kind === 'shell' ? 'SHELL' : 'AGENT'}</span> {agent.type} — {agent.desc.slice(0, 50)}</span></div>
             <div className="console-body" ref={bodyRef}>
               {agent.lines.map((l, i) => (
                 <div className={`cline ${l.kind}`} key={i}>{icon(l.kind)} {l.text}</div>

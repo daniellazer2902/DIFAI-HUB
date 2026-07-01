@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, parseRef, type Group, type PaneTab, type Pane as Side } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, EditIcon, PinIcon, TrashIcon, AzureIcon, ClaudeIcon } from './icons'
+import { TerminalIcon, EditIcon, PinIcon, TrashIcon, AzureIcon, ClaudeIcon, NotesIcon } from './icons'
+import { NotesView } from './NotesView'
+import { readDefaultVault } from '../settings'
 import { Terminal } from './Terminal'
 import { Console } from './Console'
 import { SearchPanel } from './SearchPanel'
@@ -26,8 +28,8 @@ type Pos = { x: number; y: number }
 type Ctx = { id: string; x: number; y: number }
 
 function tabLabel(t: PaneTab): string {
-  if (t.kind === 'session' || t.kind === 'ado') return t.item.name
-  return `${t.item.name} - ${t.kind === 'find' ? 'Find' : 'Agents'}`
+  if (t.kind === 'session' || t.kind === 'ado' || t.kind === 'note') return t.item.name
+  return `${t.item.name} - ${t.kind === 'find' ? 'Find' : 'Exécutions'}`
 }
 
 export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, setDragId }: Props): React.JSX.Element {
@@ -125,6 +127,17 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
     })
   }
 
+  function addNoteItem(root: string, rootKind: 'vault' | 'file'): void {
+    useHub.getState().addItem(group.id, {
+      id: crypto.randomUUID(), name: basename(root), cwd: '', pinned: false, tabId: null, state: 'done',
+      agents: [], openAgentId: null, split: side === 'right' ? 2 : 1, findOpen: false, agentsOpen: false,
+      searchQuery: '', kind: 'note', note: { root, rootKind, activePath: rootKind === 'file' ? root : null }
+    })
+  }
+  async function addNoteFolder(): Promise<void> { closeMenus(); const f = await window.hub.notesPickFolder(); if (f) addNoteItem(f, 'vault') }
+  async function addNoteFile(): Promise<void> { closeMenus(); const f = await window.hub.notesPickFile(); if (f) addNoteItem(f, 'file') }
+  function addDefaultVault(): void { closeMenus(); const v = readDefaultVault(); if (v) addNoteItem(v, 'vault') }
+
   function closeSession(e: React.MouseEvent, itemId: string, tabId: string | null): void {
     e.stopPropagation()
     if (tabId) window.hub.killSession(tabId)
@@ -182,10 +195,8 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                     setCtx(ctx?.id === t.item.id ? null : { id: t.item.id, x, y })
                   }}
                 >
-                  <span className="tab-ic">{t.item.kind === 'cmd' ? <TerminalIcon /> : <ClaudeIcon />}</span>
-                  {t.item.kind === 'cmd'
-                    ? <span className="statedot" title={t.item.tabId ? 'En cours' : 'Terminé'} style={{ color: t.item.tabId ? '#7fd' : '#777' }}>{t.item.tabId ? '●' : '○'}</span>
-                    : <StateDot state={t.item.state} />}
+                  <span className="tab-ic">{t.item.kind === 'cmd' ? <TerminalIcon /> : t.item.kind === 'note' ? <NotesIcon /> : <ClaudeIcon />}</span>
+                  {t.item.kind === 'cmd' || t.item.kind === 'note' ? null : <StateDot state={t.item.state} />}
                   {editingId === t.item.id ? (
                     <input
                       ref={editRef}
@@ -203,7 +214,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                     <span className="tab-title">{t.item.name}</span>
                   )}
                   {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
-                  {t.item.kind !== 'cmd' && <span className="tab-agents">· {t.item.agents.filter((a) => !a.done).length} agents</span>}
+                  {t.item.kind !== 'cmd' && <span className="tab-agents">· {t.item.agents.filter((a) => !a.done).length} en cours</span>}
                   <span className="tab-close" title="Fermer l'onglet" onClick={(e) => closeSession(e, t.item.id, t.item.tabId)}>✕</span>
                 </div>
               )
@@ -225,6 +236,26 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                   <span className="tab-title">{t.item.name}</span>
                   {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
                   <span className="tab-close" title="Fermer l'onglet" onClick={(e) => { e.stopPropagation(); if (t.item.pinned) useHub.getState().setAdoClosed(t.item.id, true); else useHub.getState().removeItem(t.item.id) }}>✕</span>
+                </div>
+              )
+            }
+            if (t.kind === 'note') {
+              return (
+                <div
+                  key={t.ref}
+                  className={`tab${sel ? ' act' : ''}`}
+                  draggable
+                  onDragStart={(e) => { setAddMenu(null); setCtx(null); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', t.item.id); const id = t.item.id; setTimeout(() => setDragId(id), 0) }}
+                  onDragEnd={() => setDragId(null)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.stopPropagation(); onDropTab(t.item.id) }}
+                  onClick={() => useHub.getState().selectTab(side, t.ref)}
+                  onContextMenu={(e) => { e.preventDefault(); const x = Math.max(4, Math.min(e.clientX, window.innerWidth - 190)); const y = Math.min(e.clientY, window.innerHeight - 150); setCtx(ctx?.id === t.item.id ? null : { id: t.item.id, x, y }) }}
+                >
+                  <span className="tab-ic"><NotesIcon /></span>
+                  <span className="tab-title">{t.item.name}</span>
+                  {t.item.pinned && <span className="tab-pin"><PinIcon /></span>}
+                  <span className="tab-close" title="Fermer l'onglet" onClick={(e) => { e.stopPropagation(); useHub.getState().removeItem(t.item.id) }}>✕</span>
                 </div>
               )
             }
@@ -253,11 +284,14 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                       onClick={() => { useHub.getState().selectTab(side, t.ref); setOverflowOpen(false) }}
                     >{tabLabel(t)}</div>
                   ))}
-                  <div className="ovf-add" onClick={onDefault}><ClaudeIcon /> ＋ Claude par défaut</div>
-                  <div className="ovf-add" onClick={onPick}><ClaudeIcon /> ＋ Claude (choisir un dossier…)</div>
-                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); setAdvancedOpen(true) }}><ClaudeIcon /> ＋ Claude avancé…</div>
-                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addCmd() }}><TerminalIcon /> ＋ Terminal</div>
-                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addAdo() }}><AzureIcon /> ＋ ADO – Azure</div>
+                  <div className="ovf-add ovf-sep" onClick={onDefault}><ClaudeIcon /> Claude par défaut</div>
+                  <div className="ovf-add" onClick={onPick}><ClaudeIcon /> Claude (choisir un dossier…)</div>
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); setAdvancedOpen(true) }}><ClaudeIcon /> Claude avancé…</div>
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addCmd() }}><TerminalIcon /> Terminal</div>
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addAdo() }}><AzureIcon /> ADO – Azure</div>
+                  {readDefaultVault() && <div className="ovf-add" onClick={() => { setOverflowOpen(false); addDefaultVault() }}><NotesIcon /> Vault par défaut</div>}
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addNoteFolder() }}><NotesIcon /> Markdown : dossier…</div>
+                  <div className="ovf-add" onClick={() => { setOverflowOpen(false); addNoteFile() }}><NotesIcon /> Markdown : fichier…</div>
                 </div>
               )}
             </div>
@@ -276,6 +310,10 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
           const it = group.items.find((i) => i.id === active.itemId)
           return it ? <AdoBoard item={it} group={group} /> : null
         })()}
+        {active?.kind === 'note' && (() => {
+          const it = group.items.find((i) => i.id === active.itemId)
+          return it ? <NotesView item={it} /> : null
+        })()}
       </div>
       {advancedOpen && <ClaudeAdvancedModal onLaunch={onAdvanced} onClose={() => setAdvancedOpen(false)} />}
       {addMenu && (
@@ -285,6 +323,9 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
           <div onClick={() => { closeMenus(); setAdvancedOpen(true) }}><ClaudeIcon /> Claude avancé…</div>
           <div onClick={addCmd}><TerminalIcon /> Terminal</div>
           <div onClick={addAdo}><AzureIcon /> ADO – Azure</div>
+          {readDefaultVault() && <div onClick={addDefaultVault}><NotesIcon /> Vault par défaut</div>}
+          <div onClick={addNoteFolder}><NotesIcon /> Markdown : ouvrir un dossier…</div>
+          <div onClick={addNoteFile}><NotesIcon /> Markdown : ouvrir un fichier…</div>
         </div>
       )}
       {ctx && ctxItem && (
@@ -292,7 +333,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
           <div onClick={() => startRename(ctxItem.id, ctxItem.name)}><EditIcon /> Renommer</div>
           <div onClick={() => { useHub.getState().togglePin(ctxItem.id); setCtx(null) }}><PinIcon /> {ctxItem.pinned ? 'Désépingler' : 'Épingler'}</div>
           {ctxItem.kind === 'claude' && (
-            <div onClick={() => { if (ctxItem.agentsOpen) useHub.getState().closeAgentsTab(ctxItem.id); else useHub.getState().openAgentsTab(ctxItem.id); setCtx(null) }}><TerminalIcon /> {ctxItem.agentsOpen ? 'Cacher Agents' : 'Afficher Agents'}</div>
+            <div onClick={() => { if (ctxItem.agentsOpen) useHub.getState().closeAgentsTab(ctxItem.id); else useHub.getState().openAgentsTab(ctxItem.id); setCtx(null) }}><TerminalIcon /> {ctxItem.agentsOpen ? 'Cacher Exécutions' : 'Afficher Exécutions'}</div>
           )}
           <div className="danger" onClick={(e) => { if (ctxItem.kind === 'ado') { e.stopPropagation(); useHub.getState().removeItem(ctxItem.id) } else closeSession(e, ctxItem.id, ctxItem.tabId); setCtx(null) }}><TrashIcon /> Supprimer</div>
         </div>

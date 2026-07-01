@@ -30,6 +30,7 @@ export function App(): React.JSX.Element {
           const item = s.itemById(itemId)
           // Board ADO = page DOM → recherche in-page ; session Claude → Find transcript ; terminal cmd → rien (pas de transcript).
           if (kind === 'ado') s.setAdoFind(itemId, { open: !(s.adoFind[itemId]?.open) })
+          else if (item?.kind === 'note') s.setNoteFind(itemId, { open: !(s.noteFind[itemId]?.open) })
           else if (item?.kind === 'cmd') { /* pas de recherche sur un terminal */ }
           else s.toggleFind(itemId)
         }
@@ -48,20 +49,31 @@ export function App(): React.JSX.Element {
 
     const unsubs: Unsub[] = []
     unsubs.push(window.hub.onSessionState((tid, state) => {
-      const prev = useHub.getState().itemByTab(tid)?.state
-      useHub.getState().setItemState(tid, state)
+      const s = useHub.getState()
+      const prev = s.itemByTab(tid)?.state
+      // Fin de génération : si la fenêtre + cette console ont déjà le focus (on la regarde en
+      // direct), on marque « vu » tout de suite (waiting) ; sinon on laisse l'alerte (attention).
+      const effective = state === 'attention' && document.hasFocus() && s.focusedTabId === tid ? 'waiting' : state
+      useHub.getState().setItemState(tid, effective)
       if (prev) {
-        const snd = soundForTransition(prev, state)
+        const snd = soundForTransition(prev, state) // son basé sur l'état réel (attention = fin)
         if (snd && useHub.getState().soundEnabled) playSound(snd)
       }
     }))
-    unsubs.push(window.hub.onAgentAdded((tid, agentId, type, desc) =>
-      useHub.getState().addAgent(tid, { id: agentId, type, desc, lines: [], done: false })))
+    unsubs.push(window.hub.onAgentAdded((tid, agentId, type, desc, kind) =>
+      useHub.getState().addAgent(tid, { id: agentId, type, desc, lines: [], done: false, kind })))
     unsubs.push(window.hub.onAgentLines((tid, agentId, lines) => useHub.getState().appendLines(tid, agentId, lines)))
-    unsubs.push(window.hub.onAgentDone((tid, agentId) => useHub.getState().setAgentDone(tid, agentId)))
+    unsubs.push(window.hub.onAgentDone((tid, agentId, failed) => useHub.getState().setAgentDone(tid, agentId, failed)))
     unsubs.push(window.hub.onExit((tid) => {
       const it = useHub.getState().itemByTab(tid)
       if (it) useHub.getState().clearSession(it.id)
+    }))
+    unsubs.push(window.hub.onDideOpen((p) => {
+      const s = useHub.getState()
+      // Item de la session émettrice → on ouvre dans SON groupe ; sinon fallback sur le groupe actif.
+      const near = (p.tabId && s.itemByTab(p.tabId)) || s.groups.find((g) => g.id === s.activeGroupId)?.items[0]
+      if (!near) return
+      useHub.getState().openNoteRoot(p.absPath, p.isDir ? 'vault' : 'file', near.id)
     }))
     return () => unsubs.forEach((u) => u())
   }, [])
@@ -99,7 +111,7 @@ export function App(): React.JSX.Element {
       }
       for (const g of tree.groups) {
         for (const i of g.items) {
-          if (i.kind === 'ado') continue // board ADO : pas de pty à relancer
+          if (i.kind === 'ado' || i.kind === 'note') continue // board ADO / note : pas de pty à relancer
           const tabId = i.kind === 'cmd' ? await window.hub.newCmd(i.cwd) : await window.hub.newSession(i.cwd, i.claudeArgs)
           if (!active) return
           useHub.getState().bindSession(i.id, tabId)
