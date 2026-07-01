@@ -1,17 +1,18 @@
 import React from 'react'
 import type { SessionState } from '../../../shared/ipc'
 
-const META: Record<SessionState, { color: string; cls: string; glyph: string; label: string }> = {
-  starting: { color: '#9cf', cls: 'pulse', glyph: '●', label: 'Démarrage…' },
-  active: { color: '#fb3', cls: 'blink', glyph: '●', label: 'Travaille…' },
-  waiting: { color: '#7fd', cls: '', glyph: '●', label: 'Prêt' },
-  attention: { color: '#f55', cls: 'pulse', glyph: '●', label: 'Terminé — non vu' },
-  done: { color: '#777', cls: '', glyph: '○', label: 'Terminée' }
+const META: Record<SessionState, { color: string; cls: string; label: string }> = {
+  starting: { color: '#9ccfff', cls: 'pulse', label: 'Démarrage…' },
+  active: { color: '#ffb43b', cls: 'blink', label: 'Travaille…' },
+  waiting: { color: '#5fe0a8', cls: '', label: 'Prêt' },
+  attention: { color: '#ff5c5c', cls: 'pulse', label: 'Terminé — non vu' },
+  done: { color: '#7a7a7a', cls: 'hollow', label: 'Terminée' }
 }
 
 export function StateDot({ state }: { state: SessionState }): React.JSX.Element {
   const m = META[state]
-  return <span className={`statedot ${m.cls}`} title={m.label} style={{ color: m.color }}>{m.glyph}</span>
+  // Cercle plein (rond → distinct du carré de groupe) ; « done » = cercle creux.
+  return <span className={`statedot ${m.cls}`} title={m.label} style={{ ['--dot' as string]: m.color }} />
 }
 
 export function stateLabel(state: SessionState): string {

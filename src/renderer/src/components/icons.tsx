@@ -130,6 +130,15 @@ export function PlusIcon({ size = 15 }: IconProps): React.JSX.Element {
   )
 }
 
+/** Activité / processus (pouls) — style lucide « activity ». */
+export function ActivityIcon({ size = 12 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
+  )
+}
+
 /** Trois points horizontaux (menu ···) — style lucide outline. */
 export function MoreIcon({ size = 15 }: IconProps): React.JSX.Element {
   return (
