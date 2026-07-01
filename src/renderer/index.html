@@ -233,34 +233,35 @@
       .console-body { padding: 6px 8px; }
       .cclose { cursor: pointer; color: var(--text-muted); user-select: none; }
       .cclose:hover { color: var(--err); }
-      .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
-      .modal { background: #1e1e1e; border: 1px solid #3a3d44; border-radius: 10px; min-width: 360px; max-width: 520px; max-height: 80vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
-      .modal-title { padding: 12px 16px; font-weight: bold; color: #cfe; border-bottom: 1px solid #333; }
-      .modal-body { padding: 14px 16px; color: #ddd; font-size: 13px; }
-      .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px; border-top: 1px solid #333; }
-      .modal-msg { margin: 0 0 8px; color: #bbb; }
-      .modal-list { margin: 6px 0 0; padding-left: 18px; color: #fc8; }
+      .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 100; }
+      .modal { background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r-card); min-width: 360px; max-width: 520px; max-height: 80vh; overflow: auto; box-shadow: 0 24px 60px -20px rgba(0,0,0,.8); }
+      .modal-title { padding: 12px 16px; font-weight: bold; color: var(--text); border-bottom: 1px solid var(--border); }
+      .modal-body { padding: 14px 16px; color: var(--text-2); font-size: 13px; }
+      .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--border); }
+      .modal-msg { margin: 0 0 8px; color: var(--text-2); }
+      .modal-list { margin: 6px 0 0; padding-left: 18px; color: var(--info); }
       .modal-list li { margin: 2px 0; }
-      .btn { background: #2a2d33; border: 1px solid #444; border-radius: 6px; color: #ddd; cursor: pointer; padding: 5px 12px; font-family: inherit; font-size: 12px; }
-      .btn:hover { background: #33373e; }
-      .btn.primary { border-color: #c80; color: #fc8; }
-      .btn.danger { border-color: #a33; color: #f88; }
-      .btn.danger:hover { background: #3a2020; }
-      .setting-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #2a2a2a; }
+      .btn { background: var(--card); border: 1px solid var(--border-2); border-radius: var(--r-btn); color: var(--text); cursor: pointer; padding: 5px 12px; font-family: inherit; font-size: 12px; transition: background var(--ease), border-color var(--ease); }
+      .btn:hover { background: var(--ghost-hover); }
+      .btn.primary { background: var(--accent); color: var(--accent-ink); border: 0; font-weight: 600; }
+      .btn.primary:hover { filter: brightness(1.08); }
+      .btn.danger { background: var(--err); color: #fff; border: 0; }
+      .btn.danger:hover { filter: brightness(1.1); }
+      .setting-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
       .setting-row:last-child { border-bottom: none; }
       .setting-label { flex: 1; }
-      .setting-path { color: #9bd; font-size: 11px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .toggle { background: #2a2d33; border: 1px solid #444; border-radius: 12px; color: #aaa; cursor: pointer; padding: 3px 12px; font-family: inherit; font-size: 11px; }
-      .toggle.on { border-color: #c80; color: #fc8; background: #33291a; }
+      .setting-path { color: var(--text-3); font-size: 11px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .toggle { background: var(--card); border: 1px solid var(--border-2); border-radius: 12px; color: var(--text-3); cursor: pointer; padding: 3px 12px; font-family: inherit; font-size: 11px; transition: background var(--ease), border-color var(--ease), color var(--ease); }
+      .toggle.on { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--text); }
       .swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-bottom: 12px; }
       .swatch { width: 100%; aspect-ratio: 1; border: 2px solid transparent; border-radius: 6px; cursor: pointer; padding: 0; }
-      .swatch.sel { border-color: #fff; }
-      .color-wheel-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; color: #bbb; font-size: 12px; }
-      .color-wheel-row input[type=color] { width: 48px; height: 28px; background: none; border: 1px solid #444; border-radius: 6px; cursor: pointer; padding: 0; }
+      .swatch.sel { border-color: var(--text); }
+      .color-wheel-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; color: var(--text-2); font-size: 12px; }
+      .color-wheel-row input[type=color] { width: 48px; height: 28px; background: none; border: 1px solid var(--border-2); border-radius: 6px; cursor: pointer; padding: 0; }
       .color-preview { display: flex; flex-direction: column; gap: 3px; }
       .cp-head { padding: 6px 10px; border-radius: 6px 6px 0 0; font-weight: bold; font-size: 12px; }
       .cp-item { padding: 5px 10px; font-size: 12px; }
-      .settings-section-title { margin: 14px 0 4px; padding-top: 10px; border-top: 1px solid #333; font-weight: bold; color: #cfe; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+      .settings-section-title { margin: 14px 0 4px; padding-top: 10px; border-top: 1px solid var(--border); font-weight: bold; color: var(--text); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
       .ado-empty { color: var(--text-muted); font-size: 12px; padding: 8px 0; }
       .ado-conn-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
       .ado-conn-label { font-weight: bold; color: var(--text-2); }
@@ -270,10 +271,10 @@
       .ado-conn-edit-actions { display: flex; gap: 8px; }
       .ado-input { background: var(--bg); border: 1px solid var(--border-2); border-radius: var(--r-sm); color: var(--text); padding: 6px 10px; font-family: inherit; font-size: 12px; transition: border-color var(--ease); }
       .ado-input:focus { outline: none; border-color: var(--ring); }
-      .muted { color: #888; font-size: 11px; padding: 6px 0; }
-      .setting-row > label { flex: 1; color: #bbb; font-size: 12px; }
-      .setting-row > select { flex: 1.4; background: #161616; border: 1px solid #444; border-radius: 6px; color: #ddd; padding: 6px 10px; font-family: inherit; font-size: 12px; }
-      .setting-row > select:focus { outline: none; border-color: #c80; }
+      .muted { color: var(--text-muted); font-size: 11px; padding: 6px 0; }
+      .setting-row > label { flex: 1; color: var(--text-2); font-size: 12px; }
+      .setting-row > select { flex: 1.4; background: rgba(255,255,255,.03); border: 1px solid var(--border-2); border-radius: var(--r); color: var(--text); padding: 6px 10px; font-family: inherit; font-size: 12px; transition: border-color var(--ease), box-shadow var(--ease); }
+      .setting-row > select:focus { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent); }
       .setting-row > select:disabled { opacity: 0.5; cursor: not-allowed; }
       .ado-board { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; }
       .ado-content { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
