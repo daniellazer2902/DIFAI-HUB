@@ -24,7 +24,7 @@ export function Sidebar(): React.JSX.Element {
   const activeItemId = useHub((s) => s.activeItemId)
   const activeGroupId = useHub((s) => s.activeGroupId)
   const [menu, setMenu] = useState<string | null>(null)
-  const [addFor, setAddFor] = useState<string | null>(null)
+  const [addFor, setAddFor] = useState<{ id: string; x: number; y: number } | null>(null)
   const [colorFor, setColorFor] = useState<string | null>(null)
   const [adoFor, setAdoFor] = useState<string | null>(null)
   const [advancedFor, setAdvancedFor] = useState<string | null>(null)
@@ -208,11 +208,11 @@ export function Sidebar(): React.JSX.Element {
               <span className="group-name-wrap" onClick={() => useHub.getState().setActiveGroup(g.id)}>{nameOrEditor('group', g.id, g.name, 'group-name')}</span>
               {g.items.length > 0 && <span className="group-count">{g.items.length}</span>}
               <span className="group-actions">
-                <span className="ic-btn add-btn" title="Ajouter…" onClick={() => { setMenu(null); setAddFor(addFor === g.id ? null : g.id) }}><PlusIcon size={15} /></span>
+                <span className="ic-btn add-btn" title="Ajouter…" onClick={(e) => { setMenu(null); const r = e.currentTarget.getBoundingClientRect(); setAddFor(addFor?.id === g.id ? null : { id: g.id, x: Math.min(r.left, window.innerWidth - 252), y: r.bottom + 4 }) }}><PlusIcon size={15} /></span>
                 <span className="ic-btn menu-btn" title="Menu" onClick={() => { setAddFor(null); setMenu(menu === g.id ? null : g.id) }}><MoreIcon size={15} /></span>
               </span>
-              {addFor === g.id && (
-                <div className="tab-new-menu">
+              {addFor && addFor.id === g.id && (
+                <div className="tab-new-menu" style={{ position: 'fixed', left: addFor.x, top: addFor.y }}>
                   <div onClick={() => addClaudeDefault(g)}><ClaudeIcon /> Claude par défaut</div>
                   <div onClick={() => addClaudePick(g)}><ClaudeIcon /> Claude (choisir un dossier…)</div>
                   <div onClick={() => { setAddFor(null); setAdvancedFor(g.id) }}><ClaudeIcon /> Claude avancé…</div>
