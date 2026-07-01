@@ -28,6 +28,9 @@ vite entre des dizaines de terminaux. DIFAI-IDE centralise tout dans une seule f
 
 ## Fonctionnalités
 
+- **Interface sombre épurée** — refonte visuelle façon Linear/Cursor : fil d'Ariane
+  (*groupe / élément actif*) en tête, sidebar à **couleurs de groupe** (carré coloré,
+  accent d'onglet actif, trait de rattachement), pastilles d'état, jeu d'icônes cohérent.
 - **Sessions Claude Code embarquées** — terminaux interactifs (xterm.js + node-pty),
   multi-projets, relancées automatiquement au démarrage pour les items épinglés.
 - **Groupes & onglets** — organisation par groupe, couleurs de groupe, épinglage,
@@ -47,13 +50,17 @@ vite entre des dizaines de terminaux. DIFAI-IDE centralise tout dans une seule f
   - **vue détail riche** d'une US ou d'une tâche : description, critères d'acceptation,
     story points, priorité, assigné, commentaires et **images** (rendu HTML assaini).
 - **Lecteur Markdown / Obsidian** (lecture seule) — ouvre un **vault** (dossier de `.md`,
-  avec arborescence) ou un **fichier** isolé, rendu propre : titres, tables, code coloré,
-  images, callouts, **wikilinks `[[…]]` cliquables**, embeds `![[…]]`, frontmatter masqué.
-  Liens internes navigables (historique avant/arrière), liens externes ouverts dans le
-  navigateur, **live-reload** quand le fichier change sur disque. Un *vault par défaut* peut
-  être mémorisé dans les Réglages. Les **chemins `.md` affichés dans le terminal sont
-  cliquables** : un clic ouvre le fichier dans un onglet Markdown (volet opposé), en réutilisant
-  l'onglet s'il est déjà ouvert.
+  avec arborescence **filtrable** via une barre de recherche) ou un **fichier** isolé, rendu
+  propre : titres, tables, code coloré, images, callouts, **wikilinks `[[…]]` cliquables**,
+  embeds `![[…]]`, frontmatter masqué. Gère aussi les fichiers **images** et **HTML**
+  (rendus en iframe sandboxée). Liens internes navigables (historique avant/arrière), liens
+  externes ouverts dans le navigateur, **live-reload** quand le fichier change sur disque. Un
+  *vault par défaut* peut être mémorisé dans les Réglages. Les **chemins `.md` affichés dans le
+  terminal sont cliquables** : un clic ouvre le fichier dans un onglet Markdown (volet opposé),
+  en réutilisant l'onglet s'il est déjà ouvert.
+- **Ouverture depuis une session** — la commande `/dide-open <chemin>` (skill Claude Code)
+  ouvre un fichier ou un dossier **en onglet dans le groupe de la session courante**
+  (note `.md`, image, HTML…), sans quitter l'IDE.
 - **Garde-fou `~/.claude.json`** — surveille ce fichier (que Claude Code écrit de façon non
   atomique) et restaure automatiquement la dernière version valide si des sessions
   parallèles le corrompent.
@@ -64,7 +71,14 @@ vite entre des dizaines de terminaux. DIFAI-IDE centralise tout dans une seule f
 ### Recherche dans le transcript (`Ctrl+F`)
 
 Voir la [vue d'ensemble](#difai-ide) ci-dessus : `Ctrl+F` sur une session ouvre un panneau de
-recherche dans l'historique de la conversation, avec surlignage et compteur d'occurrences.
+recherche dans l'historique de la conversation, présenté en **cartes de messages** (distinction
+« toi » / Claude), avec surlignage et compteur d'occurrences.
+
+### Lecteur Markdown / Obsidian
+
+![Lecteur Markdown](docs/screenshots/lecteur-markdown.png)
+
+*Ouverture d'un vault : **arborescence filtrable** à gauche (barre « Filtrer les notes… », dossiers ouverts/fermés) et rendu Markdown propre à droite (titres, code coloré, tables). Lecture seule avec live-reload ; gère aussi images et HTML.*
 
 ### Console des sous-agents
 
