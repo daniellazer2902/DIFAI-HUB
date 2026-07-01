@@ -8,6 +8,7 @@ import { NoteTree } from './NoteTree'
 import { ImageView } from './ImageView'
 import { HtmlView } from './HtmlView'
 import { basename } from '../util'
+import { SearchIcon } from './icons'
 
 interface Props { item: Item }
 
@@ -35,6 +36,7 @@ export function NotesView({ item }: Props): React.JSX.Element {
   const [err, setErr] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [treeFilter, setTreeFilter] = useState('')
   const histRef = useRef<{ stack: string[]; pos: number }>({ stack: [], pos: -1 })
   const [, force] = useState(0)
   const activePath = note.activePath
@@ -157,7 +159,17 @@ export function NotesView({ item }: Props): React.JSX.Element {
       <div className="notes-body">
         {isVault && !collapsed && (
           <div className="notes-tree">
-            {tree ? <NoteTree node={tree.tree} activePath={activePath} onOpen={(p) => open(p)} expanded={expanded} onToggle={toggleDir} /> : <div className="notes-center">Chargement…</div>}
+            <div className="nt-head">
+              <div className="nt-title">Vault — {basename(note.root)}</div>
+              <div className="nt-search">
+                <SearchIcon size={13} />
+                <input placeholder="Filtrer les notes…" value={treeFilter} onChange={(e) => setTreeFilter(e.target.value)} aria-label="Filtrer les notes" />
+                {treeFilter && <span className="nt-search-x" title="Effacer" onClick={() => setTreeFilter('')}>✕</span>}
+              </div>
+            </div>
+            <div className="nt-scroll">
+              {tree ? <NoteTree node={tree.tree} activePath={activePath} onOpen={(p) => open(p)} expanded={expanded} onToggle={toggleDir} filter={treeFilter.trim().toLowerCase()} /> : <div className="notes-center">Chargement…</div>}
+            </div>
           </div>
         )}
         <div className="notes-content">

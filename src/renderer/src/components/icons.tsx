@@ -130,6 +130,33 @@ export function PlusIcon({ size = 15 }: IconProps): React.JSX.Element {
   )
 }
 
+/** Loupe (recherche) — style lucide « search ». */
+export function SearchIcon({ size = 14 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+    </svg>
+  )
+}
+
+/** Dossier (trait) — style lucide « folder ». */
+export function FolderLineIcon({ size = 14 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    </svg>
+  )
+}
+
+/** Fichier texte (trait) — style lucide « file-text ». */
+export function FileLineIcon({ size = 14 }: IconProps): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 3h8l4 4v14H6zM14 3v4h4M9 13h6M9 17h6" />
+    </svg>
+  )
+}
+
 /** Activité / processus (pouls) — style lucide « activity ». */
 export function ActivityIcon({ size = 12 }: IconProps): React.JSX.Element {
   return (
