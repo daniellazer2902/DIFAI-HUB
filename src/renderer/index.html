@@ -81,6 +81,10 @@
       .side-brand { font-size: 13.5px; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
       .side-add { margin-left: auto; width: 26px; height: 26px; justify-content: center; border-radius: var(--r-sm); }
       .side-add:hover { background: var(--ghost-hover); }
+      .side-foot { flex: none; border-top: 1px solid var(--border); padding: 6px; }
+      .side-settings { display: flex; align-items: center; gap: 9px; width: 100%; height: 34px; padding: 0 10px; border: 0; background: none; border-radius: var(--r-sm); color: var(--text-3); cursor: pointer; font-family: inherit; font-size: 13px; }
+      .side-settings:hover { background: var(--ghost-hover); color: var(--text); }
+      .side-settings svg { color: var(--text-muted); flex: none; }
       .sidebar-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding-top: 6px; }
       .group { margin-bottom: 7px; }
       .group-head { position: relative; display: flex; align-items: center; gap: 7px; margin: 0 6px; padding: 6px 6px; color: var(--text-3); font-size: 11.5px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; border-radius: var(--r-sm); background: color-mix(in srgb, var(--gc, transparent) 9%, transparent); }
@@ -124,8 +128,10 @@
       .item.active-item { background: color-mix(in srgb, var(--gc, var(--accent)) 20%, transparent); color: var(--text); }
       .item.active-item:hover { background: color-mix(in srgb, var(--gc, var(--accent)) 26%, transparent); color: var(--text); }
       .inline-edit { flex: 1; min-width: 0; box-sizing: border-box; height: 24px; line-height: normal; background: var(--surface-2); border: 1px solid var(--ring); border-radius: var(--r-sm); color: var(--text); font-family: inherit; font-size: 12.5px; text-transform: none; letter-spacing: normal; padding: 0 7px; outline: none; }
-      /* Pendant l'édition d'un nom, on neutralise le fond de survol/sélection de la ligne (sinon fond moche derrière l'input). */
+      /* Pendant l'édition d'un nom : fond de ligne neutre + on masque les actions/compteur/épingle (sinon ça encombre l'input). */
       .group-head:has(.inline-edit), .item:has(.inline-edit) { background: transparent !important; }
+      .group-head:has(.inline-edit) .group-actions, .group-head:has(.inline-edit) .group-count { display: none; }
+      .item:has(.inline-edit) .item-menu, .item:has(.inline-edit) .item-pin { display: none; }
       .ctx-menu { position: absolute; top: 24px; right: 6px; z-index: 20; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r); padding: 5px; min-width: 210px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.7); text-transform: none; letter-spacing: normal; }
       .ctx-menu div { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: var(--r-sm); cursor: pointer; font-size: 13px; color: var(--text-2); white-space: nowrap; }
       .ctx-menu div:hover { background: var(--ghost-hover); color: var(--text); }

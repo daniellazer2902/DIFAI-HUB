@@ -3,6 +3,7 @@ import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
 import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, FolderOpenIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon, ChevronIcon, PlusIcon, MoreIcon } from './icons'
 import { GroupColorModal } from './GroupColorModal'
+import { Settings } from './Settings'
 import { AdoBindModal } from './AdoBindModal'
 import { ClaudeAdvancedModal } from './ClaudeAdvancedModal'
 import { parseClaudeArgs } from '../claudeArgs'
@@ -25,6 +26,7 @@ export function Sidebar(): React.JSX.Element {
   const activeGroupId = useHub((s) => s.activeGroupId)
   const [menu, setMenu] = useState<string | null>(null)
   const [addFor, setAddFor] = useState<{ id: string; x: number; y: number } | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [colorFor, setColorFor] = useState<string | null>(null)
   const [adoFor, setAdoFor] = useState<string | null>(null)
   const [advancedFor, setAdvancedFor] = useState<string | null>(null)
@@ -284,6 +286,10 @@ export function Sidebar(): React.JSX.Element {
           />
         )}
       </div>
+      <div className="side-foot">
+        <button className="side-settings" title="Paramètres" onClick={() => setSettingsOpen(true)}><SettingsIcon size={15} /> Paramètres</button>
+      </div>
+      {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}
     </div>
   )
 }
