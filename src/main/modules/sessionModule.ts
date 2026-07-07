@@ -33,6 +33,7 @@ export function createSessionModule(): HubModule {
       ctx.ipc.handle(IPC.PickFolder, () => ctx.pickFolder())
       ctx.ipc.on(IPC.OpenPath, (_e, path: string) => { if (path) shell.openPath(path) })
       ctx.ipc.handle(IPC.ClipboardRead, () => clipboard.readText())
+      ctx.ipc.on(IPC.ClipboardWrite, (_e, text: string) => clipboard.writeText(text ?? ''))
       ctx.ipc.handle(IPC.SearchTranscript, (_e, tabId: string, query: string) => {
         const s = ctx.registry.get(tabId)
         if (!s?.transcriptPath || !query.trim()) return []

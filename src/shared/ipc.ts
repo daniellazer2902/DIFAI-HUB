@@ -16,6 +16,7 @@ export const IPC = {
   LoadWorkspace: 'workspace:load',
   SaveWorkspace: 'workspace:save',
   ClipboardRead: 'clipboard:read',
+  ClipboardWrite: 'clipboard:write',
   CloseConfirm: 'app:close-confirm',
   // ADO (renderer -> main)
   AdoConnList: 'ado:conn-list',
@@ -157,8 +158,10 @@ export interface HubApi {
   searchTranscript(tabId: string, query: string): Promise<TranscriptMatch[]>
   loadWorkspace(): Promise<WorkspaceTree>
   saveWorkspace(tree: WorkspaceTree): void
-  /** Lit le presse-papier via le presse-papier natif d'Electron (fiable, contrairement à navigator.clipboard en renderer). */
+  /** Lit le presse-papier via le presse-papier natif d'Electron (fiable, contrairement à navigator.clipboard en renderer file://). */
   clipboardReadText(): Promise<string>
+  /** Écrit dans le presse-papier via le presse-papier natif d'Electron. */
+  clipboardWriteText(text: string): void
   onData(cb: (tabId: string, data: string) => void): Unsub
   onExit(cb: (tabId: string, code: number) => void): Unsub
   onSessionState(cb: (tabId: string, state: SessionState) => void): Unsub

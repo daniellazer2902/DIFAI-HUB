@@ -76,28 +76,22 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
       }
       if (key === 'c' && term.hasSelection()) {
         e.preventDefault()
-        navigator.clipboard.writeText(term.getSelection()).catch(() => {})
+        const sel = term.getSelection()
+        window.hub.clipboardWriteText(sel) // natif Electron (navigator.clipboard bloqué en file://)
+        navigator.clipboard?.writeText(sel).catch(() => {}) // best-effort si dispo
         return false
       }
       return true
     })
 
-    // Ctrl/Cmd+V : lit le presse-papier puis colle (bracketed paste vers le pty).
-    // navigator.clipboard.readText() rejette parfois en renderer Electron (focus/permission) et
-    // rendait le collage muet (erreur avalée) : on retombe alors sur le presse-papier natif d'Electron.
+    // Ctrl/Cmd+V : lit le presse-papier natif d'Electron (navigator.clipboard est bloqué en
+    // renderer file://, lecture ET écriture), puis colle (bracketed paste vers le pty).
     async function pasteFromClipboard(): Promise<void> {
       let text = ''
       try {
-        text = await navigator.clipboard.readText()
+        text = await window.hub.clipboardReadText()
       } catch (err) {
-        console.warn('[paste] navigator.clipboard.readText a échoué, fallback presse-papier natif', err)
-      }
-      if (!text) {
-        try {
-          text = await window.hub.clipboardReadText()
-        } catch (err) {
-          console.error('[paste] lecture du presse-papier native échouée', err)
-        }
+        console.error('[paste] lecture du presse-papier échouée', err)
       }
       if (text) term.paste(text)
     }
