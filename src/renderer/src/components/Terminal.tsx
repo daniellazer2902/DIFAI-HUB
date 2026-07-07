@@ -71,16 +71,30 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
       const key = e.key.toLowerCase()
       if (key === 'v') {
         e.preventDefault()
-        navigator.clipboard.readText().then((t) => { if (t) term.paste(t) }).catch(() => {})
+        void pasteFromClipboard()
         return false
       }
       if (key === 'c' && term.hasSelection()) {
         e.preventDefault()
-        navigator.clipboard.writeText(term.getSelection()).catch(() => {})
+        const sel = term.getSelection()
+        window.hub.clipboardWriteText(sel) // natif Electron (navigator.clipboard bloqué en file://)
+        navigator.clipboard?.writeText(sel).catch(() => {}) // best-effort si dispo
         return false
       }
       return true
     })
+
+    // Ctrl/Cmd+V : lit le presse-papier natif d'Electron (navigator.clipboard est bloqué en
+    // renderer file://, lecture ET écriture), puis colle (bracketed paste vers le pty).
+    async function pasteFromClipboard(): Promise<void> {
+      let text = ''
+      try {
+        text = await window.hub.clipboardReadText()
+      } catch (err) {
+        console.error('[paste] lecture du presse-papier échouée', err)
+      }
+      if (text) term.paste(text)
+    }
 
     async function openMdLink(token: string): Promise<void> {
       const item = useHub.getState().itemByTab(tabId)
