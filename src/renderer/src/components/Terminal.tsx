@@ -71,7 +71,7 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
       const key = e.key.toLowerCase()
       if (key === 'v') {
         e.preventDefault()
-        navigator.clipboard.readText().then((t) => { if (t) term.paste(t) }).catch(() => {})
+        void pasteFromClipboard()
         return false
       }
       if (key === 'c' && term.hasSelection()) {
@@ -81,6 +81,26 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
       }
       return true
     })
+
+    // Ctrl/Cmd+V : lit le presse-papier puis colle (bracketed paste vers le pty).
+    // navigator.clipboard.readText() rejette parfois en renderer Electron (focus/permission) et
+    // rendait le collage muet (erreur avalée) : on retombe alors sur le presse-papier natif d'Electron.
+    async function pasteFromClipboard(): Promise<void> {
+      let text = ''
+      try {
+        text = await navigator.clipboard.readText()
+      } catch (err) {
+        console.warn('[paste] navigator.clipboard.readText a échoué, fallback presse-papier natif', err)
+      }
+      if (!text) {
+        try {
+          text = await window.hub.clipboardReadText()
+        } catch (err) {
+          console.error('[paste] lecture du presse-papier native échouée', err)
+        }
+      }
+      if (text) term.paste(text)
+    }
 
     async function openMdLink(token: string): Promise<void> {
       const item = useHub.getState().itemByTab(tabId)

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { shell } from 'electron'
+import { shell, clipboard } from 'electron'
 import { IPC } from '../../shared/ipc'
 import { searchTranscript } from '../transcriptSearch'
 import type { AppContext, HubModule } from '../AppContext'
@@ -32,6 +32,7 @@ export function createSessionModule(): HubModule {
       ctx.ipc.handle(IPC.DefaultCwd, () => ctx.defaultCwd)
       ctx.ipc.handle(IPC.PickFolder, () => ctx.pickFolder())
       ctx.ipc.on(IPC.OpenPath, (_e, path: string) => { if (path) shell.openPath(path) })
+      ctx.ipc.handle(IPC.ClipboardRead, () => clipboard.readText())
       ctx.ipc.handle(IPC.SearchTranscript, (_e, tabId: string, query: string) => {
         const s = ctx.registry.get(tabId)
         if (!s?.transcriptPath || !query.trim()) return []

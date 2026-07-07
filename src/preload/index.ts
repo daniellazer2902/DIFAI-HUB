@@ -20,6 +20,7 @@ const hub: HubApi = {
   searchTranscript: (tabId, query) => ipcRenderer.invoke(IPC.SearchTranscript, tabId, query),
   loadWorkspace: () => ipcRenderer.invoke(IPC.LoadWorkspace),
   saveWorkspace: (tree) => ipcRenderer.send(IPC.SaveWorkspace, tree),
+  clipboardReadText: () => ipcRenderer.invoke(IPC.ClipboardRead),
   onData: (cb) => on(IPC.PtyData, (tabId, data) => cb(tabId as string, data as string)),
   onExit: (cb) => on(IPC.PtyExit, (tabId, code) => cb(tabId as string, code as number)),
   onSessionState: (cb) => on(IPC.SessionState, (tabId, state) => cb(tabId as string, state as SessionState)),
