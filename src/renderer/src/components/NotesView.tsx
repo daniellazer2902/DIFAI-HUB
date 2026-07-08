@@ -8,7 +8,7 @@ import { NoteTree } from './NoteTree'
 import { ImageView } from './ImageView'
 import { HtmlView } from './HtmlView'
 import { basename } from '../util'
-import { SearchIcon } from './icons'
+import { SearchIcon, ChevronIcon } from './icons'
 
 interface Props { item: Item }
 
@@ -26,6 +26,17 @@ function firstFile(tree: NotesTree): string | null {
 /** Chemins des dossiers de premier niveau (dépliés par défaut, comme l'ancien comportement). */
 function topLevelDirs(tree: NotesTree): string[] {
   return (tree.tree.children ?? []).filter((c) => c.dir).map((c) => c.path)
+}
+
+/** Chemins de tous les dossiers de l'arbre (parcours en profondeur). */
+function allDirs(tree: NotesTree): string[] {
+  const out: string[] = []
+  const stack = [...(tree.tree.children ?? [])]
+  while (stack.length) {
+    const n = stack.pop()!
+    if (n.dir) { out.push(n.path); for (const c of n.children ?? []) stack.push(c) }
+  }
+  return out
 }
 
 export function NotesView({ item }: Props): React.JSX.Element {
@@ -50,6 +61,13 @@ export function NotesView({ item }: Props): React.JSX.Element {
     const next = cur.includes(path) ? cur.filter((p) => p !== path) : [...cur, path]
     useHub.getState().setNoteExpanded(item.id, next)
   }, [item.id])
+
+  // Tout déplier / tout replier : bascule selon l'état courant.
+  const dirs = useMemo(() => (tree ? allDirs(tree) : []), [tree])
+  const allExpanded = dirs.length > 0 && dirs.every((d) => expanded.has(d))
+  const toggleAll = useCallback(() => {
+    useHub.getState().setNoteExpanded(item.id, allExpanded ? [] : dirs)
+  }, [item.id, allExpanded, dirs])
 
   // Recherche in-page (Ctrl+F) — état partagé via le store (déclenché par App.tsx).
   const find = useHub((s) => s.noteFind[item.id])
@@ -132,6 +150,11 @@ export function NotesView({ item }: Props): React.JSX.Element {
     <div className="notes-view">
       <div className="notes-bar">
         {isVault && <button className="btn" title={collapsed ? 'Afficher l\'arborescence' : 'Masquer l\'arborescence'} onClick={() => setCollapsed((c) => !c)}>☰</button>}
+        {isVault && !collapsed && (
+          <button className="btn" title={allExpanded ? 'Tout replier' : 'Tout déplier'} disabled={dirs.length === 0} onClick={toggleAll}>
+            <span className={`nt-chevron${allExpanded ? ' open' : ''}`}><ChevronIcon size={13} /></span>
+          </button>
+        )}
         <button className="btn" title="Précédent" disabled={h.pos <= 0} onClick={goBack}>←</button>
         <button className="btn" title="Suivant" disabled={h.pos >= h.stack.length - 1} onClick={goFwd}>→</button>
         <button className="btn" title="Rafraîchir (recharge le contenu et les images)" onClick={reload}>⟳</button>
