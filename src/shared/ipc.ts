@@ -154,6 +154,24 @@ export interface AdoPullRequest {
   url: string            // URL web de la PR
 }
 
+export type RunStatus = 'pending' | 'queued' | 'running' | 'attention' | 'done' | 'failed'
+
+export interface RunRecord {
+  id: string
+  automationId: string
+  key: string            // `${project}/${repo}#${prId}@${iterationId}`
+  project: string
+  repo: string
+  prId: number
+  title: string
+  url: string
+  startedAt: number
+  endedAt: number | null
+  status: RunStatus
+  error: string | null
+  tabId: string | null
+}
+
 // --- Notes / Markdown (lecteur Obsidian) ---
 export interface NoteTreeNode {
   name: string            // nom affiché (fichier ou dossier)
