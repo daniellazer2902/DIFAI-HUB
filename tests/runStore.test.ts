@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { runKey, parseRuns, serializeRuns, upsertRun, hasKey, MAX_RUNS } from '../src/main/automations/runStore'
+import { runKey, parseRuns, serializeRuns, upsertRun, hasKey, MAX_RUNS, requalifyRuns } from '../src/main/automations/runStore'
 import type { RunRecord } from '../src/shared/ipc'
 
 const rec = (id: string, key: string): RunRecord => ({
@@ -49,5 +49,60 @@ describe('runStore', () => {
   it('serializeRuns puis parseRuns conserve les données', () => {
     const list = [rec('r1', 'k1')]
     expect(parseRuns(serializeRuns(list))).toEqual(list)
+  })
+
+  it('requalifyRuns transforme running en failed avec tabId null et endedAt non nul', () => {
+    const list = [{ ...rec('r1', 'k1'), status: 'running' as const, startedAt: 100 }]
+    const out = requalifyRuns(list)
+    expect(out[0].status).toBe('failed')
+    expect(out[0].tabId).toBe(null)
+    expect(out[0].endedAt).toBe(100)
+  })
+
+  it('requalifyRuns transforme queued en failed', () => {
+    const list = [{ ...rec('r1', 'k1'), status: 'queued' as const }]
+    const out = requalifyRuns(list)
+    expect(out[0].status).toBe('failed')
+    expect(out[0].error).toContain('interrompue')
+  })
+
+  it('requalifyRuns transforme attention en failed', () => {
+    const list = [{ ...rec('r1', 'k1'), status: 'attention' as const }]
+    const out = requalifyRuns(list)
+    expect(out[0].status).toBe('failed')
+  })
+
+  it('requalifyRuns laisse done inchangé', () => {
+    const list = [{ ...rec('r1', 'k1'), status: 'done' as const, endedAt: 200 }]
+    const out = requalifyRuns(list)
+    expect(out[0].status).toBe('done')
+    expect(out[0].endedAt).toBe(200)
+    expect(out[0].tabId).toBe(null)
+  })
+
+  it('requalifyRuns laisse failed inchangé', () => {
+    const list = [{ ...rec('r1', 'k1'), status: 'failed' as const, error: 'Original error' }]
+    const out = requalifyRuns(list)
+    expect(out[0].status).toBe('failed')
+    expect(out[0].error).toBe('Original error')
+  })
+
+  it('requalifyRuns ne masque pas un error déjà présent', () => {
+    const list = [{ ...rec('r1', 'k1'), status: 'running' as const, error: 'Existing error', startedAt: 100 }]
+    const out = requalifyRuns(list)
+    expect(out[0].error).toBe('Existing error')
+    expect(out[0].endedAt).toBe(100)
+  })
+
+  it('upsertRun met à jour une entrée dans une liste pleine sans rétrécir ni perdre d\'entrées', () => {
+    let list: RunRecord[] = []
+    for (let i = 0; i < MAX_RUNS; i++) list = upsertRun(list, rec(`r${i}`, `k${i}`))
+    const originalLength = list.length
+    const originalIds = list.map((r) => r.id)
+
+    const updated = upsertRun(list, { ...list[MAX_RUNS - 1], status: 'done' as const })
+    expect(updated.length).toBe(originalLength)
+    expect(updated.map((r) => r.id)).toEqual(originalIds)
+    expect(updated[MAX_RUNS - 1].status).toBe('done')
   })
 })

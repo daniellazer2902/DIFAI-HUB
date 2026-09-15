@@ -49,8 +49,22 @@ export function upsertRun(list: RunRecord[], run: RunRecord): RunRecord[] {
   if (i >= 0) { const copy = [...list]; copy[i] = run; return copy }
   return [run, ...list].slice(0, MAX_RUNS)
 }
+/** Les sessions ne survivent pas à l'arrêt du processus : tout run non-terminal relu du disque est interrompu. */
+export function requalifyRuns(list: RunRecord[]): RunRecord[] {
+  return list.map((r) => {
+    if (r.status === 'done' || r.status === 'failed') return r
+    return {
+      ...r,
+      status: 'failed',
+      endedAt: r.endedAt ?? r.startedAt,
+      error: r.error ?? 'Session interrompue à l\'arrêt de l\'application.',
+      tabId: null
+    }
+  })
+}
+
 export function loadRuns(dir: string): RunRecord[] {
-  try { return parseRuns(readFileSync(join(dir, FILE), 'utf8')) } catch { return [] }
+  try { return requalifyRuns(parseRuns(readFileSync(join(dir, FILE), 'utf8'))) } catch { return [] }
 }
 export function saveRuns(dir: string, list: RunRecord[]): void {
   try { writeFileSync(join(dir, FILE), serializeRuns(list), 'utf8') } catch { /* disque indisponible */ }
