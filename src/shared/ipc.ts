@@ -143,6 +143,17 @@ export interface PersistAutomation {
   enabled: boolean
 }
 
+export interface AdoPullRequest {
+  prId: number
+  project: string
+  repo: string
+  title: string
+  author: string
+  sourceBranch: string   // sans le préfixe refs/heads/
+  targetBranch: string
+  url: string            // URL web de la PR
+}
+
 // --- Notes / Markdown (lecteur Obsidian) ---
 export interface NoteTreeNode {
   name: string            // nom affiché (fichier ou dossier)
