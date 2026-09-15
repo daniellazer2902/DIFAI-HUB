@@ -75,7 +75,7 @@ Créer `tests/automationScope.test.ts` :
 
 ```ts
 import { describe, it, expect } from 'vitest'
-import { effectiveScope } from '../src/shared/automationScope'
+import { effectiveScope, matchesScope } from '../src/shared/automationScope'
 
 describe('effectiveScope', () => {
   it('hérite du périmètre du groupe quand l automation ne surcharge pas', () => {
@@ -99,12 +99,10 @@ describe('effectiveScope', () => {
   })
 
   it('garde une PR quand la liste de repos est vide (tous les repos du projet)', () => {
-    const { matchesScope } = require('../src/shared/automationScope')
     expect(matchesScope([{ project: 'Socle', repos: [] }], 'Socle', 'nimporte')).toBe(true)
   })
 
   it('filtre par repo quand la liste est renseignée', () => {
-    const { matchesScope } = require('../src/shared/automationScope')
     const scope = [{ project: 'Socle', repos: ['api', 'front'] }]
     expect(matchesScope(scope, 'Socle', 'api')).toBe(true)
     expect(matchesScope(scope, 'Socle', 'batch')).toBe(false)
@@ -1971,20 +1969,22 @@ Pousser la configuration au main à chaque changement, à côté de la sauvegard
 
 - [ ] **Step 7: Ajouter les styles**
 
-Dans la feuille de styles du renderer, à côté des styles de `Modal` :
+Les styles du renderer vivent dans le bloc `<style>` de `src/renderer/index.html`. Ajouter, à côté
+des styles de `Modal`, en réutilisant les variables déjà définies dans `:root` :
 
 ```css
 .toast-host { position: fixed; top: 44px; right: 14px; width: 260px; display: flex; flex-direction: column; gap: 9px; z-index: 40; }
-.toast { background: var(--panel-2, #1b1e23); border: 1px solid var(--line, #282d34); border-left-width: 2px; border-radius: 4px; padding: 9px 11px; cursor: pointer; box-shadow: 0 8px 22px rgba(0,0,0,.45); }
-.toast:focus-visible { outline: 2px solid var(--accent, #d9a14a); outline-offset: 2px; }
-.toast.done { border-left-color: #5fb08a; }
-.toast.attention { border-left-color: #e0b341; }
-.toast.failed { border-left-color: #d4715f; }
-.toast-title { font-size: 12.5px; font-weight: 600; margin-bottom: 2px; }
-.toast-body { font-size: 11.5px; opacity: .75; }
+.toast { background: var(--elevated); border: 1px solid var(--border-2); border-left-width: 2px; border-radius: var(--r); padding: 9px 11px; cursor: pointer; box-shadow: 0 8px 22px rgba(0,0,0,.45); }
+.toast:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.toast.done { border-left-color: var(--ok); }
+.toast.attention { border-left-color: var(--warn); }
+.toast.failed { border-left-color: var(--err); }
+.toast-title { font-size: 12.5px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.toast-body { font-size: 11.5px; color: var(--text-3); }
 ```
 
-`top: 44px` place la pile sous l'overlay de barre de titre (36 px, `index.ts:62`).
+`top: 44px` place la pile sous l'overlay de barre de titre (36 px, `index.ts:62`). N'introduire
+aucune couleur en dur : le thème passe par les variables de `:root`.
 
 - [ ] **Step 8: Lancer la suite et vérifier le rendu**
 
@@ -2138,13 +2138,15 @@ Dans `icons.tsx`, ajouter un `AutomationIcon` sur le modèle des icônes existan
 
 - [ ] **Step 7: Ajouter les styles**
 
+Dans le bloc `<style>` de `src/renderer/index.html` :
+
 ```css
-.auto-bar { border-top: 1px solid var(--line, #1f2329); }
+.auto-bar { border-top: 1px solid var(--border); }
 .auto-bar-head { display: flex; align-items: center; gap: 7px; width: 100%; padding: 7px 9px; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
 .auto-bar-list { list-style: none; margin: 0; padding: 0 0 6px; }
 .auto-bar-list button { display: flex; align-items: center; gap: 7px; width: 100%; padding: 3px 9px 3px 22px; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
-.auto-dot { width: 7px; height: 7px; border-radius: 50%; background: #5fb08a; flex: 0 0 7px; }
-.auto-dot.warn { background: #e0b341; }
+.auto-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: 0 0 7px; }
+.auto-dot.warn { background: var(--warn); }
 ```
 
 - [ ] **Step 8: Lancer la suite**
@@ -2306,7 +2308,7 @@ Et transmettre le périmètre dans `onApply` :
 Le filtrage par repo n'est pas exposé ici : une entrée `repos: []` couvre tout le projet, ce qui
 est le cas d'usage. Un périmètre plus fin se saisit au niveau de l'automation.
 
-Styles à ajouter :
+Styles à ajouter dans le bloc `<style>` de `src/renderer/index.html` :
 
 ```css
 .setting-row.col { flex-direction: column; align-items: flex-start; gap: 6px; }
@@ -2409,7 +2411,7 @@ Au retour de `onApply`, l'appelant écrit l'item dans le store puis pousse la co
 Styles complémentaires :
 
 ```css
-.setting-row.col textarea { width: 100%; font-family: var(--mono, monospace); font-size: 12px; resize: vertical; }
+.setting-row.col textarea { width: 100%; font-family: var(--mono); font-size: 12px; resize: vertical; }
 ```
 
 - [ ] **Step 7: Câbler la création depuis la sidebar**
