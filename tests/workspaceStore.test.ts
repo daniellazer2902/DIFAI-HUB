@@ -135,4 +135,24 @@ describe('workspaceStore automations (lot 5)', () => {
     }] })
     expect(parseWorkspace(raw).groups[0].items[0].automation?.pollSeconds).toBe(300)
   })
+
+  it('filtre les entrées malformées dans automation.watch sans perdre les valides', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{
+      id: 'g1', name: 'X', collapsed: false, defaultCwd: null,
+      items: [{ id: 'i1', name: 'Review PR', cwd: 'C:/x', kind: 'automation', automation: {
+        trigger: 'reviewer-assigned', pollSeconds: 300, prompt: 'p', allowedTools: [],
+        watch: [
+          { project: 'Socle', repos: [] },
+          { project: 42, repos: [] },
+          { project: 'Cerba', repos: ['api', 'batch'] }
+        ],
+        enabled: true
+      } }]
+    }] })
+    const automation = parseWorkspace(raw).groups[0].items[0].automation
+    expect(automation?.watch).toEqual([
+      { project: 'Socle', repos: [] },
+      { project: 'Cerba', repos: ['api', 'batch'] }
+    ])
+  })
 })

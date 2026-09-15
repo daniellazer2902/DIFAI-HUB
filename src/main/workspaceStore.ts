@@ -1,10 +1,23 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { WorkspaceTree, PersistGroup, PersistItem } from '../shared/ipc'
+import type { WorkspaceTree, PersistGroup, PersistItem, AdoWatchScope } from '../shared/ipc'
 
 export function defaultWorkspace(): WorkspaceTree {
   const g: PersistGroup = { id: 'g-default', name: 'Sessions', collapsed: false, defaultCwd: null, items: [] }
   return { activeGroupId: g.id, groups: [g] }
+}
+
+function parseWatch(x: unknown): AdoWatchScope[] | undefined {
+  if (!Array.isArray(x)) return undefined
+  const parsed = (x as unknown[])
+    .map((w) => {
+      const e = w as Record<string, unknown>
+      if (!e || typeof e.project !== 'string') return null
+      const repos = Array.isArray(e.repos) ? e.repos.filter((r): r is string => typeof r === 'string') : []
+      return { project: e.project, repos }
+    })
+    .filter(Boolean) as AdoWatchScope[]
+  return parsed.length > 0 ? parsed : undefined
 }
 
 function normItem(x: unknown): PersistItem | null {
@@ -33,7 +46,7 @@ function normItem(x: unknown): PersistItem | null {
       pollSeconds: typeof au.pollSeconds === 'number' && au.pollSeconds >= 60 ? au.pollSeconds : 300,
       prompt: au.prompt,
       allowedTools: Array.isArray(au.allowedTools) ? au.allowedTools.filter((t): t is string => typeof t === 'string') : [],
-      watch: Array.isArray(au.watch) ? (au.watch as { project: string; repos: string[] }[]) : undefined,
+      watch: parseWatch(au.watch),
       enabled: au.enabled !== false
     }
   }
@@ -51,21 +64,12 @@ function normGroup(x: unknown): PersistGroup | null {
   const defaultCwd = typeof o.defaultCwd === 'string' ? o.defaultCwd : null
   const color = typeof o.color === 'string' ? o.color : undefined
   const ab = o.ado as Record<string, unknown> | undefined
-  const watch = Array.isArray(ab?.watch)
-    ? (ab!.watch as unknown[])
-        .map((w) => {
-          const e = w as Record<string, unknown>
-          if (!e || typeof e.project !== 'string') return null
-          const repos = Array.isArray(e.repos) ? e.repos.filter((r): r is string => typeof r === 'string') : []
-          return { project: e.project, repos }
-        })
-        .filter(Boolean) as { project: string; repos: string[] }[]
-    : undefined
+  const watch = parseWatch(ab?.watch)
   const ado = ab && typeof ab.connId === 'string' && typeof ab.project === 'string'
     ? {
         connId: ab.connId, project: ab.project,
         team: typeof ab.team === 'string' ? ab.team : null,
-        ...(watch && watch.length ? { watch } : {})
+        ...(watch ? { watch } : {})
       }
     : undefined
   return { id: o.id, name: o.name, collapsed: o.collapsed === true, defaultCwd, items, ...(color ? { color } : {}), ...(ado ? { ado } : {}) }
