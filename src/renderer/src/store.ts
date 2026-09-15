@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ConsoleLine, SessionState, WorkspaceTree, AdoBoard, PersistNote } from '../../shared/ipc'
+import type { ConsoleLine, SessionState, WorkspaceTree, AdoBoard, PersistNote, PersistAutomation, AdoWatchScope } from '../../shared/ipc'
 import { basename } from './util'
 
 export interface AgentView {
@@ -18,7 +18,7 @@ export type Pane = 'left' | 'right'
 export type TabKind = 'session' | 'find' | 'agents' | 'ado' | 'note'
 
 export interface AdoView { view: 'tree' | 'board'; iterationPath: string | null }
-export interface GroupAdo { connId: string; project: string; team: string | null }
+export interface GroupAdo { connId: string; project: string; team: string | null; watch?: AdoWatchScope[] }
 
 /** État de recherche dans un board (Ctrl+F sur page, éphémère). */
 export interface AdoFindState { open: boolean; query: string; filter: boolean }
@@ -45,7 +45,7 @@ export interface Item {
   findOpen: boolean
   agentsOpen: boolean
   searchQuery: string
-  kind: 'claude' | 'ado' | 'cmd' | 'note'
+  kind: 'claude' | 'ado' | 'cmd' | 'note' | 'automation' | 'run'
   /** Arguments de lancement supplémentaires (Claude avancé) — persistés pour relance à l'identique. */
   claudeArgs?: string[]
   ado?: AdoView
@@ -53,6 +53,7 @@ export interface Item {
   adoClosed?: boolean
   /** État d'un item note (lecteur Markdown/Obsidian). */
   note?: PersistNote
+  automation?: PersistAutomation
 }
 
 export interface Group {

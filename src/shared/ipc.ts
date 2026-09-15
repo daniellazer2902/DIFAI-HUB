@@ -68,8 +68,19 @@ export interface TranscriptMatch {
 }
 
 /** Sous-ensemble persistable d'un item (config, sans état runtime de session). */
-export interface PersistItem { id: string; name: string; cwd: string; split?: 1 | 2; kind?: 'claude' | 'ado' | 'cmd' | 'note'; claudeArgs?: string[]; ado?: { view: 'tree' | 'board'; iterationPath: string | null }; note?: PersistNote }
-export interface PersistGroup { id: string; name: string; collapsed: boolean; defaultCwd: string | null; color?: string | null; ado?: { connId: string; project: string; team: string | null } | null; items: PersistItem[] }
+export interface PersistItem {
+  id: string; name: string; cwd: string; split?: 1 | 2
+  kind?: 'claude' | 'ado' | 'cmd' | 'note' | 'automation' | 'run'
+  claudeArgs?: string[]
+  ado?: { view: 'tree' | 'board'; iterationPath: string | null }
+  note?: PersistNote
+  automation?: PersistAutomation
+}
+export interface PersistGroup {
+  id: string; name: string; collapsed: boolean; defaultCwd: string | null; color?: string | null
+  ado?: { connId: string; project: string; team: string | null; watch?: AdoWatchScope[] } | null
+  items: PersistItem[]
+}
 /** Arborescence persistée sur disque (groupes + items épinglés). */
 export interface WorkspaceTree { activeGroupId: string | null; groups: PersistGroup[] }
 
@@ -118,6 +129,19 @@ export interface AdoWorkItemDetail {
 }
 export interface AdoError { ok: false; error: string; status?: number }
 export type AdoResponse<T> = { ok: true; data: T } | AdoError
+
+// --- Automations (lot 5) ---
+/** Un projet ADO surveillé ; `repos` vide = tous les repos du projet. */
+export interface AdoWatchScope { project: string; repos: string[] }
+
+export interface PersistAutomation {
+  trigger: 'reviewer-assigned'
+  pollSeconds: number
+  prompt: string
+  allowedTools: string[]
+  watch?: AdoWatchScope[]
+  enabled: boolean
+}
 
 // --- Notes / Markdown (lecteur Obsidian) ---
 export interface NoteTreeNode {

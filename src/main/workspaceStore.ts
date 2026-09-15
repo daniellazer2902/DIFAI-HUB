@@ -13,7 +13,8 @@ function normItem(x: unknown): PersistItem | null {
   if (typeof o.id !== 'string' || typeof o.name !== 'string' || typeof o.cwd !== 'string') return null
   const split: 1 | 2 | undefined = o.split === 2 ? 2 : o.split === 1 ? 1 : undefined
   const kind: PersistItem['kind'] =
-    o.kind === 'ado' ? 'ado' : o.kind === 'cmd' ? 'cmd' : o.kind === 'note' ? 'note' : o.kind === 'claude' ? 'claude' : undefined
+    o.kind === 'ado' ? 'ado' : o.kind === 'cmd' ? 'cmd' : o.kind === 'note' ? 'note'
+    : o.kind === 'automation' ? 'automation' : o.kind === 'claude' ? 'claude' : undefined
   let ado: PersistItem['ado'] | undefined
   const a = o.ado as Record<string, unknown> | undefined
   if (a && (a.view === 'tree' || a.view === 'board')) {
@@ -24,10 +25,22 @@ function normItem(x: unknown): PersistItem | null {
   if (n && typeof n.root === 'string' && (n.rootKind === 'vault' || n.rootKind === 'file')) {
     note = { root: n.root, rootKind: n.rootKind, activePath: typeof n.activePath === 'string' ? n.activePath : null }
   }
+  let automation: PersistItem['automation'] | undefined
+  const au = o.automation as Record<string, unknown> | undefined
+  if (au && au.trigger === 'reviewer-assigned' && typeof au.prompt === 'string') {
+    automation = {
+      trigger: 'reviewer-assigned',
+      pollSeconds: typeof au.pollSeconds === 'number' && au.pollSeconds >= 60 ? au.pollSeconds : 300,
+      prompt: au.prompt,
+      allowedTools: Array.isArray(au.allowedTools) ? au.allowedTools.filter((t): t is string => typeof t === 'string') : [],
+      watch: Array.isArray(au.watch) ? (au.watch as { project: string; repos: string[] }[]) : undefined,
+      enabled: au.enabled !== false
+    }
+  }
   const claudeArgs = Array.isArray(o.claudeArgs) && o.claudeArgs.every((a) => typeof a === 'string')
     ? (o.claudeArgs as string[])
     : undefined
-  return { id: o.id, name: o.name, cwd: o.cwd, ...(split ? { split } : {}), ...(kind ? { kind } : {}), ...(claudeArgs ? { claudeArgs } : {}), ...(ado ? { ado } : {}), ...(note ? { note } : {}) }
+  return { id: o.id, name: o.name, cwd: o.cwd, ...(split ? { split } : {}), ...(kind ? { kind } : {}), ...(claudeArgs ? { claudeArgs } : {}), ...(ado ? { ado } : {}), ...(note ? { note } : {}), ...(automation ? { automation } : {}) }
 }
 
 function normGroup(x: unknown): PersistGroup | null {
@@ -38,8 +51,22 @@ function normGroup(x: unknown): PersistGroup | null {
   const defaultCwd = typeof o.defaultCwd === 'string' ? o.defaultCwd : null
   const color = typeof o.color === 'string' ? o.color : undefined
   const ab = o.ado as Record<string, unknown> | undefined
+  const watch = Array.isArray(ab?.watch)
+    ? (ab!.watch as unknown[])
+        .map((w) => {
+          const e = w as Record<string, unknown>
+          if (!e || typeof e.project !== 'string') return null
+          const repos = Array.isArray(e.repos) ? e.repos.filter((r): r is string => typeof r === 'string') : []
+          return { project: e.project, repos }
+        })
+        .filter(Boolean) as { project: string; repos: string[] }[]
+    : undefined
   const ado = ab && typeof ab.connId === 'string' && typeof ab.project === 'string'
-    ? { connId: ab.connId, project: ab.project, team: typeof ab.team === 'string' ? ab.team : null }
+    ? {
+        connId: ab.connId, project: ab.project,
+        team: typeof ab.team === 'string' ? ab.team : null,
+        ...(watch && watch.length ? { watch } : {})
+      }
     : undefined
   return { id: o.id, name: o.name, collapsed: o.collapsed === true, defaultCwd, items, ...(color ? { color } : {}), ...(ado ? { ado } : {}) }
 }
