@@ -1,5 +1,5 @@
 import type { AdoConnection, AdoPullRequest, AdoWatchScope } from '../../shared/ipc'
-import { authHeader, connectionDataUrl, assignedPullRequestsUrl } from './adoUrls'
+import { authHeader, connectionDataUrl, assignedPullRequestsUrl, pullRequestWebUrl } from './adoUrls'
 import { matchesScope } from '../../shared/automationScope'
 import type { FetchLike } from './AdoProvider'
 
@@ -28,32 +28,38 @@ export class PullRequestProvider {
     return this.userId
   }
 
-  /** PR actives où l'utilisateur est reviewer, sur tous les projets du périmètre. */
   async listAssigned(scope: AdoWatchScope[]): Promise<AdoPullRequest[]> {
     const uid = await this.resolveUserId()
     if (!uid) return []
     const base = this.conn.baseUrl.replace(/\/+$/, '')
+    const uniqueProjects = Array.from(new Map(scope.map((e) => [e.project, e])).keys())
     const out: AdoPullRequest[] = []
-    for (const entry of scope) {
+    for (const project of uniqueProjects) {
       let raw: any
       // Un projet inaccessible (droits, projet renommé) ne doit pas priver des autres.
-      try { raw = await this.get(assignedPullRequestsUrl(base, entry.project, uid)) } catch { continue }
+      try { raw = await this.get(assignedPullRequestsUrl(base, project, uid)) } catch { continue }
       for (const p of raw?.value ?? []) {
-        const project = p?.repository?.project?.name ?? entry.project
+        const projName = p?.repository?.project?.name ?? project
         const repo = p?.repository?.name ?? ''
-        if (!matchesScope(scope, project, repo)) continue
+        if (!matchesScope(scope, projName, repo)) continue
         out.push({
           prId: p.pullRequestId,
-          project,
+          project: projName,
           repo,
           title: p.title ?? '',
           author: p?.createdBy?.displayName ?? '—',
           sourceBranch: shortBranch(p.sourceRefName),
           targetBranch: shortBranch(p.targetRefName),
-          url: `${base}/${encodeURIComponent(project)}/_git/${encodeURIComponent(repo)}/pullrequest/${p.pullRequestId}`
+          url: pullRequestWebUrl(base, projName, repo, p.pullRequestId)
         })
       }
     }
-    return out
+    const seen = new Set<string>()
+    return out.filter((pr) => {
+      const key = `${pr.project}/${pr.repo}/${pr.prId}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
   }
 }

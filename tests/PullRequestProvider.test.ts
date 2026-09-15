@@ -27,12 +27,13 @@ describe('PullRequestProvider', () => {
     const fetchLike = vi.fn((url: string) => {
       urls.push(url)
       if (url.includes('connectionData')) return ok({ authenticatedUser: { id: 'u-42' } })
-      return ok({ value: [pr(1, 'api', 'Socle')] })
+      if (url.includes('/Socle/')) return ok({ value: [pr(1, 'api', 'Socle')] })
+      return ok({ value: [pr(2, 'front', 'Catalogues')] })
     })
     const p = new PullRequestProvider(conn, 'tok', fetchLike as never)
     const out = await p.listAssigned([{ project: 'Socle', repos: [] }, { project: 'Catalogues', repos: [] }])
     expect(urls.filter((u) => u.includes('/pullrequests')).length).toBe(2)
-    expect(out.length).toBe(2)
+    expect(out.map((r) => r.prId)).toEqual([1, 2])
   })
 
   it('normalise une PR : branches sans refs/heads, url web, projet et repo', async () => {
@@ -65,5 +66,28 @@ describe('PullRequestProvider', () => {
     const p = new PullRequestProvider(conn, 'tok', fetchLike as never)
     const out = await p.listAssigned([{ project: 'Socle', repos: [] }, { project: 'Catalogues', repos: [] }])
     expect(out.map((r) => r.prId)).toEqual([9])
+  })
+
+  it('deux entrées du même projet, repos différents : une seule requête, repos filtrés, sans doublon', async () => {
+    const urls: string[] = []
+    const fetchLike = vi.fn((url: string) => {
+      urls.push(url)
+      if (url.includes('connectionData')) return ok({ authenticatedUser: { id: 'u' } })
+      return ok({ value: [pr(1, 'api', 'Socle'), pr(2, 'batch', 'Socle')] })
+    })
+    const p = new PullRequestProvider(conn, 'tok', fetchLike as never)
+    const out = await p.listAssigned([{ project: 'Socle', repos: ['api'] }, { project: 'Socle', repos: ['batch'] }])
+    expect(urls.filter((u) => u.includes('/pullrequests')).length).toBe(1)
+    expect(out.map((r) => r.prId)).toEqual([1, 2])
+  })
+
+  it('même PR couverte par deux entrées du périmètre : pas de doublon', async () => {
+    const fetchLike = vi.fn((url: string) => {
+      if (url.includes('connectionData')) return ok({ authenticatedUser: { id: 'u' } })
+      return ok({ value: [pr(99, 'api', 'Socle'), pr(99, 'api', 'Socle')] })
+    })
+    const p = new PullRequestProvider(conn, 'tok', fetchLike as never)
+    const out = await p.listAssigned([{ project: 'Socle', repos: ['api'] }, { project: 'Socle', repos: ['api'] }])
+    expect(out.map((r) => r.prId)).toEqual([99])
   })
 })

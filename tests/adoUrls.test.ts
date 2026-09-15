@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { authHeader, projectsUrl, teamsUrl, iterationsUrl, statesUrl, wiqlUrl, batchUrl, taskboardColumnsUrl, workItemUrl, commentsUrl, connectionDataUrl, assignedPullRequestsUrl } from '../src/main/ado/adoUrls'
+import { authHeader, projectsUrl, teamsUrl, iterationsUrl, statesUrl, wiqlUrl, batchUrl, taskboardColumnsUrl, workItemUrl, commentsUrl, connectionDataUrl, assignedPullRequestsUrl, pullRequestWebUrl } from '../src/main/ado/adoUrls'
 
 describe('adoUrls', () => {
   const base = 'https://dev.azure.com/acme'
@@ -48,5 +48,13 @@ describe('adoUrls', () => {
     expect(u).toContain('/Socle%20Tech/_apis/git/pullrequests?')
     expect(u).toContain('searchCriteria.reviewerId=user-1')
     expect(u).toContain('searchCriteria.status=active')
+  })
+  it('pullRequestWebUrl cloud ADO, on-premise avec collection, et projet avec espace', () => {
+    expect(pullRequestWebUrl('https://dev.azure.com/acme', 'MyProj', 'MyRepo', 42))
+      .toBe('https://dev.azure.com/acme/MyProj/_git/MyRepo/pullrequest/42')
+    expect(pullRequestWebUrl('https://tfs.interne/tfs/DefaultCollection', 'Socle Tech', 'api repo', 1842))
+      .toBe('https://tfs.interne/tfs/DefaultCollection/Socle%20Tech/_git/api%20repo/pullrequest/1842')
+    expect(pullRequestWebUrl('https://dev.azure.com/acme/', 'Proj', 'Repo', 99))
+      .toBe('https://dev.azure.com/acme/Proj/_git/Repo/pullrequest/99')
   })
 })

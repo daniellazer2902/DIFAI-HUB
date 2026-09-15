@@ -40,3 +40,6 @@ export function assignedPullRequestsUrl(base: string, project: string, reviewerI
   return `${trim(base)}/${seg(project)}/_apis/git/pullrequests`
     + `?searchCriteria.reviewerId=${seg(reviewerId)}&searchCriteria.status=active&${API}`
 }
+export function pullRequestWebUrl(base: string, project: string, repo: string, prId: number): string {
+  return `${trim(base)}/${seg(project)}/_git/${seg(repo)}/pullrequest/${prId}`
+}
