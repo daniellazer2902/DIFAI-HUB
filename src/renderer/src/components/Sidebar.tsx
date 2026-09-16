@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, FolderOpenIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon, ChevronIcon, PlusIcon, MoreIcon } from './icons'
+import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, FolderOpenIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon, AutomationIcon, ChevronIcon, PlusIcon, MoreIcon } from './icons'
 import { GroupColorModal } from './GroupColorModal'
 import { Settings } from './Settings'
 import { AdoBindModal } from './AdoBindModal'
 import { ClaudeAdvancedModal } from './ClaudeAdvancedModal'
+import { AutomationStatusBar } from './AutomationStatusBar'
+import { isActiveRun } from '../automationSummary'
 import { parseClaudeArgs } from '../claudeArgs'
 import { darken, textOn } from '../color'
 import { basename, isBusy } from '../util'
@@ -24,6 +26,7 @@ export function Sidebar(): React.JSX.Element {
   const groups = useHub((s) => s.groups)
   const activeItemId = useHub((s) => s.activeItemId)
   const activeGroupId = useHub((s) => s.activeGroupId)
+  const runs = useHub((s) => s.runs)
   const [menu, setMenu] = useState<string | null>(null)
   const [addFor, setAddFor] = useState<{ id: string; x: number; y: number } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -68,7 +71,8 @@ export function Sidebar(): React.JSX.Element {
   async function onItemClick(item: Item): Promise<void> {
     if (item.kind === 'ado' && item.adoClosed) useHub.getState().setAdoClosed(item.id, false) // rouvre l'onglet fermé
     useHub.getState().setActiveItem(item.id)
-    if (item.kind !== 'ado' && !item.tabId) await launch(item)
+    // Une automation n'est pas une session à lancer : le clic ouvrira sa modale de configuration (Task 11).
+    if (item.kind !== 'ado' && item.kind !== 'automation' && !item.tabId) await launch(item)
   }
 
   /** Crée un item Claude (avec ou sans paramètres libres) dans le groupe. */
@@ -161,6 +165,11 @@ export function Sidebar(): React.JSX.Element {
     useHub.getState().removeGroup(groupId)
   }
 
+  /** Nombre de runs actifs rattachés à une automation, pour le badge de la sidebar. */
+  function activeRunsFor(automationId: string): number {
+    return Object.values(runs).filter((r) => r.automationId === automationId && isActiveRun(r.status)).length
+  }
+
   function nameOrEditor(kind: 'group' | 'item', id: string, name: string, cls: string): React.JSX.Element {
     if (editing && editing.kind === kind && editing.id === id) {
       return (
@@ -247,9 +256,15 @@ export function Sidebar(): React.JSX.Element {
                     <span className="item-ic">
                       {it.kind === 'claude'
                         ? (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)
+                        : it.kind === 'run'
+                        ? (it.tabId ? <StateDot state={it.state} /> : <AutomationIcon />)
+                        : it.kind === 'automation' ? <AutomationIcon />
                         : it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : <NotesIcon />}
                     </span>
                     {nameOrEditor('item', it.id, it.name, 'item-name')}
+                    {it.kind === 'automation' && activeRunsFor(it.id) > 0 && (
+                      <span className="item-badge">{activeRunsFor(it.id)}</span>
+                    )}
                     <span className="item-pin">{it.pinned && <PinIcon />}</span>
                     <span className="ic-btn menu-btn item-menu" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}><MoreIcon size={15} /></span>
                     {menu === it.id && (
@@ -286,6 +301,7 @@ export function Sidebar(): React.JSX.Element {
           />
         )}
       </div>
+      <AutomationStatusBar />
       <div className="side-foot">
         <button className="side-settings" title="Paramètres" onClick={() => setSettingsOpen(true)}><SettingsIcon size={15} /> Paramètres</button>
       </div>
