@@ -432,6 +432,28 @@ describe('automations (lot 5)', () => {
     expect(useHub.getState().runs['r9']).toEqual(run)
   })
 
+  it("selectionner une automation ne touche pas aux onglets du volet", () => {
+    const gid = useHub.getState().addGroup('G')
+    useHub.getState().addItem(gid, mkItem('s1'))
+    useHub.getState().addItem(gid, mkItem('auto-9', {
+      kind: 'automation', tabId: null, pinned: true,
+      automation: { trigger: 'reviewer-assigned', pollSeconds: 300, prompt: 'p', allowedTools: [], enabled: true }
+    }))
+    useHub.getState().setActiveItem('auto-9')
+    const g = useHub.getState().groups.find((x) => x.id === gid)!
+    expect(useHub.getState().activeItemId).toBe('auto-9')
+    expect(g.leftActiveTab).toBe(tabRef('session', 's1'))
+  })
+
+  it("selectionner une session active bien son onglet", () => {
+    const gid = useHub.getState().addGroup('G')
+    useHub.getState().addItem(gid, mkItem('s1'))
+    useHub.getState().addItem(gid, mkItem('s2'))
+    useHub.getState().setActiveItem('s1')
+    const g = useHub.getState().groups.find((x) => x.id === gid)!
+    expect(g.leftActiveTab).toBe(tabRef('session', 's1'))
+  })
+
   it('automationConfigs résout le périmètre hérité du groupe', () => {
     const s = useHub.getState()
     const gid = s.addGroup('Cerba')

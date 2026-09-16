@@ -416,6 +416,8 @@ export const useHub = create<HubState>((set, get) => ({
       const g = s.groups.find((grp) => grp.items.some((i) => i.id === itemId))
       if (!g) return { activeItemId: itemId }
       const item = g.items.find((i) => i.id === itemId) as Item
+      // Une automation n'ouvre aucun onglet : activer sa ref viderait le volet de travail.
+      if (item.kind === 'automation') return { activeItemId: itemId, activeGroupId: g.id }
       const pane: Pane = item.split === 2 ? 'right' : 'left'
       const ref = mainRef(item)
       const groups = setPaneActive(s.groups, itemId, pane, ref)
