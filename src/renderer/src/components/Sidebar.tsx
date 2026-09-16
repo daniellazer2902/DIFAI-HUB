@@ -116,12 +116,21 @@ export function Sidebar(): React.JSX.Element {
   }
 
   /** Nouvelle automation de review de PR : suppose une connexion ADO déjà configurée sur le groupe. */
-  function addAutomation(group: Group): void {
+  async function addAutomation(group: Group): Promise<void> {
     setAddFor(null)
     if (!group.ado) return
+    const cwd = group.defaultCwd ?? useHub.getState().globalDefaultCwd ?? (await window.hub.defaultCwd())
+    if (!cwd) {
+      await confirm({
+        title: 'Aucun dossier de travail',
+        message: 'Définis un dossier par défaut sur le groupe ou dans les réglages avant de créer une automation : les sessions de review démarrent dans ce dossier.',
+        confirmLabel: 'OK'
+      })
+      return
+    }
     const id = crypto.randomUUID()
     useHub.getState().addItem(group.id, {
-      id, name: 'Nouvelle automation', cwd: '', pinned: true, tabId: null, state: 'done',
+      id, name: 'Nouvelle automation', cwd, pinned: true, tabId: null, state: 'done',
       agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
       kind: 'automation', automation: newAutomation()
     })

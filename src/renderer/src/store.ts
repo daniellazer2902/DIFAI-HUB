@@ -337,7 +337,7 @@ export const useHub = create<HubState>((set, get) => ({
         if (i.kind !== 'automation' || !i.automation) continue
         out.push({
           id: i.id, groupId: g.id, name: i.name,
-          cwd: i.cwd || g.defaultCwd || '',
+          cwd: i.cwd || g.defaultCwd || s.globalDefaultCwd || '',
           connId: g.ado.connId,
           scope: effectiveScope(groupScope, i.automation.watch),
           trigger: i.automation.trigger,

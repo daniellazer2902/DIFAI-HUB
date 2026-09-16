@@ -81,6 +81,20 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
         const conn = deps.connectionFor(ctx, config.connId)
         const pat = ctx.credentials.get(config.connId)
         const runId = existingId ?? randomUUID()
+        if (!config.cwd) {
+          record({
+            id: runId, automationId: config.id, key: runKey(pr.project, pr.repo, pr.prId, 0),
+            project: pr.project, repo: pr.repo, prId: pr.prId, title: pr.title, url: pr.url,
+            startedAt: Date.now(), endedAt: Date.now(), status: 'failed',
+            error: 'Aucun dossier de travail', tabId: null
+          })
+          notify({
+            runId, level: 'failed', title: `Run impossible — !${pr.prId}`,
+            body: 'Aucun dossier de travail pour cette automation. Rien n\'a été posté.'
+          })
+          drainQueue()
+          return
+        }
         if (!conn || !pat) {
           record({
             id: runId, automationId: config.id, key: runKey(pr.project, pr.repo, pr.prId, 0),

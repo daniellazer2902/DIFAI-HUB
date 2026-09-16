@@ -454,6 +454,29 @@ describe('automations (lot 5)', () => {
     expect(g.leftActiveTab).toBe(tabRef('session', 's1'))
   })
 
+  it("automationConfigs retombe sur le dossier par defaut global", () => {
+    const gid = useHub.getState().addGroup('G')
+    useHub.getState().setGlobalDefaultCwd('C:/reglages')
+    useHub.getState().setGroupAdo(gid, { connId: 'c1', project: 'P', team: null })
+    useHub.getState().addItem(gid, mkItem('auto-2', {
+      kind: 'automation', cwd: '', tabId: null, pinned: true,
+      automation: { trigger: 'reviewer-assigned', pollSeconds: 300, prompt: 'p', allowedTools: [], enabled: true }
+    }))
+    expect(useHub.getState().automationConfigs()[0].cwd).toBe('C:/reglages')
+  })
+
+  it("automationConfigs prefere le dossier du groupe au dossier global", () => {
+    const gid = useHub.getState().addGroup('G')
+    useHub.getState().setGlobalDefaultCwd('C:/reglages')
+    useHub.getState().setGroupDefaultCwd(gid, 'C:/groupe')
+    useHub.getState().setGroupAdo(gid, { connId: 'c1', project: 'P', team: null })
+    useHub.getState().addItem(gid, mkItem('auto-3', {
+      kind: 'automation', cwd: '', tabId: null, pinned: true,
+      automation: { trigger: 'reviewer-assigned', pollSeconds: 300, prompt: 'p', allowedTools: [], enabled: true }
+    }))
+    expect(useHub.getState().automationConfigs()[0].cwd).toBe('C:/groupe')
+  })
+
   it('automationConfigs résout le périmètre hérité du groupe', () => {
     const s = useHub.getState()
     const gid = s.addGroup('Cerba')

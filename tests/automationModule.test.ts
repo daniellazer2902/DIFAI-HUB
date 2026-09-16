@@ -161,6 +161,18 @@ describe('automationModule', () => {
     expect(running[0].tabId).toBe('tab-1')
   })
 
+  it("une automation sans dossier de travail echoue avec un message explicite", async () => {
+    const { ctx, handlers, sent } = fakeCtx()
+    createAutomationModule(deps([pr(1)]) as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config({ cwd: '' })])
+    await vi.advanceTimersByTimeAsync(60_000)
+    await handlers.get(IPC.AutomationApprovePending)!({})
+    const runs = await handlers.get(IPC.AutomationListRuns)!({}) as RunRecord[]
+    expect(runs.find((r) => r.prId === 1)?.error).toBe('Aucun dossier de travail')
+    const toast = sent.filter((x) => x.channel === IPC.AutomationNotify).pop()
+    expect(JSON.stringify(toast!.args)).toContain('Aucun dossier de travail')
+  })
+
   it('une automation désactivée ne tourne pas', async () => {
     const { ctx, handlers, sent } = fakeCtx()
     createAutomationModule(deps([pr(1)]) as never).register(ctx)
