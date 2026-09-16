@@ -30,6 +30,14 @@ describe('statusFromHook', () => {
     expect(statusFromHook('PostToolUse', 'AskUserQuestion', 'attention')).toBe('running')
   })
 
+  it('PostToolUse sur un outil ordinaire sort le run de l attente (validation de permission)', () => {
+    expect(statusFromHook('PostToolUse', 'Bash', 'attention')).toBe('running')
+  })
+
+  it('PostToolUse ne change rien sur un run déjà en cours', () => {
+    expect(statusFromHook('PostToolUse', 'Read', 'running')).toBeNull()
+  })
+
   it('un run terminé n est plus modifié par un hook tardif', () => {
     expect(statusFromHook('Stop', undefined, 'done')).toBeNull()
     expect(statusFromHook('Stop', undefined, 'failed')).toBeNull()

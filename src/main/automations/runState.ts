@@ -19,7 +19,9 @@ export function statusFromHook(eventName: string, toolName: string | undefined, 
     case 'PreToolUse':
       return isInteractiveTool(toolName) ? 'attention' : null
     case 'PostToolUse':
-      return isInteractiveTool(toolName) ? 'running' : null
+      // Une validation de permission relance la session sans passer par un prompt : toute fin
+      // d'outil sort donc de l'attente, sinon le run garderait un créneau pour rien.
+      return current === 'attention' ? 'running' : null
     default:
       return null
   }
