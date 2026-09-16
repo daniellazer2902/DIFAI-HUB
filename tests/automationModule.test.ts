@@ -82,6 +82,62 @@ describe('automationModule', () => {
     expect((started[0].args[0] as { tabId: string }).tabId).toBe('tab-1')
   })
 
+  it("recevoir deux fois la même configuration ne repousse pas le premier sondage", async () => {
+    const { ctx, handlers } = fakeCtx()
+    const listAssigned = vi.fn(async () => [] as AdoPullRequest[])
+    const d = {
+      providerFor: () => ({ listAssigned, resolveUserId: vi.fn(async () => 'u') }),
+      runnerFor: () => ({ start: vi.fn(() => 'tab-1') }),
+      connectionFor: () => ({ id: 'c1', label: 'acme', baseUrl: 'https://dev.azure.com/acme' }),
+      loadRuns: () => [],
+      saveRuns: vi.fn()
+    }
+    createAutomationModule(d as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await vi.advanceTimersByTimeAsync(40_000)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])   // même configuration, prompt inchangé
+    await vi.advanceTimersByTimeAsync(25_000)                      // 65 s cumulées : le tick doit avoir eu lieu
+    expect(listAssigned).toHaveBeenCalledTimes(1)
+  })
+
+  it("changer la période réarme la minuterie", async () => {
+    const { ctx, handlers } = fakeCtx()
+    const listAssigned = vi.fn(async () => [] as AdoPullRequest[])
+    const d = {
+      providerFor: () => ({ listAssigned, resolveUserId: vi.fn(async () => 'u') }),
+      runnerFor: () => ({ start: vi.fn(() => 'tab-1') }),
+      connectionFor: () => ({ id: 'c1', label: 'acme', baseUrl: 'https://dev.azure.com/acme' }),
+      loadRuns: () => [],
+      saveRuns: vi.fn()
+    }
+    createAutomationModule(d as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await vi.advanceTimersByTimeAsync(40_000)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config({ pollSeconds: 120 })])
+    await vi.advanceTimersByTimeAsync(119_000)
+    expect(listAssigned).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(listAssigned).toHaveBeenCalledTimes(1)
+  })
+
+  it("un prompt modifié s applique au sondage suivant sans réarmement", async () => {
+    const { ctx, handlers } = fakeCtx()
+    const start = vi.fn(() => 'tab-1')
+    const d = {
+      providerFor: () => ({ listAssigned: vi.fn(async () => [pr(1)]), resolveUserId: vi.fn(async () => 'u') }),
+      runnerFor: () => ({ start }),
+      connectionFor: () => ({ id: 'c1', label: 'acme', baseUrl: 'https://dev.azure.com/acme' }),
+      loadRuns: () => [],
+      saveRuns: vi.fn()
+    }
+    createAutomationModule(d as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config({ prompt: 'nouveau prompt' })])
+    await vi.advanceTimersByTimeAsync(60_000)
+    await handlers.get(IPC.AutomationApprovePending)!({})
+    expect(start.mock.calls[0][0]).toMatchObject({ prompt: 'nouveau prompt' })
+  })
+
   it('une automation désactivée ne tourne pas', async () => {
     const { ctx, handlers, sent } = fakeCtx()
     createAutomationModule(deps([pr(1)]) as never).register(ctx)

@@ -173,17 +173,31 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
         }
       }
 
-      const rearm = (): void => {
-        for (const t of timers.values()) clearInterval(t)
-        timers.clear()
-        for (const c of configs.filter((x) => x.enabled)) {
-          timers.set(c.id, setInterval(() => { void tick(c) }, Math.max(60, c.pollSeconds) * 1000))
+      /**
+       * Le renderer republie sa configuration à chaque écriture de son état, bien plus souvent que
+       * la période de sondage : réarmer sans distinction repousserait indéfiniment le premier tick.
+       * Seules l'apparition, la disparition et le changement de période touchent aux minuteries.
+       */
+      const rearm = (next: AutomationConfig[]): void => {
+        const before = new Map(configs.map((c) => [c.id, c]))
+        configs = next
+        const armable = new Map(next.filter((c) => c.enabled).map((c) => [c.id, c]))
+        for (const [id, t] of [...timers.entries()]) {
+          const cible = armable.get(id)
+          if (!cible || cible.pollSeconds !== before.get(id)?.pollSeconds) { clearInterval(t); timers.delete(id) }
+        }
+        for (const [id, c] of armable.entries()) {
+          if (timers.has(id)) continue
+          // Le tick relit la configuration courante : un prompt modifié s'applique sans réarmement.
+          timers.set(id, setInterval(() => {
+            const cur = configs.find((x) => x.id === id)
+            if (cur) void tick(cur)
+          }, Math.max(60, c.pollSeconds) * 1000))
         }
       }
 
       ctx.ipc.handle(IPC.AutomationSetConfig, (_e, list: AutomationConfig[]) => {
-        configs = Array.isArray(list) ? list : []
-        rearm()
+        rearm(Array.isArray(list) ? list : [])
       })
       ctx.ipc.handle(IPC.AutomationListRuns, () => runs)
       ctx.ipc.handle(IPC.AutomationApprovePending, () => {
