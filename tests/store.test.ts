@@ -409,6 +409,20 @@ describe('automations (lot 5)', () => {
     expect(g.items.some((i) => i.kind === 'run')).toBe(false)
   })
 
+  it('la configuration d\'une automation survit au round-trip toPersistable/loadWorkspace', () => {
+    const s = useHub.getState()
+    const gid = s.addGroup('Cerba')
+    const automation = {
+      trigger: 'reviewer-assigned' as const, pollSeconds: 600, prompt: 'Revue {{prId}}',
+      allowedTools: ['Read', 'Grep'], watch: [{ project: 'Socle', repos: ['api'] }], enabled: false
+    }
+    useHub.getState().addItem(gid, mkItem('auto-1', { kind: 'automation', pinned: true, tabId: null, automation }))
+    const tree = useHub.getState().toPersistable()
+    useHub.getState().reset()
+    useHub.getState().loadWorkspace(tree)
+    expect(useHub.getState().itemById('auto-1')!.automation).toEqual(automation)
+  })
+
   it('automationConfigs résout le périmètre hérité du groupe', () => {
     const s = useHub.getState()
     const gid = s.addGroup('Cerba')

@@ -571,6 +571,7 @@ export const useHub = create<HubState>((set, get) => ({
             split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: '',
             kind: i.kind ?? 'claude', ...(i.kind === 'ado' ? { ado: i.ado ?? { view: 'tree', iterationPath: null } } : {}),
             ...(i.kind === 'note' ? { note: i.note ?? { root: '', rootKind: 'file', activePath: null } } : {}),
+            ...(i.kind === 'automation' && i.automation ? { automation: i.automation } : {}),
             ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {})
           }))
         }))
