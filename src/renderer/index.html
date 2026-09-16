@@ -347,6 +347,7 @@
       .check { display: flex; align-items: center; gap: 8px; font-weight: 400; padding: 4px 4px; border-radius: var(--r-sm); cursor: pointer; }
       .check:hover { background: var(--ghost-hover); }
       .check input[type=checkbox]:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+      .setting-row.col > input[type=text], .setting-row.col > input:not([type]) { width: 100%; box-sizing: border-box; }
       .setting-row.col textarea { width: 100%; box-sizing: border-box; background: rgba(255,255,255,.03); border: 1px solid var(--border-2); border-radius: var(--r); color: var(--text); padding: 8px 10px; font-family: var(--mono); font-size: 12px; resize: vertical; transition: border-color var(--ease), box-shadow var(--ease); }
       .setting-row.col textarea:focus { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent); }
       .ado-board { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; }
