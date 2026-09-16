@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { Modal } from './Modal'
+import { CheckList } from './CheckList'
 import type { PersistAutomation, AdoWatchScope } from '../../../shared/ipc'
 import { validateAutomation, parseToolList } from '../automationForm'
-import { toggleInList } from '../util'
 
 interface Props {
   name: string
@@ -20,8 +20,7 @@ export function AutomationModal({ name, current, groupProjects, onApply, onClose
   const [err, setErr] = useState<string | null>(null)
 
   const restricted = a.watch?.map((w) => w.project) ?? []
-  const toggle = (p: string): void => {
-    const next = toggleInList(restricted, p)
+  const setRestricted = (next: string[]): void => {
     const watch: AdoWatchScope[] | undefined = next.length ? next.map((x) => ({ project: x, repos: [] })) : undefined
     setA({ ...a, watch })
   }
@@ -30,12 +29,12 @@ export function AutomationModal({ name, current, groupProjects, onApply, onClose
     const candidate = { ...a, allowedTools: parseToolList(tools) }
     const problem = validateAutomation(candidate)
     if (problem) { setErr(problem); return }
-    onApply(label.trim() || 'Review PR', candidate)
+    onApply(label.trim() || 'Suivi PR', candidate)
   }
 
   return (
     <Modal
-      title="Automation — review de PR"
+      title="Suivi PR — configuration"
       onClose={onClose}
       wide
       footer={
@@ -56,15 +55,13 @@ export function AutomationModal({ name, current, groupProjects, onApply, onClose
           onChange={(e) => setA({ ...a, pollSeconds: Number(e.target.value) })} /></div>
 
       <div className="setting-row col">
-        <label>Restreindre à certains projets</label>
-        <div className="check-list">
-          {groupProjects.map((p) => (
-            <label key={p} className="check" htmlFor={`automation-project-${p}`}>
-              <input id={`automation-project-${p}`} type="checkbox" checked={restricted.includes(p)} onChange={() => toggle(p)} />
-              {p}
-            </label>
-          ))}
-        </div>
+        <CheckList
+          label="Restreindre à certains projets"
+          idPrefix="automation-project"
+          options={groupProjects.map((p) => ({ key: p, value: p }))}
+          selected={restricted}
+          onChange={setRestricted}
+        />
         <span className="muted">Aucun coché : tout le périmètre du groupe.</span>
       </div>
 

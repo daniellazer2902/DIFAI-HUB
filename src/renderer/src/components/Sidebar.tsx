@@ -124,14 +124,14 @@ export function Sidebar(): React.JSX.Element {
     if (!cwd) {
       await confirm({
         title: 'Aucun dossier de travail',
-        message: 'Définis un dossier par défaut sur le groupe ou dans les réglages avant de créer une automation : les sessions de review démarrent dans ce dossier.',
+        message: 'Définis un dossier par défaut sur le groupe ou dans les réglages avant de créer un suivi PR : les sessions de review démarrent dans ce dossier.',
         confirmLabel: 'OK'
       })
       return
     }
     const id = crypto.randomUUID()
     useHub.getState().addItem(group.id, {
-      id, name: 'Nouvelle automation', cwd, pinned: true, tabId: null, state: 'done',
+      id, name: 'Nouveau suivi PR', cwd, pinned: true, tabId: null, state: 'done',
       agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
       kind: 'automation', automation: newAutomation()
     })
@@ -150,7 +150,7 @@ export function Sidebar(): React.JSX.Element {
     const config = useHub.getState().automationConfigs().find((c) => c.id === it.id)
     if (!config) {
       await confirm({
-        title: 'Automation incomplète',
+        title: 'Suivi PR incomplet',
         message: 'Configure la connexion Azure DevOps du groupe avant de lancer une review.',
         confirmLabel: 'OK'
       })
@@ -298,7 +298,7 @@ export function Sidebar(): React.JSX.Element {
                   <div onClick={() => { setAddFor(null); setAdvancedFor(g.id) }}><ClaudeIcon /> Claude avancé…</div>
                   <div onClick={() => addCmdItem(g)}><TerminalIcon /> Terminal</div>
                   <div onClick={() => addAdoItem(g)}><AzureIcon /> ADO – Azure</div>
-                  {g.ado && <div onClick={() => addAutomation(g)}><AutomationIcon /> Nouvelle automation</div>}
+                  {g.ado && <div onClick={() => addAutomation(g)}><AutomationIcon /> Nouveau suivi PR</div>}
                   {readDefaultVault() && <div onClick={() => addDefaultVault(g)}><NotesIcon /> Vault par défaut</div>}
                   <div onClick={() => addNoteFolder(g)}><NotesIcon /> Markdown : ouvrir un dossier…</div>
                 </div>

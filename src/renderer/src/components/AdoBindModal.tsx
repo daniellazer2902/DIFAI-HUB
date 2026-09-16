@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Modal } from './Modal'
+import { CheckList } from './CheckList'
 import type { AdoConnection, AdoProject, AdoTeam } from '../../../shared/ipc'
 import type { GroupAdo } from '../store'
-import { toggleInList } from '../util'
 
 interface Props {
   current: GroupAdo | null
@@ -20,7 +20,6 @@ export function AdoBindModal({ current, onApply, onClose }: Props): React.JSX.El
   const [watch, setWatch] = useState<string[]>(current?.watch?.map((w) => w.project) ?? [])
   const [err, setErr] = useState<string | null>(null)
 
-  const toggleWatch = (name: string): void => setWatch((w) => toggleInList(w, name))
 
   useEffect(() => { window.hub.adoConnList().then(setConns) }, [])
   useEffect(() => {
@@ -64,15 +63,13 @@ export function AdoBindModal({ current, onApply, onClose }: Props): React.JSX.El
           {teams.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
         </select></div>
       <div className="setting-row col">
-        <label>Projets surveillés (automations)</label>
-        <div className="check-list">
-          {projects.map((p) => (
-            <label key={p.id} className="check" htmlFor={`ado-bind-watch-${p.id}`}>
-              <input id={`ado-bind-watch-${p.id}`} type="checkbox" checked={watch.includes(p.name)} onChange={() => toggleWatch(p.name)} />
-              {p.name}
-            </label>
-          ))}
-        </div>
+        <CheckList
+          label="Projets surveillés (suivis PR)"
+          idPrefix="ado-bind-watch"
+          options={projects.map((p) => ({ key: p.id, value: p.name }))}
+          selected={watch}
+          onChange={setWatch}
+        />
         <span className="muted">Aucun coché : seul le projet ci-dessus est surveillé.</span>
       </div>
       {err && <div className="muted">{err}</div>}
