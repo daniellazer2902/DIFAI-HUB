@@ -20,6 +20,7 @@ export interface TickPlan {
  * sessions de la journée d'un coup.
  */
 export function planTick({ prs, journal, firstTick, activeCount }: TickInput): TickPlan {
+  // Itération figée à 0 tant que AdoPullRequest ne la porte pas : re-run après push supposera d'ajouter ce champ.
   const inconnues = prs.filter((p) => !hasKey(journal, runKey(p.project, p.repo, p.prId, 0)))
   if (firstTick) return { toStart: [], toPend: inconnues }
   const creneaux = Math.max(0, MAX_CONCURRENT - activeCount)

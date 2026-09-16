@@ -1,6 +1,6 @@
 import type { RunStatus } from '../../shared/ipc'
+import { isInteractiveTool } from '../interactiveTools'
 
-const INTERACTIFS = new Set(['AskUserQuestion', 'ExitPlanMode'])
 const TERMINES = new Set<RunStatus>(['done', 'failed'])
 
 /**
@@ -17,9 +17,9 @@ export function statusFromHook(eventName: string, toolName: string | undefined, 
     case 'Notification':
       return 'attention'
     case 'PreToolUse':
-      return INTERACTIFS.has(toolName ?? '') ? 'attention' : null
+      return isInteractiveTool(toolName) ? 'attention' : null
     case 'PostToolUse':
-      return INTERACTIFS.has(toolName ?? '') ? 'running' : null
+      return isInteractiveTool(toolName) ? 'running' : null
     default:
       return null
   }

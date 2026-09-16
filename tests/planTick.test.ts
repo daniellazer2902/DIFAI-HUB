@@ -32,7 +32,7 @@ describe('planTick', () => {
 
   it('respecte le plafond de concurrence', () => {
     const plan = planTick({ prs: [pr(1), pr(2), pr(3)], journal: [], firstTick: false, activeCount: 1 })
-    expect(plan.toStart.length).toBe(MAX_CONCURRENT - 1)
+    expect(plan.toStart.map((p) => p.prId)).toEqual([1])
     expect(plan.toPend).toEqual([])
   })
 

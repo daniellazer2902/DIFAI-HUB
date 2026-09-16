@@ -1,4 +1,5 @@
 import type { SessionRegistry } from './SessionRegistry'
+import { isInteractiveTool } from './interactiveTools'
 
 export interface HookEvent {
   hook_event_name?: string
@@ -10,11 +11,6 @@ export interface HookEvent {
   agent_type?: string
   agent_transcript_path?: string
   [key: string]: unknown
-}
-
-/** Outils où Claude se met en pause pour attendre une réponse de l'utilisateur. */
-function isInteractiveTool(name?: string): boolean {
-  return name === 'AskUserQuestion' || name === 'ExitPlanMode'
 }
 
 /**

@@ -34,6 +34,16 @@ describe('statusFromHook', () => {
     expect(statusFromHook('Stop', undefined, 'done')).toBeNull()
     expect(statusFromHook('Stop', undefined, 'failed')).toBeNull()
   })
+
+  it('UserPromptSubmit ne ressuscite pas un run terminé', () => {
+    expect(statusFromHook('UserPromptSubmit', undefined, 'done')).toBeNull()
+    expect(statusFromHook('UserPromptSubmit', undefined, 'failed')).toBeNull()
+  })
+
+  it('PostToolUse sur un outil interactif ne ressuscite pas un run terminé', () => {
+    expect(statusFromHook('PostToolUse', 'AskUserQuestion', 'done')).toBeNull()
+    expect(statusFromHook('PostToolUse', 'AskUserQuestion', 'failed')).toBeNull()
+  })
 })
 
 describe('statusFromExit', () => {
