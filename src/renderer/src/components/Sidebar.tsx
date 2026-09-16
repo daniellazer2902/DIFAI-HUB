@@ -6,8 +6,10 @@ import { GroupColorModal } from './GroupColorModal'
 import { Settings } from './Settings'
 import { AdoBindModal } from './AdoBindModal'
 import { ClaudeAdvancedModal } from './ClaudeAdvancedModal'
+import { AutomationModal } from './AutomationModal'
 import { AutomationStatusBar } from './AutomationStatusBar'
 import { isActiveRun } from '../automationSummary'
+import { newAutomation } from '../automationForm'
 import { parseClaudeArgs } from '../claudeArgs'
 import { darken, textOn } from '../color'
 import { basename, isBusy } from '../util'
@@ -32,6 +34,7 @@ export function Sidebar(): React.JSX.Element {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [colorFor, setColorFor] = useState<string | null>(null)
   const [adoFor, setAdoFor] = useState<string | null>(null)
+  const [automationFor, setAutomationFor] = useState<string | null>(null)
   const [advancedFor, setAdvancedFor] = useState<string | null>(null)
   const [editing, setEditing] = useState<Editing | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -71,8 +74,9 @@ export function Sidebar(): React.JSX.Element {
   async function onItemClick(item: Item): Promise<void> {
     if (item.kind === 'ado' && item.adoClosed) useHub.getState().setAdoClosed(item.id, false) // rouvre l'onglet fermé
     useHub.getState().setActiveItem(item.id)
-    // Une automation n'est pas une session à lancer : le clic ouvrira sa modale de configuration (Task 11).
-    if (item.kind !== 'ado' && item.kind !== 'automation' && !item.tabId) await launch(item)
+    // Une automation n'est pas une session à lancer : le clic ouvre sa modale de configuration.
+    if (item.kind === 'automation') { setAutomationFor(item.id); return }
+    if (item.kind !== 'ado' && !item.tabId) await launch(item)
   }
 
   /** Crée un item Claude (avec ou sans paramètres libres) dans le groupe. */
@@ -109,6 +113,31 @@ export function Sidebar(): React.JSX.Element {
       kind: 'ado', ado: { view: 'tree', iterationPath: null }
     }
     useHub.getState().addItem(group.id, item)
+  }
+
+  /** Nouvelle automation de review de PR : suppose une connexion ADO déjà configurée sur le groupe. */
+  function addAutomation(group: Group): void {
+    setAddFor(null)
+    if (!group.ado) return
+    const id = crypto.randomUUID()
+    useHub.getState().addItem(group.id, {
+      id, name: 'Nouvelle automation', cwd: '', pinned: true, tabId: null, state: 'done',
+      agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
+      kind: 'automation', automation: newAutomation()
+    })
+    setAutomationFor(id)
+  }
+
+  /** Projets proposés en restriction dans la modale d'automation : périmètre déjà déclaré sur le groupe. */
+  function groupProjectsFor(group: Group): string[] {
+    if (!group.ado) return []
+    return group.ado.watch?.length ? group.ado.watch.map((w) => w.project) : [group.ado.project]
+  }
+
+  function toggleAutomationEnabled(it: Item): void {
+    setMenu(null)
+    if (!it.automation) return
+    useHub.getState().setItemAutomation(it.id, { ...it.automation, enabled: !it.automation.enabled })
   }
 
   async function addCmdItem(group: Group): Promise<void> {
@@ -229,6 +258,7 @@ export function Sidebar(): React.JSX.Element {
                   <div onClick={() => { setAddFor(null); setAdvancedFor(g.id) }}><ClaudeIcon /> Claude avancé…</div>
                   <div onClick={() => addCmdItem(g)}><TerminalIcon /> Terminal</div>
                   <div onClick={() => addAdoItem(g)}><AzureIcon /> ADO – Azure</div>
+                  {g.ado && <div onClick={() => addAutomation(g)}><AutomationIcon /> Nouvelle automation</div>}
                   {readDefaultVault() && <div onClick={() => addDefaultVault(g)}><NotesIcon /> Vault par défaut</div>}
                   <div onClick={() => addNoteFolder(g)}><NotesIcon /> Markdown : ouvrir un dossier…</div>
                 </div>
@@ -270,6 +300,12 @@ export function Sidebar(): React.JSX.Element {
                     {menu === it.id && (
                       <div className="ctx-menu" onClick={(e) => e.stopPropagation()}>
                         <div onClick={() => startRename('item', it.id, it.name)}><EditIcon /> Renommer</div>
+                        {it.kind === 'automation' && (
+                          <>
+                            <div onClick={() => { setMenu(null); setAutomationFor(it.id) }}><SettingsIcon size={12} /> Configurer</div>
+                            <div onClick={() => toggleAutomationEnabled(it)}><AutomationIcon /> {it.automation?.enabled ? 'Désactiver' : 'Activer'}</div>
+                          </>
+                        )}
                         <div onClick={() => { useHub.getState().togglePin(it.id); setMenu(null) }}><PinIcon /> {it.pinned ? 'Désépingler' : 'Épingler'}</div>
                         <div className="danger" onClick={() => removeItem(it)}><TrashIcon /> Supprimer</div>
                       </div>
@@ -294,6 +330,24 @@ export function Sidebar(): React.JSX.Element {
             onClose={() => setAdoFor(null)}
           />
         )}
+        {automationFor && (() => {
+          const group = groups.find((g) => g.items.some((i) => i.id === automationFor))
+          const item = group?.items.find((i) => i.id === automationFor)
+          if (!group || !item || !item.automation) return null
+          return (
+            <AutomationModal
+              name={item.name}
+              current={item.automation}
+              groupProjects={groupProjectsFor(group)}
+              onApply={(name, a) => {
+                useHub.getState().renameItem(item.id, name)
+                useHub.getState().setItemAutomation(item.id, a)
+                setAutomationFor(null)
+              }}
+              onClose={() => setAutomationFor(null)}
+            />
+          )
+        })()}
         {advancedFor && (
           <ClaudeAdvancedModal
             onLaunch={(cmd) => { const g = groups.find((x) => x.id === advancedFor); if (g) onAdvanced(g, cmd) }}

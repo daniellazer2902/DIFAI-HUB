@@ -117,6 +117,7 @@ interface HubState {
   setSplit: (itemId: string, split: 1 | 2) => void
   setGroupAdo: (groupId: string, ado: GroupAdo | null) => void
   setAdoView: (itemId: string, view: 'tree' | 'board') => void
+  setItemAutomation: (itemId: string, automation: PersistAutomation) => void
   setAdoIteration: (itemId: string, iterationPath: string | null) => void
   setAdoClosed: (itemId: string, closed: boolean) => void
   setAdoCache: (key: string, board: AdoBoard) => void
@@ -289,6 +290,8 @@ export const useHub = create<HubState>((set, get) => ({
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view, iterationPath: i.ado?.iterationPath ?? null } })) })),
   setAdoIteration: (itemId, iterationPath) =>
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view: i.ado?.view ?? 'tree', iterationPath } })) })),
+  setItemAutomation: (itemId, automation) =>
+    set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, automation })) })),
   setAdoClosed: (itemId, closed) =>
     set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, adoClosed: closed }))) })),
   setNoteActivePath: (itemId, path) =>
