@@ -423,6 +423,15 @@ describe('automations (lot 5)', () => {
     expect(useHub.getState().itemById('auto-1')!.automation).toEqual(automation)
   })
 
+  it("setRuns hydrate le dictionnaire des runs au demarrage", () => {
+    const run = {
+      id: 'r9', automationId: 'a1', key: 'P/R#5@0', project: 'P', repo: 'R', prId: 5,
+      title: 't', url: 'u', startedAt: 0, endedAt: null, status: 'pending' as const, error: null, tabId: null
+    }
+    useHub.getState().setRuns([run])
+    expect(useHub.getState().runs['r9']).toEqual(run)
+  })
+
   it('automationConfigs résout le périmètre hérité du groupe', () => {
     const s = useHub.getState()
     const gid = s.addGroup('Cerba')

@@ -57,6 +57,13 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
       const persist = (): void => deps.saveRuns(ctx.userDataDir, runs)
       const notify = (t: AutomationToast): void => ctx.sender.send(IPC.AutomationNotify, t)
 
+      /** Enregistre un run et le projette vers l'interface : sans cet envoi, la ligne d'état l'ignore. */
+      const record = (r: RunRecord): void => {
+        runs = upsertRun(runs, r)
+        persist()
+        ctx.sender.send(IPC.AutomationRunUpdated, r)
+      }
+
       const setStatus = (runId: string, status: RunStatus, error: string | null = null): RunRecord | null => {
         const run = runs.find((r) => r.id === runId)
         if (!run) return null
@@ -64,9 +71,7 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
           ...run, status, error,
           endedAt: status === 'done' || status === 'failed' ? Date.now() : run.endedAt
         }
-        runs = upsertRun(runs, next)
-        persist()
-        ctx.sender.send(IPC.AutomationRunUpdated, next)
+        record(next)
         // Un passage à un statut terminal libère un créneau : la file peut avancer.
         if (status === 'done' || status === 'failed') drainQueue()
         return next
@@ -77,13 +82,12 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
         const pat = ctx.credentials.get(config.connId)
         const runId = existingId ?? randomUUID()
         if (!conn || !pat) {
-          const record: RunRecord = {
+          record({
             id: runId, automationId: config.id, key: runKey(pr.project, pr.repo, pr.prId, 0),
             project: pr.project, repo: pr.repo, prId: pr.prId, title: pr.title, url: pr.url,
             startedAt: Date.now(), endedAt: Date.now(), status: 'failed',
             error: 'Connexion ou PAT introuvable', tabId: null
-          }
-          runs = upsertRun(runs, record); persist()
+          })
           notify({ runId, level: 'failed', title: `Run impossible — !${pr.prId}`, body: 'Connexion ou PAT introuvable. Rien n\'a été posté.' })
           drainQueue()
           return
@@ -96,24 +100,22 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
           })
         } catch {
           // Motif générique : ne jamais reprendre le message d'erreur brut, qui pourrait référencer le PAT.
-          const record: RunRecord = {
+          record({
             id: runId, automationId: config.id, key: runKey(pr.project, pr.repo, pr.prId, 0),
             project: pr.project, repo: pr.repo, prId: pr.prId, title: pr.title, url: pr.url,
             startedAt: Date.now(), endedAt: Date.now(), status: 'failed',
             error: 'Échec du lancement de la session', tabId: null
-          }
-          runs = upsertRun(runs, record); persist()
+          })
           notify({ runId, level: 'failed', title: `Run impossible — !${pr.prId}`, body: 'Le lancement de la session a échoué.' })
           drainQueue()
           return
         }
         ctx.registry.register(tabId, config.cwd)
-        const record: RunRecord = {
+        record({
           id: runId, automationId: config.id, key: runKey(pr.project, pr.repo, pr.prId, 0),
           project: pr.project, repo: pr.repo, prId: pr.prId, title: pr.title, url: pr.url,
           startedAt: Date.now(), endedAt: null, status: 'running', error: null, tabId
-        }
-        runs = upsertRun(runs, record); persist()
+        })
         ctx.sender.send(IPC.AutomationRunStarted, {
           runId, groupId: config.groupId, automationId: config.id, tabId,
           title: `Review !${pr.prId}`, cwd: config.cwd
@@ -152,7 +154,7 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
 
           for (const pr of plan.toPend) {
             const runId = randomUUID()
-            runs = upsertRun(runs, {
+            record({
               id: runId, automationId: config.id, key: runKey(pr.project, pr.repo, pr.prId, 0),
               project: pr.project, repo: pr.repo, prId: pr.prId, title: pr.title, url: pr.url,
               startedAt: Date.now(), endedAt: null, status: 'pending', error: null, tabId: null
@@ -160,7 +162,6 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
             pending.set(runId, { config, pr })
           }
           if (plan.toPend.length > 0) {
-            persist()
             notify({
               runId: '', level: 'attention',
               title: `${plan.toPend.length} PR en attente de review`,

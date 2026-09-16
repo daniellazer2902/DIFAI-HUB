@@ -138,6 +138,29 @@ describe('automationModule', () => {
     expect(start.mock.calls[0][0]).toMatchObject({ prompt: 'nouveau prompt' })
   })
 
+  it("une PR mise en attente est projetee vers l interface", async () => {
+    const { ctx, handlers, sent } = fakeCtx()
+    createAutomationModule(deps([pr(1)]) as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await vi.advanceTimersByTimeAsync(60_000)
+    const updated = sent.filter((x) => x.channel === IPC.AutomationRunUpdated).map((x) => x.args[0] as RunRecord)
+    expect(updated.map((r) => r.status)).toContain('pending')
+    expect(updated.find((r) => r.status === 'pending')!.prId).toBe(1)
+  })
+
+  it("un run demarre est projete vers l interface des son lancement", async () => {
+    const { ctx, handlers, sent } = fakeCtx()
+    createAutomationModule(deps([pr(1)]) as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await vi.advanceTimersByTimeAsync(60_000)
+    sent.length = 0
+    await handlers.get(IPC.AutomationApprovePending)!({})
+    const updated = sent.filter((x) => x.channel === IPC.AutomationRunUpdated).map((x) => x.args[0] as RunRecord)
+    const running = updated.filter((r) => r.status === 'running')
+    expect(running.length).toBe(1)
+    expect(running[0].tabId).toBe('tab-1')
+  })
+
   it('une automation désactivée ne tourne pas', async () => {
     const { ctx, handlers, sent } = fakeCtx()
     createAutomationModule(deps([pr(1)]) as never).register(ctx)

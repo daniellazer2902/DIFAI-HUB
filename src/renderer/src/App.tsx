@@ -77,6 +77,9 @@ export function App(): React.JSX.Element {
       if (!near) return
       useHub.getState().openNoteRoot(p.absPath, p.isDir ? 'vault' : 'file', near.id)
     }))
+    // Le journal des runs vit dans le processus principal : sans cette hydratation, les PR en
+    // attente de feu vert restent invisibles et donc impossibles à lancer.
+    window.hub.automationListRuns().then((list) => useHub.getState().setRuns(list)).catch(() => {})
     unsubs.push(window.hub.onAutomationRunStarted((p) => useHub.getState().addRunItem(p)))
     unsubs.push(window.hub.onAutomationRunUpdated((r) => useHub.getState().setRun(r)))
     unsubs.push(window.hub.onAutomationNotify((t) => {

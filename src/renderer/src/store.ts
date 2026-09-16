@@ -129,6 +129,7 @@ interface HubState {
   openNoteRoot: (absPath: string, rootKind: 'vault' | 'file', nearItemId: string) => void
   addRunItem: (p: RunStartedPayload) => void
   setRun: (r: RunRecord) => void
+  setRuns: (list: RunRecord[]) => void
   automationConfigs: () => AutomationConfig[]
 
   bindSession: (itemId: string, tabId: string) => void
@@ -323,6 +324,8 @@ export const useHub = create<HubState>((set, get) => ({
   })),
 
   setRun: (r) => set((s) => ({ runs: { ...s.runs, [r.id]: r } })),
+
+  setRuns: (list) => set({ runs: Object.fromEntries(list.map((r) => [r.id, r])) }),
 
   automationConfigs: () => {
     const s = get()
