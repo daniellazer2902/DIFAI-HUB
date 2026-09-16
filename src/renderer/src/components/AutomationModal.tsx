@@ -37,6 +37,7 @@ export function AutomationModal({ name, current, groupProjects, onApply, onClose
     <Modal
       title="Automation — review de PR"
       onClose={onClose}
+      wide
       footer={
         <>
           <button className="btn" onClick={onClose}>Annuler</button>
