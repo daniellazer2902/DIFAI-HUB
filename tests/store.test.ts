@@ -382,6 +382,50 @@ describe('openNoteFile', () => {
   })
 })
 
+describe('automations (lot 5)', () => {
+  beforeEach(() => useHub.getState().reset())
+
+  it('addRunItem crée un item de run dans le groupe, sans le sélectionner', () => {
+    const s = useHub.getState()
+    const gid = s.addGroup('G')
+    useHub.getState().addRunItem({
+      runId: 'r1', groupId: gid, automationId: 'a1', tabId: 'tab-1', title: 'Review !1842', cwd: 'C:/x'
+    })
+    const g = useHub.getState().groups.find((x) => x.id === gid)!
+    const item = g.items.find((i) => i.kind === 'run')!
+    expect(item.name).toBe('Review !1842')
+    expect(item.tabId).toBe('tab-1')
+    expect(g.leftActiveTab ?? '').not.toContain(item.id)
+  })
+
+  it('un item de run n est jamais persisté', () => {
+    const s = useHub.getState()
+    const gid = s.addGroup('G')
+    useHub.getState().addRunItem({
+      runId: 'r2', groupId: gid, automationId: 'a1', tabId: 'tab-2', title: 'Review !2', cwd: 'C:/x'
+    })
+    const tree = useHub.getState().toPersistable()
+    const g = tree.groups.find((x) => x.id === gid)!
+    expect(g.items.some((i) => i.kind === 'run')).toBe(false)
+  })
+
+  it('automationConfigs résout le périmètre hérité du groupe', () => {
+    const s = useHub.getState()
+    const gid = s.addGroup('Cerba')
+    useHub.getState().setGroupAdo(gid, { connId: 'c1', project: 'Socle', team: null,
+      watch: [{ project: 'Socle', repos: [] }, { project: 'Catalogues', repos: [] }] } as never)
+    useHub.getState().addItem(gid, {
+      id: 'auto-1', name: 'Review PR', cwd: 'C:/x', pinned: true, tabId: null, state: 'waiting',
+      agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
+      kind: 'automation',
+      automation: { trigger: 'reviewer-assigned', pollSeconds: 300, prompt: 'p', allowedTools: ['Read'], enabled: true }
+    } as never)
+    const [cfg] = useHub.getState().automationConfigs()
+    expect(cfg.scope.map((x) => x.project)).toEqual(['Socle', 'Catalogues'])
+    expect(cfg.connId).toBe('c1')
+  })
+})
+
 describe('openNoteRoot', () => {
   beforeEach(() => useHub.getState().reset())
 

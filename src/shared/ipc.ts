@@ -286,4 +286,12 @@ export interface HubApi {
   notesResolveFile(cwd: string, token: string): Promise<string | null>
   onNotesChanged(cb: (itemId: string, event: string, path: string) => void): Unsub
   onDideOpen(cb: (p: DideOpenPayload) => void): Unsub
+  automationSetConfig(list: AutomationConfig[]): Promise<void>
+  automationRunNow(automationId: string, pr: AdoPullRequest): Promise<void>
+  automationApprovePending(): Promise<void>
+  automationDismissPending(): Promise<void>
+  automationListRuns(): Promise<RunRecord[]>
+  onAutomationRunStarted(cb: (p: RunStartedPayload) => void): Unsub
+  onAutomationRunUpdated(cb: (r: RunRecord) => void): Unsub
+  onAutomationNotify(cb: (t: AutomationToast) => void): Unsub
 }
