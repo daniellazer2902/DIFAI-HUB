@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Modal } from './Modal'
 import type { AdoConnection, AdoProject, AdoTeam } from '../../../shared/ipc'
 import type { GroupAdo } from '../store'
+import { toggleInList } from '../util'
 
 interface Props {
   current: GroupAdo | null
@@ -19,8 +20,7 @@ export function AdoBindModal({ current, onApply, onClose }: Props): React.JSX.El
   const [watch, setWatch] = useState<string[]>(current?.watch?.map((w) => w.project) ?? [])
   const [err, setErr] = useState<string | null>(null)
 
-  const toggleWatch = (name: string): void =>
-    setWatch((w) => (w.includes(name) ? w.filter((x) => x !== name) : [...w, name]))
+  const toggleWatch = (name: string): void => setWatch((w) => toggleInList(w, name))
 
   useEffect(() => { window.hub.adoConnList().then(setConns) }, [])
   useEffect(() => {

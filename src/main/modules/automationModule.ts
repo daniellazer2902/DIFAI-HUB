@@ -8,6 +8,7 @@ import { loadRuns, saveRuns, runKey, upsertRun } from '../automations/runStore'
 import { planTick, MAX_CONCURRENT } from '../automations/planTick'
 import { statusFromHook, statusFromExit } from '../automations/runState'
 import { countsAsActive, occupiesSlot, isTerminal } from '../../shared/runStatus'
+import { prLabel } from '../../shared/prLabel'
 import { loadConnections } from '../adoStore'
 import type { HookEvent } from '../hookEvents'
 
@@ -65,7 +66,9 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
         if (!run) return null
         const next: RunRecord = {
           ...run, status, error,
-          endedAt: isTerminal(status) ? Date.now() : run.endedAt
+          endedAt: isTerminal(status) ? Date.now() : run.endedAt,
+          // Les recherches d'exécution se font par tabId : un run terminé ne doit plus répondre à celui de sa session.
+          tabId: isTerminal(status) ? null : run.tabId
         }
         record(next)
         // Un passage à un statut terminal libère un créneau : la file peut avancer.
@@ -85,7 +88,7 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
             error: 'Aucun dossier de travail', tabId: null
           })
           notify({
-            runId, level: 'failed', title: `Run impossible — !${pr.prId}`,
+            runId, level: 'failed', title: `Run impossible — ${prLabel(pr.prId)}`,
             body: 'Aucun dossier de travail pour cette automation. Rien n\'a été posté.'
           })
           drainQueue()
@@ -98,7 +101,7 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
             startedAt: Date.now(), endedAt: Date.now(), status: 'failed',
             error: 'Connexion ou PAT introuvable', tabId: null
           })
-          notify({ runId, level: 'failed', title: `Run impossible — !${pr.prId}`, body: 'Connexion ou PAT introuvable. Rien n\'a été posté.' })
+          notify({ runId, level: 'failed', title: `Run impossible — ${prLabel(pr.prId)}`, body: 'Connexion ou PAT introuvable. Rien n\'a été posté.' })
           drainQueue()
           return
         }
@@ -116,7 +119,7 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
             startedAt: Date.now(), endedAt: Date.now(), status: 'failed',
             error: 'Échec du lancement de la session', tabId: null
           })
-          notify({ runId, level: 'failed', title: `Run impossible — !${pr.prId}`, body: 'Le lancement de la session a échoué.' })
+          notify({ runId, level: 'failed', title: `Run impossible — ${prLabel(pr.prId)}`, body: 'Le lancement de la session a échoué.' })
           drainQueue()
           return
         }
@@ -128,7 +131,7 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
         })
         ctx.sender.send(IPC.AutomationRunStarted, {
           runId, groupId: config.groupId, automationId: config.id, tabId,
-          title: `Review !${pr.prId}`, cwd: config.cwd
+          title: `Review ${prLabel(pr.prId)}`, cwd: config.cwd
         })
       }
 
@@ -249,7 +252,7 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
         if (next === 'attention') {
           notify({
             runId: run.id, level: 'attention',
-            title: `Une réponse est attendue — !${run.prId}`,
+            title: `Une réponse est attendue — ${prLabel(run.prId)}`,
             body: `${run.project} · ${run.repo} — la session t'attend.`
           })
         }
@@ -266,7 +269,7 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
           : `${run.project} · ${run.repo} — des commentaires ont pu être publiés avant l\'interruption, vérifie la pull request.`
         notify({
           runId: run.id, level: status === 'done' ? 'done' : 'failed',
-          title: status === 'done' ? `Review terminée — !${run.prId}` : `Run interrompu — !${run.prId}`,
+          title: status === 'done' ? `Review terminée — ${prLabel(run.prId)}` : `Run interrompu — ${prLabel(run.prId)}`,
           body
         })
       })

@@ -218,6 +218,27 @@ describe('automationModule', () => {
     expect(notif.body).toContain('vérifie la pull request')
   })
 
+  it("un run termine ne garde pas l identifiant d onglet de sa session", async () => {
+    const { ctx, handlers, exit } = fakeCtx()
+    createAutomationModule(deps([pr(1)]) as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await vi.advanceTimersByTimeAsync(60_000)
+    await handlers.get(IPC.AutomationApprovePending)!({})
+    exit()('tab-1', 0)
+    const runs = await handlers.get(IPC.AutomationListRuns)!({}) as RunRecord[]
+    expect(runs.find((r) => r.prId === 1)?.tabId).toBeNull()
+  })
+
+  it("le titre d un onglet de run designe la PR sans notation etrangere", async () => {
+    const { ctx, handlers, sent } = fakeCtx()
+    createAutomationModule(deps([pr(1842)]) as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await vi.advanceTimersByTimeAsync(60_000)
+    await handlers.get(IPC.AutomationApprovePending)!({})
+    const started = sent.find((x) => x.channel === IPC.AutomationRunStarted)!.args[0] as { title: string }
+    expect(started.title).toBe('Review PR 1842')
+  })
+
   it('le PAT ne part jamais vers le renderer', async () => {
     const { ctx, handlers, sent } = fakeCtx()
     createAutomationModule(deps([pr(1)]) as never).register(ctx)

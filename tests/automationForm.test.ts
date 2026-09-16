@@ -18,7 +18,7 @@ describe('automationForm', () => {
 
   it('refuse un intervalle inférieur à une minute', () => {
     expect(validateAutomation({ ...newAutomation(), pollSeconds: 30 }))
-      .toBe('L intervalle minimum est de 60 secondes.')
+      .toBe('L\'intervalle minimum est de 60 secondes.')
   })
 
   it('accepte une automation correcte', () => {

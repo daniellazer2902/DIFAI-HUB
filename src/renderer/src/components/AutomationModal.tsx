@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Modal } from './Modal'
 import type { PersistAutomation, AdoWatchScope } from '../../../shared/ipc'
 import { validateAutomation, parseToolList } from '../automationForm'
+import { toggleInList } from '../util'
 
 interface Props {
   name: string
@@ -20,7 +21,7 @@ export function AutomationModal({ name, current, groupProjects, onApply, onClose
 
   const restricted = a.watch?.map((w) => w.project) ?? []
   const toggle = (p: string): void => {
-    const next = restricted.includes(p) ? restricted.filter((x) => x !== p) : [...restricted, p]
+    const next = toggleInList(restricted, p)
     const watch: AdoWatchScope[] | undefined = next.length ? next.map((x) => ({ project: x, repos: [] })) : undefined
     setA({ ...a, watch })
   }

@@ -389,11 +389,11 @@ describe('automations (lot 5)', () => {
     const s = useHub.getState()
     const gid = s.addGroup('G')
     useHub.getState().addRunItem({
-      runId: 'r1', groupId: gid, automationId: 'a1', tabId: 'tab-1', title: 'Review !1842', cwd: 'C:/x'
+      runId: 'r1', groupId: gid, automationId: 'a1', tabId: 'tab-1', title: 'Review PR 1842', cwd: 'C:/x'
     })
     const g = useHub.getState().groups.find((x) => x.id === gid)!
     const item = g.items.find((i) => i.kind === 'run')!
-    expect(item.name).toBe('Review !1842')
+    expect(item.name).toBe('Review PR 1842')
     expect(item.tabId).toBe('tab-1')
     expect(g.leftActiveTab ?? '').not.toContain(item.id)
   })
@@ -402,7 +402,7 @@ describe('automations (lot 5)', () => {
     const s = useHub.getState()
     const gid = s.addGroup('G')
     useHub.getState().addRunItem({
-      runId: 'r2', groupId: gid, automationId: 'a1', tabId: 'tab-2', title: 'Review !2', cwd: 'C:/x'
+      runId: 'r2', groupId: gid, automationId: 'a1', tabId: 'tab-2', title: 'Review PR 2', cwd: 'C:/x'
     })
     const tree = useHub.getState().toPersistable()
     const g = tree.groups.find((x) => x.id === gid)!
