@@ -8,7 +8,7 @@ import { AdoBindModal } from './AdoBindModal'
 import { ClaudeAdvancedModal } from './ClaudeAdvancedModal'
 import { AutomationModal } from './AutomationModal'
 import { AutomationStatusBar } from './AutomationStatusBar'
-import { isActiveRun } from '../automationSummary'
+import { countsAsActive } from '../../../shared/runStatus'
 import { newAutomation } from '../automationForm'
 import { parseClaudeArgs } from '../claudeArgs'
 import { darken, textOn } from '../color'
@@ -205,7 +205,7 @@ export function Sidebar(): React.JSX.Element {
 
   /** Nombre de runs actifs rattachés à une automation, pour le badge de la sidebar. */
   function activeRunsFor(automationId: string): number {
-    return Object.values(runs).filter((r) => r.automationId === automationId && isActiveRun(r.status)).length
+    return Object.values(runs).filter((r) => r.automationId === automationId && countsAsActive(r.status)).length
   }
 
   function nameOrEditor(kind: 'group' | 'item', id: string, name: string, cls: string): React.JSX.Element {

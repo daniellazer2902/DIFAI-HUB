@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { RunRecord, RunStatus } from '../../shared/ipc'
+import { isTerminal, neverStarted } from '../../shared/runStatus'
 
 export const MAX_RUNS = 200
 const FILE = 'automations.json'
@@ -51,13 +52,13 @@ export function upsertRun(list: RunRecord[], run: RunRecord): RunRecord[] {
 }
 /** 'pending' et 'queued' n'ont jamais eu de session : on les laisse redécouvrir plutôt que les marquer échouées. */
 export function filterUnstarted(list: RunRecord[]): RunRecord[] {
-  return list.filter((r) => r.status !== 'pending' && r.status !== 'queued')
+  return list.filter((r) => !neverStarted(r.status))
 }
 
 /** Les sessions ne survivent pas à l'arrêt du processus : tout run non-terminal relu du disque est interrompu. */
 export function requalifyRuns(list: RunRecord[]): RunRecord[] {
   return list.map((r) => {
-    if (r.status === 'done' || r.status === 'failed' || r.status === 'pending' || r.status === 'queued') return r
+    if (isTerminal(r.status) || neverStarted(r.status)) return r
     return {
       ...r,
       status: 'failed',

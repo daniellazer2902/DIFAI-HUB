@@ -1,10 +1,5 @@
-import type { RunRecord, RunStatus } from '../../shared/ipc'
-
-const ACTIFS: RunStatus[] = ['queued', 'running', 'attention']
-
-export function isActiveRun(status: RunStatus): boolean {
-  return ACTIFS.includes(status)
-}
+import type { RunRecord } from '../../shared/ipc'
+import { countsAsActive } from '../../shared/runStatus'
 
 export interface RunSummary { active: number; attention: number; pending: number }
 
@@ -12,7 +7,7 @@ export interface RunSummary { active: number; attention: number; pending: number
 export function summarizeRuns(runs: Record<string, RunRecord>): RunSummary {
   const list = Object.values(runs)
   return {
-    active: list.filter((r) => ACTIFS.includes(r.status)).length,
+    active: list.filter((r) => countsAsActive(r.status)).length,
     attention: list.filter((r) => r.status === 'attention').length,
     pending: list.filter((r) => r.status === 'pending').length
   }

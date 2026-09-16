@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useHub } from '../store'
-import { summarizeRuns, isActiveRun } from '../automationSummary'
+import { summarizeRuns } from '../automationSummary'
+import { countsAsActive } from '../../../shared/runStatus'
 
 /** Ligne d'état des runs, juste au-dessus de Paramètres. Dérivée du store, sans modèle propre. */
 export function AutomationStatusBar(): React.JSX.Element | null {
@@ -10,7 +11,7 @@ export function AutomationStatusBar(): React.JSX.Element | null {
   const { active, attention, pending } = summarizeRuns(runs)
   if (active === 0 && pending === 0) return null
 
-  const actifs = Object.values(runs).filter((r) => isActiveRun(r.status))
+  const actifs = Object.values(runs).filter((r) => countsAsActive(r.status))
   const pendingRuns = Object.values(runs).filter((r) => r.status === 'pending')
 
   const groupOf = (runId: string): string =>

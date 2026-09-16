@@ -7,6 +7,7 @@ import { AutomationRunner } from '../automations/AutomationRunner'
 import { loadRuns, saveRuns, runKey, upsertRun } from '../automations/runStore'
 import { planTick, MAX_CONCURRENT } from '../automations/planTick'
 import { statusFromHook, statusFromExit } from '../automations/runState'
+import { countsAsActive, occupiesSlot, isTerminal } from '../../shared/runStatus'
 import { loadConnections } from '../adoStore'
 import type { HookEvent } from '../hookEvents'
 
@@ -31,11 +32,6 @@ const defaultDeps: AutomationDeps = {
 function orgOf(conn: AdoConnection): string {
   return conn.baseUrl.replace(/\/+$/, '').split('/').pop() ?? conn.label
 }
-
-/** Statuts qui comptent comme « en cours » pour la découverte de nouvelles PR (une file non vidée n'en laisse pas doubler d'autres). */
-const ACTIFS = new Set<RunStatus>(['queued', 'running', 'attention'])
-/** Statuts qui occupent réellement un créneau de concurrence (une entrée en file n'en consomme aucun tant qu'elle n'a pas démarré). */
-const OCCUPES = new Set<RunStatus>(['running', 'attention'])
 
 type Waiting = { config: AutomationConfig; pr: AdoPullRequest }
 
@@ -69,11 +65,11 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
         if (!run) return null
         const next: RunRecord = {
           ...run, status, error,
-          endedAt: status === 'done' || status === 'failed' ? Date.now() : run.endedAt
+          endedAt: isTerminal(status) ? Date.now() : run.endedAt
         }
         record(next)
         // Un passage à un statut terminal libère un créneau : la file peut avancer.
-        if (status === 'done' || status === 'failed') drainQueue()
+        if (isTerminal(status)) drainQueue()
         return next
       }
 
@@ -142,7 +138,7 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
         draining = true
         try {
           for (const [runId, { config, pr }] of [...queued.entries()]) {
-            const occupied = runs.filter((r) => OCCUPES.has(r.status)).length
+            const occupied = runs.filter((r) => occupiesSlot(r.status)).length
             if (occupied >= MAX_CONCURRENT) break
             queued.delete(runId)
             startRun(config, pr, runId)
@@ -162,7 +158,7 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
           let prs: AdoPullRequest[]
           try { prs = await deps.providerFor(conn, pat).listAssigned(config.scope) } catch { return }
           const first = !firstTickDone.has(config.id)
-          const activeCount = runs.filter((r) => ACTIFS.has(r.status)).length
+          const activeCount = runs.filter((r) => countsAsActive(r.status)).length
           const plan = planTick({ prs, journal: runs, firstTick: first, activeCount })
           firstTickDone.add(config.id)
 
@@ -261,7 +257,7 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
 
       ctx.pty.onExit((tabId, code) => {
         const run = runs.find((r) => r.tabId === tabId)
-        if (!run || run.status === 'done' || run.status === 'failed') return
+        if (!run || isTerminal(run.status)) return
         const status = statusFromExit(code)
         setStatus(run.id, status, status === 'failed' ? `Session terminée (code ${code})` : null)
         notify({

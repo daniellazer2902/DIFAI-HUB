@@ -1,7 +1,6 @@
 import type { RunStatus } from '../../shared/ipc'
 import { isInteractiveTool } from '../interactiveTools'
-
-const TERMINES = new Set<RunStatus>(['done', 'failed'])
+import { isTerminal } from '../../shared/runStatus'
 
 /**
  * Traduit un événement de hook en statut de run. `null` = pas de changement.
@@ -9,7 +8,7 @@ const TERMINES = new Set<RunStatus>(['done', 'failed'])
  * Seule la sortie du processus termine un run (voir statusFromExit).
  */
 export function statusFromHook(eventName: string, toolName: string | undefined, current: RunStatus): RunStatus | null {
-  if (TERMINES.has(current)) return null
+  if (isTerminal(current)) return null
   switch (eventName) {
     case 'UserPromptSubmit':
       return 'running'
