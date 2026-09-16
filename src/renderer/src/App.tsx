@@ -4,8 +4,10 @@ import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { Workspace } from './components/Workspace'
 import { ConfirmHost } from './components/ConfirmHost'
+import { ToastHost } from './components/ToastHost'
 import { basename, readConsoleWidth, isBusy } from './util'
 import { confirm } from './confirm'
+import { pushToast } from './toasts'
 import { soundForTransition, playSound, readSoundEnabled } from './sound'
 import { readConfirmOnClose, readGlobalDefaultCwd } from './settings'
 import type { Unsub } from '../../shared/ipc'
@@ -75,6 +77,12 @@ export function App(): React.JSX.Element {
       if (!near) return
       useHub.getState().openNoteRoot(p.absPath, p.isDir ? 'vault' : 'file', near.id)
     }))
+    unsubs.push(window.hub.onAutomationRunStarted((p) => useHub.getState().addRunItem(p)))
+    unsubs.push(window.hub.onAutomationRunUpdated((r) => useHub.getState().setRun(r)))
+    unsubs.push(window.hub.onAutomationNotify((t) => {
+      pushToast(t)
+      if (t.level === 'attention' && readSoundEnabled()) playSound('waiting')
+    }))
     return () => unsubs.forEach((u) => u())
   }, [])
 
@@ -126,7 +134,10 @@ export function App(): React.JSX.Element {
     let t: ReturnType<typeof setTimeout> | null = null
     const unsub = useHub.subscribe(() => {
       if (t) clearTimeout(t)
-      t = setTimeout(() => window.hub.saveWorkspace(useHub.getState().toPersistable()), 300)
+      t = setTimeout(() => {
+        window.hub.saveWorkspace(useHub.getState().toPersistable())
+        window.hub.automationSetConfig(useHub.getState().automationConfigs())
+      }, 300)
     })
     return () => { if (t) clearTimeout(t); unsub() }
   }, [])
@@ -141,6 +152,7 @@ export function App(): React.JSX.Element {
         </div>
       </div>
       <ConfirmHost />
+      <ToastHost />
     </div>
   )
 }
