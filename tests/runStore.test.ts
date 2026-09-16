@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { runKey, parseRuns, serializeRuns, upsertRun, hasKey, MAX_RUNS, requalifyRuns, filterPending } from '../src/main/automations/runStore'
+import { runKey, parseRuns, serializeRuns, upsertRun, hasKey, MAX_RUNS, requalifyRuns, filterUnstarted } from '../src/main/automations/runStore'
 import type { RunRecord } from '../src/shared/ipc'
 
 const rec = (id: string, key: string): RunRecord => ({
@@ -59,11 +59,10 @@ describe('runStore', () => {
     expect(out[0].endedAt).toBe(100)
   })
 
-  it('requalifyRuns transforme queued en failed', () => {
+  it('requalifyRuns laisse queued inchangé', () => {
     const list = [{ ...rec('r1', 'k1'), status: 'queued' as const }]
     const out = requalifyRuns(list)
-    expect(out[0].status).toBe('failed')
-    expect(out[0].error).toContain('interrompue')
+    expect(out[0].status).toBe('queued')
   })
 
   it('requalifyRuns transforme attention en failed', () => {
@@ -106,13 +105,14 @@ describe('runStore', () => {
     expect(updated[MAX_RUNS - 1].status).toBe('done')
   })
 
-  it('filterPending écarte les enregistrements pending', () => {
+  it('filterUnstarted écarte les enregistrements pending et queued', () => {
     const list = [
       { ...rec('r1', 'k1'), status: 'pending' as const },
       { ...rec('r2', 'k2'), status: 'running' as const },
-      { ...rec('r3', 'k3'), status: 'pending' as const }
+      { ...rec('r3', 'k3'), status: 'pending' as const },
+      { ...rec('r4', 'k4'), status: 'queued' as const }
     ]
-    const out = filterPending(list)
+    const out = filterUnstarted(list)
     expect(out.map((r) => r.id)).toEqual(['r2'])
   })
 

@@ -49,15 +49,15 @@ export function upsertRun(list: RunRecord[], run: RunRecord): RunRecord[] {
   if (i >= 0) { const copy = [...list]; copy[i] = run; return copy }
   return [run, ...list].slice(0, MAX_RUNS)
 }
-/** Une PR en attente de feu vert n'a jamais eu de session : on la laisse redécouvrir plutôt que la marquer échouée. */
-export function filterPending(list: RunRecord[]): RunRecord[] {
-  return list.filter((r) => r.status !== 'pending')
+/** 'pending' et 'queued' n'ont jamais eu de session : on les laisse redécouvrir plutôt que les marquer échouées. */
+export function filterUnstarted(list: RunRecord[]): RunRecord[] {
+  return list.filter((r) => r.status !== 'pending' && r.status !== 'queued')
 }
 
 /** Les sessions ne survivent pas à l'arrêt du processus : tout run non-terminal relu du disque est interrompu. */
 export function requalifyRuns(list: RunRecord[]): RunRecord[] {
   return list.map((r) => {
-    if (r.status === 'done' || r.status === 'failed' || r.status === 'pending') return r
+    if (r.status === 'done' || r.status === 'failed' || r.status === 'pending' || r.status === 'queued') return r
     return {
       ...r,
       status: 'failed',
@@ -69,7 +69,7 @@ export function requalifyRuns(list: RunRecord[]): RunRecord[] {
 }
 
 export function loadRuns(dir: string): RunRecord[] {
-  try { return requalifyRuns(filterPending(parseRuns(readFileSync(join(dir, FILE), 'utf8')))) } catch { return [] }
+  try { return requalifyRuns(filterUnstarted(parseRuns(readFileSync(join(dir, FILE), 'utf8')))) } catch { return [] }
 }
 export function saveRuns(dir: string, list: RunRecord[]): void {
   try { writeFileSync(join(dir, FILE), serializeRuns(list), 'utf8') } catch { /* disque indisponible */ }

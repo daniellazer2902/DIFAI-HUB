@@ -32,17 +32,27 @@ function orgOf(conn: AdoConnection): string {
   return conn.baseUrl.replace(/\/+$/, '').split('/').pop() ?? conn.label
 }
 
+/** Statuts qui comptent comme « en cours » pour la découverte de nouvelles PR (une file non vidée n'en laisse pas doubler d'autres). */
 const ACTIFS = new Set<RunStatus>(['queued', 'running', 'attention'])
+/** Statuts qui occupent réellement un créneau de concurrence (une entrée en file n'en consomme aucun tant qu'elle n'a pas démarré). */
+const OCCUPES = new Set<RunStatus>(['running', 'attention'])
+
+type Waiting = { config: AutomationConfig; pr: AdoPullRequest }
 
 export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubModule {
+  let configs: AutomationConfig[] = []
+  let runs: RunRecord[] = []
+  const timers = new Map<string, ReturnType<typeof setInterval>>()
+  const firstTickDone = new Set<string>()
+  const pending = new Map<string, Waiting>()
+  const queued = new Map<string, Waiting>()
+  const ticking = new Set<string>()
+  let draining = false
+
   return {
     name: 'automation',
     register(ctx: AppContext): void {
-      let configs: AutomationConfig[] = []
-      let runs: RunRecord[] = deps.loadRuns(ctx.userDataDir)
-      const timers = new Map<string, ReturnType<typeof setInterval>>()
-      const firstTickDone = new Set<string>()
-      const pending = new Map<string, { config: AutomationConfig; pr: AdoPullRequest }>()
+      runs = deps.loadRuns(ctx.userDataDir)
 
       const persist = (): void => deps.saveRuns(ctx.userDataDir, runs)
       const notify = (t: AutomationToast): void => ctx.sender.send(IPC.AutomationNotify, t)
@@ -57,6 +67,8 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
         runs = upsertRun(runs, next)
         persist()
         ctx.sender.send(IPC.AutomationRunUpdated, next)
+        // Un passage à un statut terminal libère un créneau : la file peut avancer.
+        if (status === 'done' || status === 'failed') drainQueue()
         return next
       }
 
@@ -73,12 +85,28 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
           }
           runs = upsertRun(runs, record); persist()
           notify({ runId, level: 'failed', title: `Run impossible — !${pr.prId}`, body: 'Connexion ou PAT introuvable. Rien n\'a été posté.' })
+          drainQueue()
           return
         }
-        const tabId = deps.runnerFor(ctx).start({
-          cwd: config.cwd, org: orgOf(conn), pat, prompt: config.prompt,
-          allowedTools: config.allowedTools, pr
-        })
+        let tabId: string
+        try {
+          tabId = deps.runnerFor(ctx).start({
+            cwd: config.cwd, org: orgOf(conn), pat, prompt: config.prompt,
+            allowedTools: config.allowedTools, pr
+          })
+        } catch {
+          // Motif générique : ne jamais reprendre le message d'erreur brut, qui pourrait référencer le PAT.
+          const record: RunRecord = {
+            id: runId, automationId: config.id, key: runKey(pr.project, pr.repo, pr.prId, 0),
+            project: pr.project, repo: pr.repo, prId: pr.prId, title: pr.title, url: pr.url,
+            startedAt: Date.now(), endedAt: Date.now(), status: 'failed',
+            error: 'Échec du lancement de la session', tabId: null
+          }
+          runs = upsertRun(runs, record); persist()
+          notify({ runId, level: 'failed', title: `Run impossible — !${pr.prId}`, body: 'Le lancement de la session a échoué.' })
+          drainQueue()
+          return
+        }
         ctx.registry.register(tabId, config.cwd)
         const record: RunRecord = {
           id: runId, automationId: config.id, key: runKey(pr.project, pr.repo, pr.prId, 0),
@@ -92,35 +120,57 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
         })
       }
 
-      const tick = async (config: AutomationConfig): Promise<void> => {
-        const conn = deps.connectionFor(ctx, config.connId)
-        const pat = ctx.credentials.get(config.connId)
-        if (!conn || !pat) return
-        let prs: AdoPullRequest[]
-        try { prs = await deps.providerFor(conn, pat).listAssigned(config.scope) } catch { return }
-        const first = !firstTickDone.has(config.id)
-        const activeCount = runs.filter((r) => ACTIFS.has(r.status)).length
-        const plan = planTick({ prs, journal: runs, firstTick: first, activeCount })
-        firstTickDone.add(config.id)
+      /** Démarre les exécutions en file, dans l'ordre d'arrivée, tant qu'un créneau est libre. Non réentrante. */
+      const drainQueue = (): void => {
+        if (draining) return
+        draining = true
+        try {
+          for (const [runId, { config, pr }] of [...queued.entries()]) {
+            const occupied = runs.filter((r) => OCCUPES.has(r.status)).length
+            if (occupied >= MAX_CONCURRENT) break
+            queued.delete(runId)
+            startRun(config, pr, runId)
+          }
+        } finally {
+          draining = false
+        }
+      }
 
-        for (const pr of plan.toPend) {
-          const runId = randomUUID()
-          runs = upsertRun(runs, {
-            id: runId, automationId: config.id, key: runKey(pr.project, pr.repo, pr.prId, 0),
-            project: pr.project, repo: pr.repo, prId: pr.prId, title: pr.title, url: pr.url,
-            startedAt: Date.now(), endedAt: null, status: 'pending', error: null, tabId: null
-          })
-          pending.set(runId, { config, pr })
+      const tick = async (config: AutomationConfig): Promise<void> => {
+        if (ticking.has(config.id)) return // un sondage de cette automation est déjà en vol
+        ticking.add(config.id)
+        try {
+          const conn = deps.connectionFor(ctx, config.connId)
+          const pat = ctx.credentials.get(config.connId)
+          if (!conn || !pat) return
+          let prs: AdoPullRequest[]
+          try { prs = await deps.providerFor(conn, pat).listAssigned(config.scope) } catch { return }
+          const first = !firstTickDone.has(config.id)
+          const activeCount = runs.filter((r) => ACTIFS.has(r.status)).length
+          const plan = planTick({ prs, journal: runs, firstTick: first, activeCount })
+          firstTickDone.add(config.id)
+
+          for (const pr of plan.toPend) {
+            const runId = randomUUID()
+            runs = upsertRun(runs, {
+              id: runId, automationId: config.id, key: runKey(pr.project, pr.repo, pr.prId, 0),
+              project: pr.project, repo: pr.repo, prId: pr.prId, title: pr.title, url: pr.url,
+              startedAt: Date.now(), endedAt: null, status: 'pending', error: null, tabId: null
+            })
+            pending.set(runId, { config, pr })
+          }
+          if (plan.toPend.length > 0) {
+            persist()
+            notify({
+              runId: '', level: 'attention',
+              title: `${plan.toPend.length} PR en attente de review`,
+              body: 'Détectées au démarrage. Lancer les reviews ?'
+            })
+          }
+          for (const pr of plan.toStart) startRun(config, pr)
+        } finally {
+          ticking.delete(config.id)
         }
-        if (plan.toPend.length > 0) {
-          persist()
-          notify({
-            runId: '', level: 'attention',
-            title: `${plan.toPend.length} PR en attente de review`,
-            body: 'Détectées au démarrage. Lancer les reviews ?'
-          })
-        }
-        for (const pr of plan.toStart) startRun(config, pr)
       }
 
       const rearm = (): void => {
@@ -137,11 +187,13 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
       })
       ctx.ipc.handle(IPC.AutomationListRuns, () => runs)
       ctx.ipc.handle(IPC.AutomationApprovePending, () => {
-        const creneaux = MAX_CONCURRENT - runs.filter((r) => ACTIFS.has(r.status)).length
-        for (const [runId, { config, pr }] of [...pending.entries()].slice(0, Math.max(0, creneaux))) {
+        // Toutes les PR en attente passent en file — c'est drainQueue() qui décide, au fil des créneaux, lesquelles démarrent.
+        for (const [runId, entry] of [...pending.entries()]) {
           pending.delete(runId)
-          startRun(config, pr, runId)
+          queued.set(runId, entry)
+          setStatus(runId, 'queued')
         }
+        drainQueue()
       })
       ctx.ipc.handle(IPC.AutomationDismissPending, () => {
         for (const runId of pending.keys()) setStatus(runId, 'failed', 'Écarté au démarrage')
@@ -179,6 +231,14 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
           body: `${run.project} · ${run.repo}`
         })
       })
+    },
+    dispose(): void {
+      for (const t of timers.values()) clearInterval(t)
+      timers.clear()
+      firstTickDone.clear()
+      pending.clear()
+      queued.clear()
+      ticking.clear()
     }
   }
 }

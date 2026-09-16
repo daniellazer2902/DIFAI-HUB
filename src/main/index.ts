@@ -113,6 +113,7 @@ app.whenReady().then(async () => {
   })
   ipcMain.on(IPC.CloseConfirm, () => {
     quitting = true
+    for (const m of modules) m.dispose?.()
     ptyManager.killAll()
     BrowserWindow.getAllWindows().forEach((w) => w.destroy())
   })

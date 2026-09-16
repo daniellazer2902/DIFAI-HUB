@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createAutomationModule } from '../src/main/modules/automationModule'
 import { IPC } from '../src/shared/ipc'
+import { MAX_CONCURRENT } from '../src/main/automations/planTick'
 import type { AppContext } from '../src/main/AppContext'
-import type { AdoPullRequest, AutomationConfig } from '../src/shared/ipc'
+import type { AdoPullRequest, AutomationConfig, RunRecord } from '../src/shared/ipc'
 
 const pr = (id: number): AdoPullRequest => ({
   prId: id, project: 'P', repo: 'R', title: `t${id}`, author: 'a',
@@ -119,6 +120,93 @@ describe('automationModule', () => {
     await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
     await vi.advanceTimersByTimeAsync(60_000)
     await handlers.get(IPC.AutomationApprovePending)!({})
+    expect(JSON.stringify(sent)).not.toContain('pat-secret')
+  })
+
+  it('la file d\'attente démarre au fil des créneaux libérés (fix round 1)', async () => {
+    const startedTabIds = ['tab-1', 'tab-2', 'tab-3']
+    let i = 0
+    const { ctx, handlers, sent, exit } = fakeCtx()
+    const d = {
+      providerFor: () => ({ listAssigned: vi.fn(async () => [pr(1), pr(2), pr(3)]), resolveUserId: vi.fn(async () => 'u') }),
+      runnerFor: () => ({ start: vi.fn(() => startedTabIds[i++]) }),
+      connectionFor: () => ({ id: 'c1', label: 'acme', baseUrl: 'https://dev.azure.com/acme' }),
+      loadRuns: () => [],
+      saveRuns: vi.fn()
+    }
+    createAutomationModule(d as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await vi.advanceTimersByTimeAsync(60_000)
+    await handlers.get(IPC.AutomationApprovePending)!({})
+
+    let started = sent.filter((s) => s.channel === IPC.AutomationRunStarted)
+    expect(started.length).toBe(MAX_CONCURRENT)
+    let runs = await handlers.get(IPC.AutomationListRuns)!({}) as RunRecord[]
+    expect(runs.filter((r) => r.status === 'queued').length).toBe(1)
+    expect(runs.filter((r) => r.status === 'pending').length).toBe(0)
+
+    const firstTabId = (started[0].args[0] as { tabId: string }).tabId
+    exit()(firstTabId, 0) // libère un créneau : la 3e PR doit démarrer d'elle-même
+
+    started = sent.filter((s) => s.channel === IPC.AutomationRunStarted)
+    expect(started.length).toBe(3)
+    runs = await handlers.get(IPC.AutomationListRuns)!({}) as RunRecord[]
+    expect(runs.filter((r) => r.status === 'queued').length).toBe(0)
+  })
+
+  it('deux sondages qui se chevauchent ne produisent qu\'un seul passage (fix round 1)', async () => {
+    const { ctx, handlers } = fakeCtx()
+    let resolveList: ((v: AdoPullRequest[]) => void) | null = null
+    const listAssigned = vi.fn(() => new Promise<AdoPullRequest[]>((res) => { resolveList = res }))
+    const d = {
+      providerFor: () => ({ listAssigned, resolveUserId: vi.fn(async () => 'u') }),
+      runnerFor: () => ({ start: vi.fn(() => 'tab-1') }),
+      connectionFor: () => ({ id: 'c1', label: 'acme', baseUrl: 'https://dev.azure.com/acme' }),
+      loadRuns: () => [],
+      saveRuns: vi.fn()
+    }
+    createAutomationModule(d as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await vi.advanceTimersByTimeAsync(60_000) // 1er tick : listAssigned appelé, reste en vol
+    await vi.advanceTimersByTimeAsync(60_000) // 2e tick : verrouillé, ne rappelle pas listAssigned
+    expect(listAssigned).toHaveBeenCalledTimes(1)
+    resolveList!([])
+    await vi.advanceTimersByTimeAsync(0)
+  })
+
+  it('dispose arrête les minuteries : plus aucun sondage après libération (fix round 1)', async () => {
+    const { ctx, handlers } = fakeCtx()
+    const listAssigned = vi.fn(async () => [pr(1)])
+    const d = {
+      providerFor: () => ({ listAssigned, resolveUserId: vi.fn(async () => 'u') }),
+      runnerFor: () => ({ start: vi.fn(() => 'tab-1') }),
+      connectionFor: () => ({ id: 'c1', label: 'acme', baseUrl: 'https://dev.azure.com/acme' }),
+      loadRuns: () => [],
+      saveRuns: vi.fn()
+    }
+    const mod = createAutomationModule(d as never)
+    mod.register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    mod.dispose?.()
+    await vi.advanceTimersByTimeAsync(600_000)
+    expect(listAssigned).not.toHaveBeenCalled()
+  })
+
+  it('une exception au lancement de la session marque le run failed sans perdre la PR ni le secret (fix round 1)', async () => {
+    const { ctx, handlers, sent } = fakeCtx()
+    const d = {
+      providerFor: () => ({ listAssigned: vi.fn(async () => [pr(1)]), resolveUserId: vi.fn(async () => 'u') }),
+      runnerFor: () => ({ start: vi.fn(() => { throw new Error('échec contenant pat-secret') }) }),
+      connectionFor: () => ({ id: 'c1', label: 'acme', baseUrl: 'https://dev.azure.com/acme' }),
+      loadRuns: () => [],
+      saveRuns: vi.fn()
+    }
+    createAutomationModule(d as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await vi.advanceTimersByTimeAsync(60_000)
+    await handlers.get(IPC.AutomationApprovePending)!({})
+    const runs = await handlers.get(IPC.AutomationListRuns)!({}) as RunRecord[]
+    expect(runs.find((r) => r.prId === 1)?.status).toBe('failed')
     expect(JSON.stringify(sent)).not.toContain('pat-secret')
   })
 })
