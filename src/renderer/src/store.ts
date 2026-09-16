@@ -325,7 +325,8 @@ export const useHub = create<HubState>((set, get) => ({
 
   setRun: (r) => set((s) => ({ runs: { ...s.runs, [r.id]: r } })),
 
-  setRuns: (list) => set({ runs: Object.fromEntries(list.map((r) => [r.id, r])) }),
+  // Hydratation du journal : un run déjà reçu en séance est plus frais que celui relu du disque.
+  setRuns: (list) => set((s) => ({ runs: { ...Object.fromEntries(list.map((r) => [r.id, r])), ...s.runs } })),
 
   automationConfigs: () => {
     const s = get()

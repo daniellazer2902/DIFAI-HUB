@@ -432,6 +432,16 @@ describe('automations (lot 5)', () => {
     expect(useHub.getState().runs['r9']).toEqual(run)
   })
 
+  it("l hydratation ne recouvre pas un run recu en seance", () => {
+    const disque = {
+      id: 'r9', automationId: 'a1', key: 'P/R#5@0', project: 'P', repo: 'R', prId: 5,
+      title: 't', url: 'u', startedAt: 0, endedAt: null, status: 'pending' as const, error: null, tabId: null
+    }
+    useHub.getState().setRun({ ...disque, status: 'running' })
+    useHub.getState().setRuns([disque])
+    expect(useHub.getState().runs['r9'].status).toBe('running')
+  })
+
   it("selectionner une automation ne touche pas aux onglets du volet", () => {
     const gid = useHub.getState().addGroup('G')
     useHub.getState().addItem(gid, mkItem('s1'))

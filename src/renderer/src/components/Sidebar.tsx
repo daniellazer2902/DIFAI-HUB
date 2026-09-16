@@ -148,7 +148,14 @@ export function Sidebar(): React.JSX.Element {
   async function runReviewNow(it: Item): Promise<void> {
     setMenu(null)
     const config = useHub.getState().automationConfigs().find((c) => c.id === it.id)
-    if (!config) return
+    if (!config) {
+      await confirm({
+        title: 'Automation incomplète',
+        message: 'Configure la connexion Azure DevOps du groupe avant de lancer une review.',
+        confirmLabel: 'OK'
+      })
+      return
+    }
     const saisie = await promptText({
       title: 'Lancer une review',
       message: 'Adresse de la pull request, ou son identifiant.',
