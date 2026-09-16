@@ -40,6 +40,12 @@ export const IPC = {
   NotesWatch: 'notes:watch',
   NotesUnwatch: 'notes:unwatch',
   NotesResolveFile: 'notes:resolve-file',
+  // Automations (renderer -> main)
+  AutomationSetConfig: 'automation:set-config',
+  AutomationRunNow: 'automation:run-now',
+  AutomationApprovePending: 'automation:approve-pending',
+  AutomationDismissPending: 'automation:dismiss-pending',
+  AutomationListRuns: 'automation:list-runs',
   // main -> renderer
   CloseRequest: 'app:close-request',
   PtyData: 'pty:data',
@@ -49,7 +55,11 @@ export const IPC = {
   AgentLines: 'agent:lines',
   AgentDone: 'agent:done',
   NotesChanged: 'notes:changed',
-  DideOpen: 'dide:open'
+  DideOpen: 'dide:open',
+  // Automations (main -> renderer)
+  AutomationRunStarted: 'automation:run-started',
+  AutomationRunUpdated: 'automation:run-updated',
+  AutomationNotify: 'automation:notify'
 } as const
 
 export type ConsoleLineKind = 'prompt' | 'text' | 'tool' | 'result'
@@ -170,6 +180,37 @@ export interface RunRecord {
   status: RunStatus
   error: string | null
   tabId: string | null
+}
+
+/** Configuration poussée par le renderer : le périmètre est déjà résolu (héritage appliqué). */
+export interface AutomationConfig {
+  id: string
+  groupId: string
+  name: string
+  cwd: string
+  connId: string
+  scope: AdoWatchScope[]
+  trigger: 'reviewer-assigned'
+  pollSeconds: number
+  prompt: string
+  allowedTools: string[]
+  enabled: boolean
+}
+
+export type ToastLevel = 'done' | 'attention' | 'failed'
+export interface AutomationToast {
+  runId: string
+  level: ToastLevel
+  title: string
+  body: string
+}
+export interface RunStartedPayload {
+  runId: string
+  groupId: string
+  automationId: string
+  tabId: string
+  title: string
+  cwd: string
 }
 
 // --- Notes / Markdown (lecteur Obsidian) ---
