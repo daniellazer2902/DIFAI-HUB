@@ -14,7 +14,8 @@ import { parseClaudeArgs } from '../claudeArgs'
 import { darken, textOn } from '../color'
 import { basename, isBusy } from '../util'
 import { readDefaultVault } from '../settings'
-import { confirm } from '../confirm'
+import { confirm, promptText } from '../confirm'
+import { parsePrTarget } from '../prTarget'
 
 /** Ouvre une session pour un item éteint et la lie. */
 async function launch(item: Item): Promise<void> {
@@ -141,6 +142,29 @@ export function Sidebar(): React.JSX.Element {
   function groupProjectsFor(group: Group): string[] {
     if (!group.ado) return []
     return group.ado.watch?.length ? group.ado.watch.map((w) => w.project) : [group.ado.project]
+  }
+
+  /** Lancement manuel : l'utilisateur désigne la PR par son adresse (ou son identifiant si le périmètre est sans ambiguïté). */
+  async function runReviewNow(it: Item): Promise<void> {
+    setMenu(null)
+    const config = useHub.getState().automationConfigs().find((c) => c.id === it.id)
+    if (!config) return
+    const saisie = await promptText({
+      title: 'Lancer une review',
+      message: 'Adresse de la pull request, ou son identifiant.',
+      confirmLabel: 'Lancer',
+      input: { label: 'Pull request', placeholder: 'https://dev.azure.com/org/projet/_git/depot/pullrequest/1842' }
+    })
+    if (saisie === null) return
+    const cible = parsePrTarget(saisie, config.scope)
+    if (!cible.ok) {
+      await confirm({ title: 'Pull request non reconnue', message: cible.error, confirmLabel: 'OK' })
+      return
+    }
+    const { project, repo, prId, url } = cible.target
+    window.hub.automationRunNow(it.id, {
+      prId, project, repo, title: `PR ${prId}`, author: '—', sourceBranch: '', targetBranch: '', url
+    })
   }
 
   function toggleAutomationEnabled(it: Item): void {
@@ -313,6 +337,7 @@ export function Sidebar(): React.JSX.Element {
                           <>
                             <div onClick={() => { setMenu(null); setAutomationFor(it.id) }}><SettingsIcon size={12} /> Configurer</div>
                             <div onClick={() => toggleAutomationEnabled(it)}><AutomationIcon /> {it.automation?.enabled ? 'Désactiver' : 'Activer'}</div>
+                            <div onClick={() => runReviewNow(it)}><AutomationIcon /> Lancer sur une PR…</div>
                           </>
                         )}
                         <div onClick={() => { useHub.getState().togglePin(it.id); setMenu(null) }}><PinIcon /> {it.pinned ? 'Désépingler' : 'Épingler'}</div>
