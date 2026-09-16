@@ -1,17 +1,6 @@
 import React, { useEffect } from 'react'
 import { useToasts, dismissToast, isPersistent, AUTO_DISMISS_MS, type Toast } from '../toasts'
-import { useHub } from '../store'
-
-function focusRun(runId: string): void {
-  const s = useHub.getState()
-  for (const g of s.groups) {
-    const item = g.items.find((i) => i.kind === 'run' && i.runId === runId)
-    if (!item) continue
-    s.setActiveGroup(g.id)
-    s.setActiveItem(item.id)
-    return
-  }
-}
+import { jumpToRun } from '../runFocus'
 
 function ToastCard({ t }: { t: Toast }): React.JSX.Element {
   useEffect(() => {
@@ -25,8 +14,8 @@ function ToastCard({ t }: { t: Toast }): React.JSX.Element {
       className={`toast ${t.level}`}
       role="status"
       tabIndex={0}
-      onClick={() => { if (t.runId) focusRun(t.runId); dismissToast(t.id) }}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (t.runId) focusRun(t.runId); dismissToast(t.id) } }}
+      onClick={() => { if (t.runId) jumpToRun(t.runId); dismissToast(t.id) }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (t.runId) jumpToRun(t.runId); dismissToast(t.id) } }}
     >
       <div className="toast-title">{t.title}</div>
       {t.body && <div className="toast-body">{t.body}</div>}

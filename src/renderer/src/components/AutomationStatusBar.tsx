@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useHub } from '../store'
 import { summarizeRuns } from '../automationSummary'
 import { countsAsActive } from '../../../shared/runStatus'
+import { jumpToRun } from '../runFocus'
 
 /** Ligne d'état des runs, juste au-dessus de Paramètres. Dérivée du store, sans modèle propre. */
 export function AutomationStatusBar(): React.JSX.Element | null {
@@ -16,14 +17,6 @@ export function AutomationStatusBar(): React.JSX.Element | null {
 
   const groupOf = (runId: string): string =>
     groups.find((g) => g.items.some((i) => i.kind === 'run' && i.runId === runId))?.name ?? ''
-
-  function goTo(runId: string): void {
-    const s = useHub.getState()
-    for (const g of s.groups) {
-      const item = g.items.find((i) => i.kind === 'run' && i.runId === runId)
-      if (item) { s.setActiveGroup(g.id); s.setActiveItem(item.id); return }
-    }
-  }
 
   return (
     <div className="auto-bar">
@@ -55,7 +48,7 @@ export function AutomationStatusBar(): React.JSX.Element | null {
             <ul className="auto-bar-list">
               {actifs.map((r) => (
                 <li key={r.id}>
-                  <button onClick={() => goTo(r.id)}>
+                  <button onClick={() => jumpToRun(r.id)}>
                     <span className={`auto-dot${r.status === 'attention' ? ' warn' : ''}`} />
                     {groupOf(r.id)} · !{r.prId}
                   </button>
