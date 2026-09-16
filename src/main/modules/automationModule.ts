@@ -260,10 +260,14 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
         if (!run || isTerminal(run.status)) return
         const status = statusFromExit(code)
         setStatus(run.id, status, status === 'failed' ? `Session terminée (code ${code})` : null)
+        // Une review à moitié postée est plus gênante qu'une review absente : le toast le dit.
+        const body = status === 'done'
+          ? `${run.project} · ${run.repo}`
+          : `${run.project} · ${run.repo} — des commentaires ont pu être publiés avant l\'interruption, vérifie la pull request.`
         notify({
           runId: run.id, level: status === 'done' ? 'done' : 'failed',
           title: status === 'done' ? `Review terminée — !${run.prId}` : `Run interrompu — !${run.prId}`,
-          body: `${run.project} · ${run.repo}`
+          body
         })
       })
     },

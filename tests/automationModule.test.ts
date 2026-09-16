@@ -205,6 +205,19 @@ describe('automationModule', () => {
     expect((notif!.args[0] as { level: string }).level).toBe('done')
   })
 
+  it("un toast d echec dit ce qui a pu etre poste", async () => {
+    const { ctx, handlers, sent, exit } = fakeCtx()
+    createAutomationModule(deps([pr(1)]) as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await vi.advanceTimersByTimeAsync(60_000)
+    await handlers.get(IPC.AutomationApprovePending)!({})
+    sent.length = 0
+    exit()('tab-1', 1)
+    const notif = sent.find((x) => x.channel === IPC.AutomationNotify)!.args[0] as { level: string; body: string }
+    expect(notif.level).toBe('failed')
+    expect(notif.body).toContain('vérifie la pull request')
+  })
+
   it('le PAT ne part jamais vers le renderer', async () => {
     const { ctx, handlers, sent } = fakeCtx()
     createAutomationModule(deps([pr(1)]) as never).register(ctx)
