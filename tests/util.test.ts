@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { basename } from '../src/renderer/src/util'
-import { isBusy, hasBusySession } from '../src/renderer/src/util'
+import { isBusy, hasBusySession, toggleInList } from '../src/renderer/src/util'
 import { dirOf, joinPath } from '../src/renderer/src/util'
 
 describe('basename', () => {
@@ -55,5 +55,21 @@ describe('joinPath', () => {
   it('joint en conservant le séparateur du dossier', () => {
     expect(joinPath('C:\\v\\sub', 'img/x.png')).toBe('C:\\v\\sub\\img\\x.png')
     expect(joinPath('/v/sub', '../a.md')).toBe('/v/a.md')
+  })
+})
+
+describe('toggleInList', () => {
+  it('ajoute une valeur absente', () => {
+    expect(toggleInList(['a'], 'b')).toEqual(['a', 'b'])
+  })
+
+  it('retire une valeur présente', () => {
+    expect(toggleInList(['a', 'b'], 'a')).toEqual(['b'])
+  })
+
+  it('ne mute pas la liste reçue', () => {
+    const src = ['a']
+    toggleInList(src, 'b')
+    expect(src).toEqual(['a'])
   })
 })

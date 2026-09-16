@@ -1,16 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, FolderOpenIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon, ChevronIcon, PlusIcon, MoreIcon } from './icons'
+import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, FolderOpenIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon, AutomationIcon, ChevronIcon, PlusIcon, MoreIcon } from './icons'
 import { GroupColorModal } from './GroupColorModal'
 import { Settings } from './Settings'
 import { AdoBindModal } from './AdoBindModal'
 import { ClaudeAdvancedModal } from './ClaudeAdvancedModal'
+import { AutomationModal } from './AutomationModal'
+import { AutomationStatusBar } from './AutomationStatusBar'
+import { countsAsActive } from '../../../shared/runStatus'
+import { newAutomation } from '../automationForm'
 import { parseClaudeArgs } from '../claudeArgs'
 import { darken, textOn } from '../color'
 import { basename, isBusy } from '../util'
 import { readDefaultVault } from '../settings'
-import { confirm } from '../confirm'
+import { confirm, promptText } from '../confirm'
+import { parsePrTarget } from '../prTarget'
 
 /** Ouvre une session pour un item éteint et la lie. */
 async function launch(item: Item): Promise<void> {
@@ -24,11 +29,13 @@ export function Sidebar(): React.JSX.Element {
   const groups = useHub((s) => s.groups)
   const activeItemId = useHub((s) => s.activeItemId)
   const activeGroupId = useHub((s) => s.activeGroupId)
+  const runs = useHub((s) => s.runs)
   const [menu, setMenu] = useState<string | null>(null)
   const [addFor, setAddFor] = useState<{ id: string; x: number; y: number } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [colorFor, setColorFor] = useState<string | null>(null)
   const [adoFor, setAdoFor] = useState<string | null>(null)
+  const [automationFor, setAutomationFor] = useState<string | null>(null)
   const [advancedFor, setAdvancedFor] = useState<string | null>(null)
   const [editing, setEditing] = useState<Editing | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -68,6 +75,8 @@ export function Sidebar(): React.JSX.Element {
   async function onItemClick(item: Item): Promise<void> {
     if (item.kind === 'ado' && item.adoClosed) useHub.getState().setAdoClosed(item.id, false) // rouvre l'onglet fermé
     useHub.getState().setActiveItem(item.id)
+    // Une automation n'est pas une session à lancer : le clic ouvre sa modale de configuration.
+    if (item.kind === 'automation') { setAutomationFor(item.id); return }
     if (item.kind !== 'ado' && !item.tabId) await launch(item)
   }
 
@@ -105,6 +114,70 @@ export function Sidebar(): React.JSX.Element {
       kind: 'ado', ado: { view: 'tree', iterationPath: null }
     }
     useHub.getState().addItem(group.id, item)
+  }
+
+  /** Nouvelle automation de review de PR : suppose une connexion ADO déjà configurée sur le groupe. */
+  async function addAutomation(group: Group): Promise<void> {
+    setAddFor(null)
+    if (!group.ado) return
+    const cwd = group.defaultCwd ?? useHub.getState().globalDefaultCwd ?? (await window.hub.defaultCwd())
+    if (!cwd) {
+      await confirm({
+        title: 'Aucun dossier de travail',
+        message: 'Définis un dossier par défaut sur le groupe ou dans les réglages avant de créer une automation : les sessions de review démarrent dans ce dossier.',
+        confirmLabel: 'OK'
+      })
+      return
+    }
+    const id = crypto.randomUUID()
+    useHub.getState().addItem(group.id, {
+      id, name: 'Nouvelle automation', cwd, pinned: true, tabId: null, state: 'done',
+      agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
+      kind: 'automation', automation: newAutomation()
+    })
+    setAutomationFor(id)
+  }
+
+  /** Projets proposés en restriction dans la modale d'automation : périmètre déjà déclaré sur le groupe. */
+  function groupProjectsFor(group: Group): string[] {
+    if (!group.ado) return []
+    return group.ado.watch?.length ? group.ado.watch.map((w) => w.project) : [group.ado.project]
+  }
+
+  /** Lancement manuel : l'utilisateur désigne la PR par son adresse (ou son identifiant si le périmètre est sans ambiguïté). */
+  async function runReviewNow(it: Item): Promise<void> {
+    setMenu(null)
+    const config = useHub.getState().automationConfigs().find((c) => c.id === it.id)
+    if (!config) {
+      await confirm({
+        title: 'Automation incomplète',
+        message: 'Configure la connexion Azure DevOps du groupe avant de lancer une review.',
+        confirmLabel: 'OK'
+      })
+      return
+    }
+    const saisie = await promptText({
+      title: 'Lancer une review',
+      message: 'Adresse de la pull request, ou son identifiant.',
+      confirmLabel: 'Lancer',
+      input: { label: 'Pull request', placeholder: 'https://dev.azure.com/org/projet/_git/depot/pullrequest/1842' }
+    })
+    if (saisie === null) return
+    const cible = parsePrTarget(saisie, config.scope)
+    if (!cible.ok) {
+      await confirm({ title: 'Pull request non reconnue', message: cible.error, confirmLabel: 'OK' })
+      return
+    }
+    const { project, repo, prId, url } = cible.target
+    window.hub.automationRunNow(it.id, {
+      prId, project, repo, title: `PR ${prId}`, author: '—', sourceBranch: '', targetBranch: '', url
+    })
+  }
+
+  function toggleAutomationEnabled(it: Item): void {
+    setMenu(null)
+    if (!it.automation) return
+    useHub.getState().setItemAutomation(it.id, { ...it.automation, enabled: !it.automation.enabled })
   }
 
   async function addCmdItem(group: Group): Promise<void> {
@@ -159,6 +232,11 @@ export function Sidebar(): React.JSX.Element {
     const g = useHub.getState().groups.find((x) => x.id === groupId)
     g?.items.forEach((i) => { if (i.tabId) window.hub.killSession(i.tabId) })
     useHub.getState().removeGroup(groupId)
+  }
+
+  /** Nombre de runs actifs rattachés à une automation, pour le badge de la sidebar. */
+  function activeRunsFor(automationId: string): number {
+    return Object.values(runs).filter((r) => r.automationId === automationId && countsAsActive(r.status)).length
   }
 
   function nameOrEditor(kind: 'group' | 'item', id: string, name: string, cls: string): React.JSX.Element {
@@ -220,6 +298,7 @@ export function Sidebar(): React.JSX.Element {
                   <div onClick={() => { setAddFor(null); setAdvancedFor(g.id) }}><ClaudeIcon /> Claude avancé…</div>
                   <div onClick={() => addCmdItem(g)}><TerminalIcon /> Terminal</div>
                   <div onClick={() => addAdoItem(g)}><AzureIcon /> ADO – Azure</div>
+                  {g.ado && <div onClick={() => addAutomation(g)}><AutomationIcon /> Nouvelle automation</div>}
                   {readDefaultVault() && <div onClick={() => addDefaultVault(g)}><NotesIcon /> Vault par défaut</div>}
                   <div onClick={() => addNoteFolder(g)}><NotesIcon /> Markdown : ouvrir un dossier…</div>
                 </div>
@@ -247,14 +326,27 @@ export function Sidebar(): React.JSX.Element {
                     <span className="item-ic">
                       {it.kind === 'claude'
                         ? (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)
+                        : it.kind === 'run'
+                        ? (it.tabId ? <StateDot state={it.state} /> : <AutomationIcon />)
+                        : it.kind === 'automation' ? <AutomationIcon />
                         : it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : <NotesIcon />}
                     </span>
                     {nameOrEditor('item', it.id, it.name, 'item-name')}
+                    {it.kind === 'automation' && activeRunsFor(it.id) > 0 && (
+                      <span className="item-badge">{activeRunsFor(it.id)}</span>
+                    )}
                     <span className="item-pin">{it.pinned && <PinIcon />}</span>
                     <span className="ic-btn menu-btn item-menu" title="Menu" onClick={(e) => { e.stopPropagation(); setMenu(menu === it.id ? null : it.id) }}><MoreIcon size={15} /></span>
                     {menu === it.id && (
                       <div className="ctx-menu" onClick={(e) => e.stopPropagation()}>
                         <div onClick={() => startRename('item', it.id, it.name)}><EditIcon /> Renommer</div>
+                        {it.kind === 'automation' && (
+                          <>
+                            <div onClick={() => { setMenu(null); setAutomationFor(it.id) }}><SettingsIcon size={12} /> Configurer</div>
+                            <div onClick={() => toggleAutomationEnabled(it)}><AutomationIcon /> {it.automation?.enabled ? 'Désactiver' : 'Activer'}</div>
+                            <div onClick={() => runReviewNow(it)}><AutomationIcon /> Lancer sur une PR…</div>
+                          </>
+                        )}
                         <div onClick={() => { useHub.getState().togglePin(it.id); setMenu(null) }}><PinIcon /> {it.pinned ? 'Désépingler' : 'Épingler'}</div>
                         <div className="danger" onClick={() => removeItem(it)}><TrashIcon /> Supprimer</div>
                       </div>
@@ -279,6 +371,24 @@ export function Sidebar(): React.JSX.Element {
             onClose={() => setAdoFor(null)}
           />
         )}
+        {automationFor && (() => {
+          const group = groups.find((g) => g.items.some((i) => i.id === automationFor))
+          const item = group?.items.find((i) => i.id === automationFor)
+          if (!group || !item || !item.automation) return null
+          return (
+            <AutomationModal
+              name={item.name}
+              current={item.automation}
+              groupProjects={groupProjectsFor(group)}
+              onApply={(name, a) => {
+                useHub.getState().renameItem(item.id, name)
+                useHub.getState().setItemAutomation(item.id, a)
+                setAutomationFor(null)
+              }}
+              onClose={() => setAutomationFor(null)}
+            />
+          )
+        })()}
         {advancedFor && (
           <ClaudeAdvancedModal
             onLaunch={(cmd) => { const g = groups.find((x) => x.id === advancedFor); if (g) onAdvanced(g, cmd) }}
@@ -286,6 +396,7 @@ export function Sidebar(): React.JSX.Element {
           />
         )}
       </div>
+      <AutomationStatusBar />
       <div className="side-foot">
         <button className="side-settings" title="Paramètres" onClick={() => setSettingsOpen(true)}><SettingsIcon size={15} /> Paramètres</button>
       </div>

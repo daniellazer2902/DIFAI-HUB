@@ -60,3 +60,8 @@ export function joinPath(dir: string, rel: string): string {
   }
   return parts.join(sep)
 }
+
+/** Ajoute ou retire une valeur d'une liste, sans la muter. */
+export function toggleInList<T>(list: T[], value: T): T[] {
+  return list.includes(value) ? list.filter((x) => x !== value) : [...list, value]
+}

@@ -382,6 +382,128 @@ describe('openNoteFile', () => {
   })
 })
 
+describe('automations (lot 5)', () => {
+  beforeEach(() => useHub.getState().reset())
+
+  it('addRunItem crée un item de run dans le groupe, sans le sélectionner', () => {
+    const s = useHub.getState()
+    const gid = s.addGroup('G')
+    useHub.getState().addRunItem({
+      runId: 'r1', groupId: gid, automationId: 'a1', tabId: 'tab-1', title: 'Review PR 1842', cwd: 'C:/x'
+    })
+    const g = useHub.getState().groups.find((x) => x.id === gid)!
+    const item = g.items.find((i) => i.kind === 'run')!
+    expect(item.name).toBe('Review PR 1842')
+    expect(item.tabId).toBe('tab-1')
+    expect(g.leftActiveTab ?? '').not.toContain(item.id)
+  })
+
+  it('un item de run n est jamais persisté', () => {
+    const s = useHub.getState()
+    const gid = s.addGroup('G')
+    useHub.getState().addRunItem({
+      runId: 'r2', groupId: gid, automationId: 'a1', tabId: 'tab-2', title: 'Review PR 2', cwd: 'C:/x'
+    })
+    const tree = useHub.getState().toPersistable()
+    const g = tree.groups.find((x) => x.id === gid)!
+    expect(g.items.some((i) => i.kind === 'run')).toBe(false)
+  })
+
+  it('la configuration d\'une automation survit au round-trip toPersistable/loadWorkspace', () => {
+    const s = useHub.getState()
+    const gid = s.addGroup('Cerba')
+    const automation = {
+      trigger: 'reviewer-assigned' as const, pollSeconds: 600, prompt: 'Revue {{prId}}',
+      allowedTools: ['Read', 'Grep'], watch: [{ project: 'Socle', repos: ['api'] }], enabled: false
+    }
+    useHub.getState().addItem(gid, mkItem('auto-1', { kind: 'automation', pinned: true, tabId: null, automation }))
+    const tree = useHub.getState().toPersistable()
+    useHub.getState().reset()
+    useHub.getState().loadWorkspace(tree)
+    expect(useHub.getState().itemById('auto-1')!.automation).toEqual(automation)
+  })
+
+  it("setRuns hydrate le dictionnaire des runs au demarrage", () => {
+    const run = {
+      id: 'r9', automationId: 'a1', key: 'P/R#5@0', project: 'P', repo: 'R', prId: 5,
+      title: 't', url: 'u', startedAt: 0, endedAt: null, status: 'pending' as const, error: null, tabId: null
+    }
+    useHub.getState().setRuns([run])
+    expect(useHub.getState().runs['r9']).toEqual(run)
+  })
+
+  it("l hydratation ne recouvre pas un run recu en seance", () => {
+    const disque = {
+      id: 'r9', automationId: 'a1', key: 'P/R#5@0', project: 'P', repo: 'R', prId: 5,
+      title: 't', url: 'u', startedAt: 0, endedAt: null, status: 'pending' as const, error: null, tabId: null
+    }
+    useHub.getState().setRun({ ...disque, status: 'running' })
+    useHub.getState().setRuns([disque])
+    expect(useHub.getState().runs['r9'].status).toBe('running')
+  })
+
+  it("selectionner une automation ne touche pas aux onglets du volet", () => {
+    const gid = useHub.getState().addGroup('G')
+    useHub.getState().addItem(gid, mkItem('s1'))
+    useHub.getState().addItem(gid, mkItem('auto-9', {
+      kind: 'automation', tabId: null, pinned: true,
+      automation: { trigger: 'reviewer-assigned', pollSeconds: 300, prompt: 'p', allowedTools: [], enabled: true }
+    }))
+    useHub.getState().setActiveItem('auto-9')
+    const g = useHub.getState().groups.find((x) => x.id === gid)!
+    expect(useHub.getState().activeItemId).toBe('auto-9')
+    expect(g.leftActiveTab).toBe(tabRef('session', 's1'))
+  })
+
+  it("selectionner une session active bien son onglet", () => {
+    const gid = useHub.getState().addGroup('G')
+    useHub.getState().addItem(gid, mkItem('s1'))
+    useHub.getState().addItem(gid, mkItem('s2'))
+    useHub.getState().setActiveItem('s1')
+    const g = useHub.getState().groups.find((x) => x.id === gid)!
+    expect(g.leftActiveTab).toBe(tabRef('session', 's1'))
+  })
+
+  it("automationConfigs retombe sur le dossier par defaut global", () => {
+    const gid = useHub.getState().addGroup('G')
+    useHub.getState().setGlobalDefaultCwd('C:/reglages')
+    useHub.getState().setGroupAdo(gid, { connId: 'c1', project: 'P', team: null })
+    useHub.getState().addItem(gid, mkItem('auto-2', {
+      kind: 'automation', cwd: '', tabId: null, pinned: true,
+      automation: { trigger: 'reviewer-assigned', pollSeconds: 300, prompt: 'p', allowedTools: [], enabled: true }
+    }))
+    expect(useHub.getState().automationConfigs()[0].cwd).toBe('C:/reglages')
+  })
+
+  it("automationConfigs prefere le dossier du groupe au dossier global", () => {
+    const gid = useHub.getState().addGroup('G')
+    useHub.getState().setGlobalDefaultCwd('C:/reglages')
+    useHub.getState().setGroupDefaultCwd(gid, 'C:/groupe')
+    useHub.getState().setGroupAdo(gid, { connId: 'c1', project: 'P', team: null })
+    useHub.getState().addItem(gid, mkItem('auto-3', {
+      kind: 'automation', cwd: '', tabId: null, pinned: true,
+      automation: { trigger: 'reviewer-assigned', pollSeconds: 300, prompt: 'p', allowedTools: [], enabled: true }
+    }))
+    expect(useHub.getState().automationConfigs()[0].cwd).toBe('C:/groupe')
+  })
+
+  it('automationConfigs résout le périmètre hérité du groupe', () => {
+    const s = useHub.getState()
+    const gid = s.addGroup('Cerba')
+    useHub.getState().setGroupAdo(gid, { connId: 'c1', project: 'Socle', team: null,
+      watch: [{ project: 'Socle', repos: [] }, { project: 'Catalogues', repos: [] }] } as never)
+    useHub.getState().addItem(gid, {
+      id: 'auto-1', name: 'Review PR', cwd: 'C:/x', pinned: true, tabId: null, state: 'waiting',
+      agents: [], openAgentId: null, split: 1, findOpen: false, agentsOpen: false, searchQuery: '',
+      kind: 'automation',
+      automation: { trigger: 'reviewer-assigned', pollSeconds: 300, prompt: 'p', allowedTools: ['Read'], enabled: true }
+    } as never)
+    const [cfg] = useHub.getState().automationConfigs()
+    expect(cfg.scope.map((x) => x.project)).toEqual(['Socle', 'Catalogues'])
+    expect(cfg.connId).toBe('c1')
+  })
+})
+
 describe('openNoteRoot', () => {
   beforeEach(() => useHub.getState().reset())
 

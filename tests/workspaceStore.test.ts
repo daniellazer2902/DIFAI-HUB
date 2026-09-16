@@ -99,3 +99,60 @@ describe('workspaceStore note (lecteur Markdown)', () => {
     expect(t.groups[0].items[0].kind).toBe('note')
   })
 })
+
+describe('workspaceStore automations (lot 5)', () => {
+  it('relit le périmètre watch du groupe', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{
+      id: 'g1', name: 'Cerba', collapsed: false, defaultCwd: null,
+      ado: { connId: 'c1', project: 'Socle', team: null, watch: [
+        { project: 'Socle', repos: [] }, { project: 'Catalogues', repos: ['api'] }
+      ] },
+      items: []
+    }] })
+    const t = parseWorkspace(raw)
+    expect(t.groups[0].ado?.watch).toEqual([
+      { project: 'Socle', repos: [] }, { project: 'Catalogues', repos: ['api'] }
+    ])
+  })
+
+  it('ignore un watch mal formé sans perdre le bind ADO', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{
+      id: 'g1', name: 'X', collapsed: false, defaultCwd: null,
+      ado: { connId: 'c1', project: 'P', team: null, watch: 'nimporte quoi' }, items: []
+    }] })
+    const t = parseWorkspace(raw)
+    expect(t.groups[0].ado?.connId).toBe('c1')
+    expect(t.groups[0].ado?.watch).toBeUndefined()
+  })
+
+  it('relit un item automation avec sa configuration', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{
+      id: 'g1', name: 'X', collapsed: false, defaultCwd: null,
+      items: [{ id: 'i1', name: 'Review PR', cwd: 'C:/x', kind: 'automation', automation: {
+        trigger: 'reviewer-assigned', pollSeconds: 300, prompt: 'p',
+        allowedTools: ['Read'], enabled: true
+      } }]
+    }] })
+    expect(parseWorkspace(raw).groups[0].items[0].automation?.pollSeconds).toBe(300)
+  })
+
+  it('filtre les entrées malformées dans automation.watch sans perdre les valides', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{
+      id: 'g1', name: 'X', collapsed: false, defaultCwd: null,
+      items: [{ id: 'i1', name: 'Review PR', cwd: 'C:/x', kind: 'automation', automation: {
+        trigger: 'reviewer-assigned', pollSeconds: 300, prompt: 'p', allowedTools: [],
+        watch: [
+          { project: 'Socle', repos: [] },
+          { project: 42, repos: [] },
+          { project: 'Cerba', repos: ['api', 'batch'] }
+        ],
+        enabled: true
+      } }]
+    }] })
+    const automation = parseWorkspace(raw).groups[0].items[0].automation
+    expect(automation?.watch).toEqual([
+      { project: 'Socle', repos: [] },
+      { project: 'Cerba', repos: ['api', 'batch'] }
+    ])
+  })
+})
