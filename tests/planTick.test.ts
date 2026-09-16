@@ -36,9 +36,20 @@ describe('planTick', () => {
     expect(plan.toPend).toEqual([])
   })
 
+  it('les PR au-dela du plafond partent en file au lieu d etre jetees', () => {
+    const plan = planTick({ prs: [pr(1), pr(2), pr(3)], journal: [], firstTick: false, activeCount: 1 })
+    expect(plan.toQueue.map((p) => p.prId)).toEqual([2, 3])
+  })
+
   it('ne démarre rien quand le plafond est atteint, sans rien mettre en attente', () => {
     const plan = planTick({ prs: [pr(1)], journal: [], firstTick: false, activeCount: MAX_CONCURRENT })
     expect(plan.toStart).toEqual([])
     expect(plan.toPend).toEqual([])
+    expect(plan.toQueue.map((p) => p.prId)).toEqual([1])
+  })
+
+  it('au premier tick rien ne part en file : tout attend un feu vert', () => {
+    const plan = planTick({ prs: [pr(1), pr(2), pr(3)], journal: [], firstTick: true, activeCount: 0 })
+    expect(plan.toQueue).toEqual([])
   })
 })

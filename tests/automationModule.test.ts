@@ -233,6 +233,34 @@ describe('automationModule', () => {
     expect(runs.filter((r) => r.status === 'queued').length).toBe(0)
   })
 
+  it("les PR decouvertes au-dela du plafond restent en file et demarrent ensuite", async () => {
+    const tabs = ['tab-1', 'tab-2', 'tab-3']
+    let i = 0
+    let liste = [pr(1), pr(2)]
+    const { ctx, handlers, sent, exit } = fakeCtx()
+    const d = {
+      providerFor: () => ({ listAssigned: vi.fn(async () => liste), resolveUserId: vi.fn(async () => 'u') }),
+      runnerFor: () => ({ start: vi.fn(() => tabs[i++]) }),
+      connectionFor: () => ({ id: 'c1', label: 'acme', baseUrl: 'https://dev.azure.com/acme' }),
+      loadRuns: () => [],
+      saveRuns: vi.fn()
+    }
+    createAutomationModule(d as never).register(ctx)
+    await handlers.get(IPC.AutomationSetConfig)!({}, [config()])
+    await vi.advanceTimersByTimeAsync(60_000)
+    await handlers.get(IPC.AutomationApprovePending)!({})   // 2 runs occupent le plafond
+
+    liste = [pr(1), pr(2), pr(3)]
+    await vi.advanceTimersByTimeAsync(60_000)               // la 3e PR ne peut pas démarrer
+    let runs = await handlers.get(IPC.AutomationListRuns)!({}) as RunRecord[]
+    expect(runs.find((r) => r.prId === 3)?.status).toBe('queued')
+
+    exit()('tab-1', 0)                                      // un créneau se libère
+    runs = await handlers.get(IPC.AutomationListRuns)!({}) as RunRecord[]
+    expect(runs.find((r) => r.prId === 3)?.status).toBe('running')
+    expect(sent.filter((x) => x.channel === IPC.AutomationRunStarted).length).toBe(3)
+  })
+
   it('deux sondages qui se chevauchent ne produisent qu\'un seul passage (fix round 1)', async () => {
     const { ctx, handlers } = fakeCtx()
     let resolveList: ((v: AdoPullRequest[]) => void) | null = null

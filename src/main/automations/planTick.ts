@@ -12,6 +12,8 @@ export interface TickInput {
 export interface TickPlan {
   toStart: AdoPullRequest[]
   toPend: AdoPullRequest[]
+  /** Au-delà du plafond de concurrence : mises en file, elles démarrent à la libération d'un créneau. */
+  toQueue: AdoPullRequest[]
 }
 
 /**
@@ -22,7 +24,7 @@ export interface TickPlan {
 export function planTick({ prs, journal, firstTick, activeCount }: TickInput): TickPlan {
   // Itération figée à 0 tant que AdoPullRequest ne la porte pas : re-run après push supposera d'ajouter ce champ.
   const inconnues = prs.filter((p) => !hasKey(journal, runKey(p.project, p.repo, p.prId, 0)))
-  if (firstTick) return { toStart: [], toPend: inconnues }
+  if (firstTick) return { toStart: [], toPend: inconnues, toQueue: [] }
   const creneaux = Math.max(0, MAX_CONCURRENT - activeCount)
-  return { toStart: inconnues.slice(0, creneaux), toPend: [] }
+  return { toStart: inconnues.slice(0, creneaux), toPend: [], toQueue: inconnues.slice(creneaux) }
 }

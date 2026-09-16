@@ -168,7 +168,17 @@ export function createAutomationModule(deps: AutomationDeps = defaultDeps): HubM
               body: 'Détectées au démarrage. Lancer les reviews ?'
             })
           }
+          for (const pr of plan.toQueue) {
+            const runId = randomUUID()
+            record({
+              id: runId, automationId: config.id, key: runKey(pr.project, pr.repo, pr.prId, 0),
+              project: pr.project, repo: pr.repo, prId: pr.prId, title: pr.title, url: pr.url,
+              startedAt: Date.now(), endedAt: null, status: 'queued', error: null, tabId: null
+            })
+            queued.set(runId, { config, pr })
+          }
           for (const pr of plan.toStart) startRun(config, pr)
+          drainQueue()
         } finally {
           ticking.delete(config.id)
         }
