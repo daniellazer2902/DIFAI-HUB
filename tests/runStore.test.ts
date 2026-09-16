@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { runKey, parseRuns, serializeRuns, upsertRun, hasKey, MAX_RUNS, requalifyRuns } from '../src/main/automations/runStore'
+import { runKey, parseRuns, serializeRuns, upsertRun, hasKey, MAX_RUNS, requalifyRuns, filterPending } from '../src/main/automations/runStore'
 import type { RunRecord } from '../src/shared/ipc'
 
 const rec = (id: string, key: string): RunRecord => ({
@@ -104,5 +104,21 @@ describe('runStore', () => {
     expect(updated.length).toBe(originalLength)
     expect(updated.map((r) => r.id)).toEqual(originalIds)
     expect(updated[MAX_RUNS - 1].status).toBe('done')
+  })
+
+  it('filterPending écarte les enregistrements pending', () => {
+    const list = [
+      { ...rec('r1', 'k1'), status: 'pending' as const },
+      { ...rec('r2', 'k2'), status: 'running' as const },
+      { ...rec('r3', 'k3'), status: 'pending' as const }
+    ]
+    const out = filterPending(list)
+    expect(out.map((r) => r.id)).toEqual(['r2'])
+  })
+
+  it('requalifyRuns laisse pending inchangé', () => {
+    const list = [{ ...rec('r1', 'k1'), status: 'pending' as const }]
+    const out = requalifyRuns(list)
+    expect(out[0].status).toBe('pending')
   })
 })
