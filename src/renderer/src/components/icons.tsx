@@ -113,6 +113,11 @@ export function ActivityIcon({ size = 12 }: IconProps): React.JSX.Element {
   return line(size, <path d="M22 12h-4l-3 9L9 3l-3 9H2" />, 2)
 }
 
+/** Automation (éclair) — lucide « zap ». */
+export function AutomationIcon({ size = 14 }: IconProps): React.JSX.Element {
+  return line(size, <path d="M13 2 4 14h7l-1 8 9-12h-7z" />)
+}
+
 /** Chevron droit (repli) — lucide ; pivoté à 90° via CSS quand déplié. */
 export function ChevronIcon({ size = 14 }: IconProps): React.JSX.Element {
   return line(size, <path d="m9 18 6-6-6-6" />, 2)

@@ -40,6 +40,12 @@ export const IPC = {
   NotesWatch: 'notes:watch',
   NotesUnwatch: 'notes:unwatch',
   NotesResolveFile: 'notes:resolve-file',
+  // Automations (renderer -> main)
+  AutomationSetConfig: 'automation:set-config',
+  AutomationRunNow: 'automation:run-now',
+  AutomationApprovePending: 'automation:approve-pending',
+  AutomationDismissPending: 'automation:dismiss-pending',
+  AutomationListRuns: 'automation:list-runs',
   // main -> renderer
   CloseRequest: 'app:close-request',
   PtyData: 'pty:data',
@@ -49,7 +55,11 @@ export const IPC = {
   AgentLines: 'agent:lines',
   AgentDone: 'agent:done',
   NotesChanged: 'notes:changed',
-  DideOpen: 'dide:open'
+  DideOpen: 'dide:open',
+  // Automations (main -> renderer)
+  AutomationRunStarted: 'automation:run-started',
+  AutomationRunUpdated: 'automation:run-updated',
+  AutomationNotify: 'automation:notify'
 } as const
 
 export type ConsoleLineKind = 'prompt' | 'text' | 'tool' | 'result'
@@ -68,8 +78,19 @@ export interface TranscriptMatch {
 }
 
 /** Sous-ensemble persistable d'un item (config, sans état runtime de session). */
-export interface PersistItem { id: string; name: string; cwd: string; split?: 1 | 2; kind?: 'claude' | 'ado' | 'cmd' | 'note'; claudeArgs?: string[]; ado?: { view: 'tree' | 'board'; iterationPath: string | null }; note?: PersistNote }
-export interface PersistGroup { id: string; name: string; collapsed: boolean; defaultCwd: string | null; color?: string | null; ado?: { connId: string; project: string; team: string | null } | null; items: PersistItem[] }
+export interface PersistItem {
+  id: string; name: string; cwd: string; split?: 1 | 2
+  kind?: 'claude' | 'ado' | 'cmd' | 'note' | 'automation' | 'run'
+  claudeArgs?: string[]
+  ado?: { view: 'tree' | 'board'; iterationPath: string | null }
+  note?: PersistNote
+  automation?: PersistAutomation
+}
+export interface PersistGroup {
+  id: string; name: string; collapsed: boolean; defaultCwd: string | null; color?: string | null
+  ado?: { connId: string; project: string; team: string | null; watch?: AdoWatchScope[] } | null
+  items: PersistItem[]
+}
 /** Arborescence persistée sur disque (groupes + items épinglés). */
 export interface WorkspaceTree { activeGroupId: string | null; groups: PersistGroup[] }
 
@@ -118,6 +139,79 @@ export interface AdoWorkItemDetail {
 }
 export interface AdoError { ok: false; error: string; status?: number }
 export type AdoResponse<T> = { ok: true; data: T } | AdoError
+
+// --- Automations (lot 5) ---
+/** Un projet ADO surveillé ; `repos` vide = tous les repos du projet. */
+export interface AdoWatchScope { project: string; repos: string[] }
+
+export interface PersistAutomation {
+  trigger: 'reviewer-assigned'
+  pollSeconds: number
+  prompt: string
+  allowedTools: string[]
+  watch?: AdoWatchScope[]
+  enabled: boolean
+}
+
+export interface AdoPullRequest {
+  prId: number
+  project: string
+  repo: string
+  title: string
+  author: string
+  sourceBranch: string   // sans le préfixe refs/heads/
+  targetBranch: string
+  url: string            // URL web de la PR
+}
+
+export type RunStatus = 'pending' | 'queued' | 'running' | 'attention' | 'done' | 'failed'
+
+export interface RunRecord {
+  id: string
+  automationId: string
+  key: string            // `${project}/${repo}#${prId}@${iterationId}`
+  project: string
+  repo: string
+  prId: number
+  title: string
+  url: string
+  startedAt: number
+  endedAt: number | null
+  status: RunStatus
+  error: string | null
+  tabId: string | null
+}
+
+/** Configuration poussée par le renderer : le périmètre est déjà résolu (héritage appliqué). */
+export interface AutomationConfig {
+  id: string
+  groupId: string
+  name: string
+  cwd: string
+  connId: string
+  scope: AdoWatchScope[]
+  trigger: 'reviewer-assigned'
+  pollSeconds: number
+  prompt: string
+  allowedTools: string[]
+  enabled: boolean
+}
+
+export type ToastLevel = 'done' | 'attention' | 'failed'
+export interface AutomationToast {
+  runId: string
+  level: ToastLevel
+  title: string
+  body: string
+}
+export interface RunStartedPayload {
+  runId: string
+  groupId: string
+  automationId: string
+  tabId: string
+  title: string
+  cwd: string
+}
 
 // --- Notes / Markdown (lecteur Obsidian) ---
 export interface NoteTreeNode {
@@ -192,4 +286,12 @@ export interface HubApi {
   notesResolveFile(cwd: string, token: string): Promise<string | null>
   onNotesChanged(cb: (itemId: string, event: string, path: string) => void): Unsub
   onDideOpen(cb: (p: DideOpenPayload) => void): Unsub
+  automationSetConfig(list: AutomationConfig[]): Promise<void>
+  automationRunNow(automationId: string, pr: AdoPullRequest): Promise<void>
+  automationApprovePending(): Promise<void>
+  automationDismissPending(): Promise<void>
+  automationListRuns(): Promise<RunRecord[]>
+  onAutomationRunStarted(cb: (p: RunStartedPayload) => void): Unsub
+  onAutomationRunUpdated(cb: (r: RunRecord) => void): Unsub
+  onAutomationNotify(cb: (t: AutomationToast) => void): Unsub
 }

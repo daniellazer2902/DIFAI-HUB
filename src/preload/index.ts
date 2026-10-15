@@ -1,5 +1,8 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { IPC, type HubApi, type Unsub, type SessionState, type ConsoleLine, type WorkspaceTree, type DideOpenPayload } from '../shared/ipc'
+import {
+  IPC, type HubApi, type Unsub, type SessionState, type ConsoleLine, type WorkspaceTree, type DideOpenPayload,
+  type RunRecord, type RunStartedPayload, type AutomationToast
+} from '../shared/ipc'
 
 /** Abonne un canal et renvoie un désabonnement (retire le bon listener). */
 function on(channel: string, handler: (...args: unknown[]) => void): Unsub {
@@ -54,7 +57,15 @@ const hub: HubApi = {
   notesUnwatch: (itemId) => ipcRenderer.send(IPC.NotesUnwatch, itemId),
   notesResolveFile: (cwd, token) => ipcRenderer.invoke(IPC.NotesResolveFile, cwd, token),
   onNotesChanged: (cb) => on(IPC.NotesChanged, (itemId, event, path) => cb(itemId as string, event as string, path as string)),
-  onDideOpen: (cb) => on(IPC.DideOpen, (p) => cb(p as DideOpenPayload))
+  onDideOpen: (cb) => on(IPC.DideOpen, (p) => cb(p as DideOpenPayload)),
+  automationSetConfig: (list) => ipcRenderer.invoke(IPC.AutomationSetConfig, list),
+  automationRunNow: (automationId, pr) => ipcRenderer.invoke(IPC.AutomationRunNow, automationId, pr),
+  automationApprovePending: () => ipcRenderer.invoke(IPC.AutomationApprovePending),
+  automationDismissPending: () => ipcRenderer.invoke(IPC.AutomationDismissPending),
+  automationListRuns: () => ipcRenderer.invoke(IPC.AutomationListRuns),
+  onAutomationRunStarted: (cb) => on(IPC.AutomationRunStarted, (p) => cb(p as RunStartedPayload)),
+  onAutomationRunUpdated: (cb) => on(IPC.AutomationRunUpdated, (r) => cb(r as RunRecord)),
+  onAutomationNotify: (cb) => on(IPC.AutomationNotify, (t) => cb(t as AutomationToast))
 }
 
 contextBridge.exposeInMainWorld('hub', hub)

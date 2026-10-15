@@ -33,3 +33,13 @@ export function workItemUrl(base: string, id: number): string {
 export function commentsUrl(base: string, project: string, id: number): string {
   return `${trim(base)}/${seg(project)}/_apis/wit/workItems/${id}/comments?api-version=7.1-preview.4`
 }
+export function connectionDataUrl(base: string): string {
+  return `${trim(base)}/_apis/connectionData?${API}`
+}
+export function assignedPullRequestsUrl(base: string, project: string, reviewerId: string): string {
+  return `${trim(base)}/${seg(project)}/_apis/git/pullrequests`
+    + `?searchCriteria.reviewerId=${seg(reviewerId)}&searchCriteria.status=active&${API}`
+}
+export function pullRequestWebUrl(base: string, project: string, repo: string, prId: number): string {
+  return `${trim(base)}/${seg(project)}/_git/${seg(repo)}/pullrequest/${prId}`
+}

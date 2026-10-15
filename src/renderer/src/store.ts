@@ -1,5 +1,9 @@
 import { create } from 'zustand'
-import type { ConsoleLine, SessionState, WorkspaceTree, AdoBoard, PersistNote } from '../../shared/ipc'
+import type {
+  ConsoleLine, SessionState, WorkspaceTree, AdoBoard, PersistNote, PersistAutomation, AdoWatchScope,
+  RunRecord, RunStartedPayload, AutomationConfig
+} from '../../shared/ipc'
+import { effectiveScope } from '../../shared/automationScope'
 import { basename } from './util'
 
 export interface AgentView {
@@ -18,7 +22,7 @@ export type Pane = 'left' | 'right'
 export type TabKind = 'session' | 'find' | 'agents' | 'ado' | 'note'
 
 export interface AdoView { view: 'tree' | 'board'; iterationPath: string | null }
-export interface GroupAdo { connId: string; project: string; team: string | null }
+export interface GroupAdo { connId: string; project: string; team: string | null; watch?: AdoWatchScope[] }
 
 /** État de recherche dans un board (Ctrl+F sur page, éphémère). */
 export interface AdoFindState { open: boolean; query: string; filter: boolean }
@@ -45,7 +49,7 @@ export interface Item {
   findOpen: boolean
   agentsOpen: boolean
   searchQuery: string
-  kind: 'claude' | 'ado' | 'cmd' | 'note'
+  kind: 'claude' | 'ado' | 'cmd' | 'note' | 'automation' | 'run'
   /** Arguments de lancement supplémentaires (Claude avancé) — persistés pour relance à l'identique. */
   claudeArgs?: string[]
   ado?: AdoView
@@ -53,6 +57,9 @@ export interface Item {
   adoClosed?: boolean
   /** État d'un item note (lecteur Markdown/Obsidian). */
   note?: PersistNote
+  automation?: PersistAutomation
+  /** Présent sur un item kind 'run' : id du RunRecord associé. */
+  runId?: string
 }
 
 export interface Group {
@@ -85,6 +92,8 @@ interface HubState {
   noteFind: Record<string, NoteFindState>
   /** Dossiers dépliés dans l'arbre d'une note (par item), pour survivre au switch d'onglet. Éphémère. */
   noteExpanded: Record<string, string[]>
+  /** Runs d'automation projetés depuis les événements du main, par id. */
+  runs: Record<string, RunRecord>
 
   itemById: (itemId: string) => Item | undefined
   itemByTab: (tabId: string) => Item | undefined
@@ -108,6 +117,7 @@ interface HubState {
   setSplit: (itemId: string, split: 1 | 2) => void
   setGroupAdo: (groupId: string, ado: GroupAdo | null) => void
   setAdoView: (itemId: string, view: 'tree' | 'board') => void
+  setItemAutomation: (itemId: string, automation: PersistAutomation) => void
   setAdoIteration: (itemId: string, iterationPath: string | null) => void
   setAdoClosed: (itemId: string, closed: boolean) => void
   setAdoCache: (key: string, board: AdoBoard) => void
@@ -117,6 +127,10 @@ interface HubState {
   setNoteActivePath: (itemId: string, path: string) => void
   openNoteFile: (absPath: string, nearItemId: string) => void
   openNoteRoot: (absPath: string, rootKind: 'vault' | 'file', nearItemId: string) => void
+  addRunItem: (p: RunStartedPayload) => void
+  setRun: (r: RunRecord) => void
+  setRuns: (list: RunRecord[]) => void
+  automationConfigs: () => AutomationConfig[]
 
   bindSession: (itemId: string, tabId: string) => void
   clearSession: (itemId: string) => void
@@ -229,7 +243,8 @@ const initial = {
   adoCache: {} as Record<string, AdoBoardCacheEntry>,
   adoFind: {} as Record<string, AdoFindState>,
   noteFind: {} as Record<string, NoteFindState>,
-  noteExpanded: {} as Record<string, string[]>
+  noteExpanded: {} as Record<string, string[]>,
+  runs: {} as Record<string, RunRecord>
 }
 
 function mapItems(groups: Group[], match: (i: Item) => boolean, fn: (i: Item) => Item): Group[] {
@@ -276,6 +291,8 @@ export const useHub = create<HubState>((set, get) => ({
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view, iterationPath: i.ado?.iterationPath ?? null } })) })),
   setAdoIteration: (itemId, iterationPath) =>
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view: i.ado?.view ?? 'tree', iterationPath } })) })),
+  setItemAutomation: (itemId, automation) =>
+    set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, automation })) })),
   setAdoClosed: (itemId, closed) =>
     set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, adoClosed: closed }))) })),
   setNoteActivePath: (itemId, path) =>
@@ -295,6 +312,46 @@ export const useHub = create<HubState>((set, get) => ({
       kind: 'note', note: { root: absPath, rootKind, activePath: rootKind === 'file' ? absPath : null }
     })
   },
+  addRunItem: (p) => set((s) => ({
+    groups: s.groups.map((g) => g.id !== p.groupId ? g : {
+      ...g,
+      items: [...g.items, {
+        id: uid('run'), name: p.title, cwd: p.cwd, pinned: false, tabId: p.tabId,
+        state: 'active' as const, agents: [], openAgentId: null, split: 1,
+        findOpen: false, agentsOpen: false, searchQuery: '', kind: 'run' as const, runId: p.runId
+      }]
+    })
+  })),
+
+  setRun: (r) => set((s) => ({ runs: { ...s.runs, [r.id]: r } })),
+
+  // Hydratation du journal : un run déjà reçu en séance est plus frais que celui relu du disque.
+  setRuns: (list) => set((s) => ({ runs: { ...Object.fromEntries(list.map((r) => [r.id, r])), ...s.runs } })),
+
+  automationConfigs: () => {
+    const s = get()
+    const out: AutomationConfig[] = []
+    for (const g of s.groups) {
+      if (!g.ado) continue
+      const groupScope = g.ado.watch?.length ? g.ado.watch : [{ project: g.ado.project, repos: [] }]
+      for (const i of g.items) {
+        if (i.kind !== 'automation' || !i.automation) continue
+        out.push({
+          id: i.id, groupId: g.id, name: i.name,
+          cwd: i.cwd || g.defaultCwd || s.globalDefaultCwd || '',
+          connId: g.ado.connId,
+          scope: effectiveScope(groupScope, i.automation.watch),
+          trigger: i.automation.trigger,
+          pollSeconds: i.automation.pollSeconds,
+          prompt: i.automation.prompt,
+          allowedTools: i.automation.allowedTools,
+          enabled: i.automation.enabled
+        })
+      }
+    }
+    return out
+  },
+
   setAdoCache: (key, board) => set((s) => ({ adoCache: { ...s.adoCache, [key]: { board, at: Date.now() } } })),
   setAdoFind: (itemId, patch) =>
     set((s) => {
@@ -360,6 +417,8 @@ export const useHub = create<HubState>((set, get) => ({
       const g = s.groups.find((grp) => grp.items.some((i) => i.id === itemId))
       if (!g) return { activeItemId: itemId }
       const item = g.items.find((i) => i.id === itemId) as Item
+      // Une automation n'ouvre aucun onglet : activer sa ref viderait le volet de travail.
+      if (item.kind === 'automation') return { activeItemId: itemId, activeGroupId: g.id }
       const pane: Pane = item.split === 2 ? 'right' : 'left'
       const ref = mainRef(item)
       const groups = setPaneActive(s.groups, itemId, pane, ref)
@@ -494,10 +553,11 @@ export const useHub = create<HubState>((set, get) => ({
       groups: s.groups.map((g) => ({
         id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd, color: g.color,
         ...(g.ado ? { ado: g.ado } : {}),
-        items: g.items.filter((i) => i.pinned).map((i) => ({
+        items: g.items.filter((i) => i.pinned && i.kind !== 'run').map((i) => ({
           id: i.id, name: i.name, cwd: i.cwd, split: i.split, kind: i.kind,
           ...(i.kind === 'ado' && i.ado ? { ado: i.ado } : {}),
           ...(i.kind === 'note' && i.note ? { note: i.note } : {}),
+          ...(i.kind === 'automation' && i.automation ? { automation: i.automation } : {}),
           ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {})
         }))
       }))
@@ -517,6 +577,7 @@ export const useHub = create<HubState>((set, get) => ({
             split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: '',
             kind: i.kind ?? 'claude', ...(i.kind === 'ado' ? { ado: i.ado ?? { view: 'tree', iterationPath: null } } : {}),
             ...(i.kind === 'note' ? { note: i.note ?? { root: '', rootKind: 'file', activePath: null } } : {}),
+            ...(i.kind === 'automation' && i.automation ? { automation: i.automation } : {}),
             ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {})
           }))
         }))

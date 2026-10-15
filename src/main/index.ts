@@ -18,6 +18,7 @@ import { createClaudeGuardModule } from './modules/claudeGuardModule'
 import { createCmdModule } from './modules/cmdModule'
 import { createNotesModule } from './modules/notesModule'
 import { createDideOpenModule } from './modules/dideOpenModule'
+import { createAutomationModule } from './modules/automationModule'
 import { IPC } from '../shared/ipc'
 
 let hooksSettingsPath = ''
@@ -52,7 +53,8 @@ const modules: HubModule[] = [
   createClaudeGuardModule(),
   createCmdModule({ shellPath: resolvePowerShellPath(), shellArgs: process.platform === 'win32' ? ['-NoLogo'] : [] }),
   createNotesModule(),
-  createDideOpenModule()
+  createDideOpenModule(),
+  createAutomationModule()
 ]
 for (const m of modules) m.register(ctx)
 
@@ -111,6 +113,7 @@ app.whenReady().then(async () => {
   })
   ipcMain.on(IPC.CloseConfirm, () => {
     quitting = true
+    for (const m of modules) m.dispose?.()
     ptyManager.killAll()
     BrowserWindow.getAllWindows().forEach((w) => w.destroy())
   })

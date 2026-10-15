@@ -35,4 +35,6 @@ export interface AppContext {
 export interface HubModule {
   name: string
   register(ctx: AppContext): void
+  /** Libère les ressources tenues par le module (minuteries, abonnements) avant la fermeture de l'app. */
+  dispose?(): void
 }

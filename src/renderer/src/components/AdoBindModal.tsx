@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Modal } from './Modal'
+import { CheckList } from './CheckList'
 import type { AdoConnection, AdoProject, AdoTeam } from '../../../shared/ipc'
 import type { GroupAdo } from '../store'
 
@@ -16,7 +17,9 @@ export function AdoBindModal({ current, onApply, onClose }: Props): React.JSX.El
   const [project, setProject] = useState(current?.project ?? '')
   const [teams, setTeams] = useState<AdoTeam[]>([])
   const [team, setTeam] = useState<string>(current?.team ?? '')
+  const [watch, setWatch] = useState<string[]>(current?.watch?.map((w) => w.project) ?? [])
   const [err, setErr] = useState<string | null>(null)
+
 
   useEffect(() => { window.hub.adoConnList().then(setConns) }, [])
   useEffect(() => {
@@ -37,7 +40,10 @@ export function AdoBindModal({ current, onApply, onClose }: Props): React.JSX.El
       footer={
         <>
           <button className="btn" onClick={onClose}>Annuler</button>
-          <button className="btn primary" disabled={!valid} onClick={() => valid && onApply({ connId, project, team: team || null })}>Appliquer</button>
+          <button className="btn primary" disabled={!valid} onClick={() => valid && onApply({
+            connId, project, team: team || null,
+            ...(watch.length ? { watch: watch.map((name) => ({ project: name, repos: [] })) } : {})
+          })}>Appliquer</button>
         </>
       }
     >
@@ -56,6 +62,16 @@ export function AdoBindModal({ current, onApply, onClose }: Props): React.JSX.El
           <option value="">— défaut —</option>
           {teams.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
         </select></div>
+      <div className="setting-row col">
+        <CheckList
+          label="Projets surveillés (suivis PR)"
+          idPrefix="ado-bind-watch"
+          options={projects.map((p) => ({ key: p.id, value: p.name }))}
+          selected={watch}
+          onChange={setWatch}
+        />
+        <span className="muted">Aucun coché : seul le projet ci-dessus est surveillé.</span>
+      </div>
       {err && <div className="muted">{err}</div>}
     </Modal>
   )

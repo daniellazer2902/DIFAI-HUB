@@ -6,6 +6,7 @@ import { useHub } from '../store'
 import { mdLinkRanges } from '../mdLinks'
 import { urlLinkRanges } from '../urlLinks'
 import { confirm } from '../confirm'
+import { registerTerminal } from '../runFocus'
 
 export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -109,8 +110,10 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
 
     const offData = window.hub.onData((id, data) => { if (id === tabId) term.write(data) })
     const onInput = term.onData((data) => window.hub.sendInput(tabId, data))
+    const unregister = registerTerminal(tabId, () => term.focus())
 
     return () => {
+      unregister()
       offData()
       onInput.dispose()
       ro.disconnect()
