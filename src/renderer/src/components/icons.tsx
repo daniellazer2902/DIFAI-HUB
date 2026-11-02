@@ -144,6 +144,11 @@ export function ListIcon({ size = 16 }: IconProps): React.JSX.Element {
   return line(size, <path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01" />, 2)
 }
 
+/** Œil barré (spoiler) — lucide « eye-off ». */
+export function EyeOffIcon({ size = 16 }: IconProps): React.JSX.Element {
+  return line(size, <><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" /><path d="m2 2 20 20" /></>)
+}
+
 /** Croix (fermer) — lucide « x ». */
 export function CloseIcon({ size = 14 }: IconProps): React.JSX.Element {
   return line(size, <path d="M18 6 6 18M6 6l12 12" />, 2)

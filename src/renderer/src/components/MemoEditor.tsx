@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { memoSync } from '../memoSync'
 import { sanitizeMemo } from '../sanitizeMemo'
-import { ListIcon } from './icons'
+import { EyeOffIcon, ListIcon } from './icons'
+import { REVEALED_ATTR, SPOILER_SEL, redirectEdgeInput, selectionInSpoiler, serializeMemo, toggleSpoiler, watchSpoilers } from '../memoSpoiler'
 
 interface Props {
   itemId: string
@@ -12,14 +13,16 @@ interface Props {
 type Cmd = 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'insertUnorderedList'
 const CMDS: Cmd[] = ['bold', 'italic', 'underline', 'strikeThrough', 'insertUnorderedList']
 
-const INACTIVE: Record<Cmd, boolean> = { bold: false, italic: false, underline: false, strikeThrough: false, insertUnorderedList: false }
+type Tool = Cmd | 'spoiler'
+const INACTIVE: Record<Tool, boolean> = { bold: false, italic: false, underline: false, strikeThrough: false, insertUnorderedList: false, spoiler: false }
 
-const TOOLS: { cmd: Cmd; title: string; label: React.ReactNode; cls: string }[] = [
+const TOOLS: { cmd: Tool; title: string; label: React.ReactNode; cls: string }[] = [
   { cmd: 'bold', title: 'Gras (Ctrl+B)', label: 'B', cls: 'mt-b' },
   { cmd: 'italic', title: 'Italique (Ctrl+I)', label: 'I', cls: 'mt-i' },
   { cmd: 'underline', title: 'Souligné (Ctrl+U)', label: 'U', cls: 'mt-u' },
   { cmd: 'strikeThrough', title: 'Barré (Ctrl+Shift+X)', label: 'ab', cls: 'mt-s' },
-  { cmd: 'insertUnorderedList', title: 'Liste à puces (Ctrl+Shift+L)', label: <ListIcon size={17} />, cls: 'mt-l' }
+  { cmd: 'insertUnorderedList', title: 'Liste à puces (Ctrl+Shift+L)', label: <ListIcon size={17} />, cls: 'mt-l' },
+  { cmd: 'spoiler', title: 'Spoiler : masquer le texte (Ctrl+Shift+H)', label: <EyeOffIcon size={16} />, cls: 'mt-sp' }
 ]
 
 function caretToEnd(el: HTMLElement): void {
@@ -33,12 +36,21 @@ function caretToEnd(el: HTMLElement): void {
   sel.addRange(r)
 }
 
-/** Éditeur riche minimal d'un mémo (gras, italique, souligné, barré, puces). */
+/** Éditeur riche minimal d'un mémo (gras, italique, souligné, barré, puces, spoiler). */
 export function MemoEditor({ itemId, autoFocus }: Props): React.JSX.Element {
   const ref = useRef<HTMLDivElement>(null)
   const source = useRef(`ed-${Math.random().toString(36).slice(2)}`)
   const [ready, setReady] = useState(false)
-  const [active, setActive] = useState<Record<Cmd, boolean>>(INACTIVE)
+  const [active, setActive] = useState<Record<Tool, boolean>>(INACTIVE)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const stop = watchSpoilers(el)
+    const onBefore = (e: InputEvent): void => { if (redirectEdgeInput(el, e)) emit() }
+    el.addEventListener('beforeinput', onBefore)
+    return () => { stop(); el.removeEventListener('beforeinput', onBefore) }
+  }, [itemId])
 
   // Chargement + synchro avec les autres éditeurs ouverts sur le même mémo (onglet ↔ fenêtre flottante).
   useEffect(() => {
@@ -66,9 +78,10 @@ export function MemoEditor({ itemId, autoFocus }: Props): React.JSX.Element {
       const el = ref.current
       const sel = window.getSelection()
       if (!el || !sel || sel.rangeCount === 0 || !el.contains(sel.anchorNode)) return
-      const next = {} as Record<Cmd, boolean>
+      const next = {} as Record<Tool, boolean>
       for (const c of CMDS) { try { next[c] = document.queryCommandState(c) } catch { next[c] = false } }
-      setActive((prev) => (CMDS.some((c) => prev[c] !== next[c]) ? next : prev))
+      next.spoiler = selectionInSpoiler(el, sel.getRangeAt(0))
+      setActive((prev) => ((Object.keys(next) as Tool[]).some((c) => prev[c] !== next[c]) ? next : prev))
     }
     document.addEventListener('selectionchange', onSel)
     return () => document.removeEventListener('selectionchange', onSel)
@@ -79,13 +92,19 @@ export function MemoEditor({ itemId, autoFocus }: Props): React.JSX.Element {
     if (!el) return
     // Un éditeur vidé garde souvent un <br> ou une liste vide : on normalise pour afficher le placeholder.
     if (!el.textContent?.trim() && !el.querySelector('li')) el.innerHTML = ''
-    memoSync.update(itemId, el.innerHTML, source.current)
+    memoSync.update(itemId, serializeMemo(el), source.current)
   }
 
-  function run(cmd: Cmd): void {
+  function run(cmd: Tool): void {
     const el = ref.current
     if (!el) return
     if (document.activeElement !== el) el.focus()
+    if (cmd === 'spoiler') {
+      const sel = window.getSelection()
+      if (sel && sel.rangeCount && el.contains(sel.anchorNode) && toggleSpoiler(el, sel.getRangeAt(0))) emit()
+      document.dispatchEvent(new Event('selectionchange'))
+      return
+    }
     document.execCommand('styleWithCSS', false, 'false')
     document.execCommand(cmd)
     emit()
@@ -96,6 +115,7 @@ export function MemoEditor({ itemId, autoFocus }: Props): React.JSX.Element {
     const mod = e.ctrlKey || e.metaKey
     const k = e.key.toLowerCase()
     if (mod && e.shiftKey && k === 'x') { e.preventDefault(); run('strikeThrough'); return }
+    if (mod && e.shiftKey && k === 'h') { e.preventDefault(); run('spoiler'); return }
     if (mod && e.shiftKey && (k === 'l' || k === '8' || k === '*')) { e.preventDefault(); run('insertUnorderedList'); return }
     if (e.key === 'Tab') {
       // Tab dans une liste = sous-niveau ; ailleurs, on garde le focus dans l'éditeur.
@@ -126,6 +146,7 @@ export function MemoEditor({ itemId, autoFocus }: Props): React.JSX.Element {
         onKeyDown={onKeyDown}
         onPaste={onPaste}
         onDrop={(e) => e.preventDefault()}
+        onClick={(e) => (e.target as HTMLElement).closest(SPOILER_SEL)?.setAttribute(REVEALED_ATTR, '')}
         onBlur={() => { setActive(INACTIVE); void memoSync.flush(itemId) }}
       />
       <div className="memo-toolbar">
