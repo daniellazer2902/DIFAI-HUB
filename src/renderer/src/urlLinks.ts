@@ -50,7 +50,7 @@ const URL_CHAR = /[^\s<>"'`]/
 
 /**
  * La ligne `b` prolonge-t-elle la ligne `a` ?
- * Retour souple xterm (isWrapped), ou retour dur émis par la TUI (Claude Code/Ink coupe
+ * Retour souple xterm (isWrapped), ou retour dur émis par la TUI (qui coupe
  * lui-même les longues lignes) : `a` remplit la largeur et les deux bords sont des caractères d'URL.
  */
 function continues(a: TermRow, b: TermRow, cols: number): boolean {
