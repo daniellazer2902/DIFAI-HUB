@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, type Item, type Group } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, FolderOpenIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon, ChevronIcon, PlusIcon, MoreIcon } from './icons'
+import { TerminalIcon, PinIcon, EditIcon, TrashIcon, FolderIcon, FolderOpenIcon, PaletteIcon, SettingsIcon, AzureIcon, ClaudeIcon, NotesIcon, ChevronIcon, PlusIcon, MoreIcon, MemoIcon } from './icons'
 import { GroupColorModal } from './GroupColorModal'
 import { Settings } from './Settings'
 import { AdoBindModal } from './AdoBindModal'
@@ -11,6 +11,9 @@ import { darken, textOn } from '../color'
 import { basename, isBusy } from '../util'
 import { readDefaultVault } from '../settings'
 import { confirm } from '../confirm'
+import { makeMemoItem } from '../memo'
+import { deleteMemoItem } from '../memoActions'
+import { memoSync } from '../memoSync'
 
 /** Ouvre une session pour un item éteint et la lie. */
 async function launch(item: Item): Promise<void> {
@@ -24,6 +27,7 @@ export function Sidebar(): React.JSX.Element {
   const groups = useHub((s) => s.groups)
   const activeItemId = useHub((s) => s.activeItemId)
   const activeGroupId = useHub((s) => s.activeGroupId)
+  const memoOpen = useHub((s) => s.memoFloat.open)
   const [menu, setMenu] = useState<string | null>(null)
   const [addFor, setAddFor] = useState<{ id: string; x: number; y: number } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -66,9 +70,10 @@ export function Sidebar(): React.JSX.Element {
   }
 
   async function onItemClick(item: Item): Promise<void> {
+    if (item.kind === 'memo') { useHub.getState().openMemo(item.id); return }
     if (item.kind === 'ado' && item.adoClosed) useHub.getState().setAdoClosed(item.id, false) // rouvre l'onglet fermé
     useHub.getState().setActiveItem(item.id)
-    if (item.kind !== 'ado' && !item.tabId) await launch(item)
+    if (item.kind !== 'ado' && item.kind !== 'note' && !item.tabId) await launch(item)
   }
 
   /** Crée un item Claude (avec ou sans paramètres libres) dans le groupe. */
@@ -128,6 +133,11 @@ export function Sidebar(): React.JSX.Element {
   async function addNoteFolder(group: Group): Promise<void> { setAddFor(null); const f = await window.hub.notesPickFolder(); if (f) addNoteItem(group, f, 'vault') }
   function addDefaultVault(group: Group): void { setAddFor(null); const v = readDefaultVault(); if (v) addNoteItem(group, v, 'vault') }
 
+  function addMemo(group: Group): void {
+    setAddFor(null)
+    useHub.getState().addItem(group.id, makeMemoItem())
+  }
+
   async function setGroupDefault(groupId: string): Promise<void> {
     setMenu(null)
     const cwd = await window.hub.pickFolder()
@@ -148,6 +158,7 @@ export function Sidebar(): React.JSX.Element {
 
   async function removeItem(item: Item): Promise<void> {
     setMenu(null)
+    if (item.kind === 'memo') { await deleteMemoItem(item); return }
     if (isBusy(item) && !(await confirm({ title: `Supprimer « ${item.name} » ?`, message: 'Une session est active.', confirmLabel: 'Supprimer', danger: true }))) return
     if (item.tabId) window.hub.killSession(item.tabId)
     useHub.getState().removeItem(item.id)
@@ -155,9 +166,11 @@ export function Sidebar(): React.JSX.Element {
 
   async function removeGroup(groupId: string, name: string): Promise<void> {
     setMenu(null)
-    if (!(await confirm({ title: `Supprimer le groupe « ${name} » ?`, message: 'Ses sessions seront fermées.', confirmLabel: 'Supprimer', danger: true }))) return
     const g = useHub.getState().groups.find((x) => x.id === groupId)
-    g?.items.forEach((i) => { if (i.tabId) window.hub.killSession(i.tabId) })
+    const memos = g?.items.filter((i) => i.kind === 'memo').length ?? 0
+    const message = memos ? `Ses sessions seront fermées et ses ${memos} mémo(s) supprimé(s).` : 'Ses sessions seront fermées.'
+    if (!(await confirm({ title: `Supprimer le groupe « ${name} » ?`, message, confirmLabel: 'Supprimer', danger: true }))) return
+    g?.items.forEach((i) => { if (i.tabId) window.hub.killSession(i.tabId); if (i.kind === 'memo') memoSync.remove(i.id) })
     useHub.getState().removeGroup(groupId)
   }
 
@@ -219,6 +232,7 @@ export function Sidebar(): React.JSX.Element {
                   <div onClick={() => addClaudePick(g)}><ClaudeIcon /> Claude (choisir un dossier…)</div>
                   <div onClick={() => { setAddFor(null); setAdvancedFor(g.id) }}><ClaudeIcon /> Claude avancé…</div>
                   <div onClick={() => addCmdItem(g)}><TerminalIcon /> Terminal</div>
+                  <div onClick={() => addMemo(g)}><MemoIcon /> Mémo</div>
                   <div onClick={() => addAdoItem(g)}><AzureIcon /> ADO – Azure</div>
                   {readDefaultVault() && <div onClick={() => addDefaultVault(g)}><NotesIcon /> Vault par défaut</div>}
                   <div onClick={() => addNoteFolder(g)}><NotesIcon /> Markdown : ouvrir un dossier…</div>
@@ -247,7 +261,7 @@ export function Sidebar(): React.JSX.Element {
                     <span className="item-ic">
                       {it.kind === 'claude'
                         ? (it.tabId ? <StateDot state={it.state} /> : <span className="off">○</span>)
-                        : it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : <NotesIcon />}
+                        : it.kind === 'ado' ? <AzureIcon /> : it.kind === 'cmd' ? <TerminalIcon /> : it.kind === 'memo' ? <MemoIcon /> : <NotesIcon />}
                     </span>
                     {nameOrEditor('item', it.id, it.name, 'item-name')}
                     <span className="item-pin">{it.pinned && <PinIcon />}</span>
@@ -255,7 +269,7 @@ export function Sidebar(): React.JSX.Element {
                     {menu === it.id && (
                       <div className="ctx-menu" onClick={(e) => e.stopPropagation()}>
                         <div onClick={() => startRename('item', it.id, it.name)}><EditIcon /> Renommer</div>
-                        <div onClick={() => { useHub.getState().togglePin(it.id); setMenu(null) }}><PinIcon /> {it.pinned ? 'Désépingler' : 'Épingler'}</div>
+                        {it.kind !== 'memo' && <div onClick={() => { useHub.getState().togglePin(it.id); setMenu(null) }}><PinIcon /> {it.pinned ? 'Désépingler' : 'Épingler'}</div>}
                         <div className="danger" onClick={() => removeItem(it)}><TrashIcon /> Supprimer</div>
                       </div>
                     )}
@@ -287,6 +301,7 @@ export function Sidebar(): React.JSX.Element {
         )}
       </div>
       <div className="side-foot">
+        <button className={`side-settings${memoOpen ? ' on' : ''}`} title="Afficher / masquer la fenêtre Mémo" aria-pressed={memoOpen} onClick={() => useHub.getState().setMemoFloat({ open: !memoOpen })}><MemoIcon size={15} /> Mémo</button>
         <button className="side-settings" title="Paramètres" onClick={() => setSettingsOpen(true)}><SettingsIcon size={15} /> Paramètres</button>
       </div>
       {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}

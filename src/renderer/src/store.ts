@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ConsoleLine, SessionState, WorkspaceTree, AdoBoard, PersistNote } from '../../shared/ipc'
+import type { ConsoleLine, SessionState, WorkspaceTree, AdoBoard, PersistNote, PersistMemoFloat } from '../../shared/ipc'
 import { basename } from './util'
 
 export interface AgentView {
@@ -15,7 +15,7 @@ export interface AgentView {
 }
 
 export type Pane = 'left' | 'right'
-export type TabKind = 'session' | 'find' | 'agents' | 'ado' | 'note'
+export type TabKind = 'session' | 'find' | 'agents' | 'ado' | 'note' | 'memo'
 
 export interface AdoView { view: 'tree' | 'board'; iterationPath: string | null }
 export interface GroupAdo { connId: string; project: string; team: string | null }
@@ -45,12 +45,14 @@ export interface Item {
   findOpen: boolean
   agentsOpen: boolean
   searchQuery: string
-  kind: 'claude' | 'ado' | 'cmd' | 'note'
+  kind: 'claude' | 'ado' | 'cmd' | 'note' | 'memo'
   /** Arguments de lancement supplémentaires (Claude avancé) — persistés pour relance à l'identique. */
   claudeArgs?: string[]
   ado?: AdoView
   /** Board ado épinglé dont l'onglet a été fermé (reste en sidebar, masqué des onglets). Éphémère. */
   adoClosed?: boolean
+  /** Mémo dont l'onglet est fermé (reste en sidebar, toujours épinglé). Éphémère. */
+  memoClosed?: boolean
   /** État d'un item note (lecteur Markdown/Obsidian). */
   note?: PersistNote
 }
@@ -69,6 +71,9 @@ export interface Group {
 
 export interface PaneTab { ref: string; kind: TabKind; item: Item }
 
+/** Fenêtre flottante des mémos (persistée dans workspace.json). */
+export type MemoFloatState = PersistMemoFloat
+
 interface HubState {
   groups: Group[]
   activeGroupId: string | null
@@ -85,6 +90,7 @@ interface HubState {
   noteFind: Record<string, NoteFindState>
   /** Dossiers dépliés dans l'arbre d'une note (par item), pour survivre au switch d'onglet. Éphémère. */
   noteExpanded: Record<string, string[]>
+  memoFloat: MemoFloatState
 
   itemById: (itemId: string) => Item | undefined
   itemByTab: (tabId: string) => Item | undefined
@@ -110,6 +116,10 @@ interface HubState {
   setAdoView: (itemId: string, view: 'tree' | 'board') => void
   setAdoIteration: (itemId: string, iterationPath: string | null) => void
   setAdoClosed: (itemId: string, closed: boolean) => void
+  setMemoClosed: (itemId: string, closed: boolean) => void
+  /** Ouvre l'onglet d'un mémo (le rouvre s'il était fermé) et l'active. */
+  openMemo: (itemId: string) => void
+  setMemoFloat: (patch: Partial<MemoFloatState>) => void
   setAdoCache: (key: string, board: AdoBoard) => void
   setAdoFind: (itemId: string, patch: Partial<AdoFindState>) => void
   setNoteFind: (itemId: string, patch: Partial<NoteFindState>) => void
@@ -156,7 +166,7 @@ function uid(prefix: string): string {
   return `${prefix}-${counter}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-const KIND_PREFIX: Record<TabKind, string> = { session: 's', find: 'f', agents: 'a', ado: 'd', note: 'n' }
+const KIND_PREFIX: Record<TabKind, string> = { session: 's', find: 'f', agents: 'a', ado: 'd', note: 'n', memo: 'm' }
 export function tabRef(kind: TabKind, itemId: string): string {
   return `${KIND_PREFIX[kind]}:${itemId}`
 }
@@ -165,7 +175,7 @@ export function parseRef(ref: string): { kind: TabKind; itemId: string } {
   if (i < 0) return { kind: 'session', itemId: ref }
   const p = ref.slice(0, i)
   const itemId = ref.slice(i + 1)
-  const kind: TabKind = p === 's' ? 'session' : p === 'f' ? 'find' : p === 'a' ? 'agents' : p === 'd' ? 'ado' : p === 'n' ? 'note' : 'session'
+  const kind: TabKind = p === 's' ? 'session' : p === 'f' ? 'find' : p === 'a' ? 'agents' : p === 'd' ? 'ado' : p === 'n' ? 'note' : p === 'm' ? 'memo' : 'session'
   return { kind, itemId }
 }
 
@@ -173,6 +183,7 @@ export function parseRef(ref: string): { kind: TabKind; itemId: string } {
 export function mainRef(item: { id: string; kind: Item['kind'] }): string {
   if (item.kind === 'ado') return tabRef('ado', item.id)
   if (item.kind === 'note') return tabRef('note', item.id)
+  if (item.kind === 'memo') return tabRef('memo', item.id)
   return tabRef('session', item.id)
 }
 
@@ -190,6 +201,7 @@ function paneRefs(group: Group, pane: Pane): string[] {
     if (i.split === sessionSplit) {
       if (i.kind === 'ado') { if (!i.adoClosed) refs.push(tabRef('ado', i.id)) }
       else if (i.kind === 'note') refs.push(tabRef('note', i.id))
+      else if (i.kind === 'memo') { if (!i.memoClosed) refs.push(tabRef('memo', i.id)) }
       else if (i.tabId) refs.push(tabRef('session', i.id))
     }
     if (i.split === auxOwnerSplit && i.findOpen) refs.push(tabRef('find', i.id))
@@ -229,7 +241,8 @@ const initial = {
   adoCache: {} as Record<string, AdoBoardCacheEntry>,
   adoFind: {} as Record<string, AdoFindState>,
   noteFind: {} as Record<string, NoteFindState>,
-  noteExpanded: {} as Record<string, string[]>
+  noteExpanded: {} as Record<string, string[]>,
+  memoFloat: { open: false, itemId: null, x: -1, y: -1, w: 340, h: 420 } as MemoFloatState
 }
 
 function mapItems(groups: Group[], match: (i: Item) => boolean, fn: (i: Item) => Item): Group[] {
@@ -266,7 +279,8 @@ export const useHub = create<HubState>((set, get) => ({
       const groups = s.groups.filter((g) => g.id !== groupId)
       const activeGroupId = s.activeGroupId === groupId ? (groups[groups.length - 1]?.id ?? null) : s.activeGroupId
       const adoCache = Object.fromEntries(Object.entries(s.adoCache).filter(([k]) => ![...removedIds].some((p) => k.startsWith(p))))
-      return { groups, activeGroupId, adoCache }
+      const memoFloat = removedIds.has(`${s.memoFloat.itemId}::`) ? { ...s.memoFloat, itemId: null } : s.memoFloat
+      return { groups, activeGroupId, adoCache, memoFloat }
     }),
   toggleGroupCollapsed: (groupId) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, collapsed: !g.collapsed } : g)) })),
   setGroupDefaultCwd: (groupId, cwd) => set((s) => ({ groups: s.groups.map((g) => (g.id === groupId ? { ...g, defaultCwd: cwd } : g)) })),
@@ -278,6 +292,13 @@ export const useHub = create<HubState>((set, get) => ({
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, ado: { view: i.ado?.view ?? 'tree', iterationPath } })) })),
   setAdoClosed: (itemId, closed) =>
     set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, adoClosed: closed }))) })),
+  setMemoClosed: (itemId, closed) =>
+    set((s) => ({ groups: normalizeAll(mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, memoClosed: closed }))) })),
+  openMemo: (itemId) => {
+    get().setMemoClosed(itemId, false)
+    get().setActiveItem(itemId)
+  },
+  setMemoFloat: (patch) => set((s) => ({ memoFloat: { ...s.memoFloat, ...patch } })),
   setNoteActivePath: (itemId, path) =>
     set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, note: i.note ? { ...i.note, activePath: path } : i.note })) })),
   openNoteFile: (absPath, nearItemId) => get().openNoteRoot(absPath, 'file', nearItemId),
@@ -351,10 +372,11 @@ export const useHub = create<HubState>((set, get) => ({
       const adoFind = Object.fromEntries(Object.entries(s.adoFind).filter(([k]) => k !== itemId))
       const noteFind = Object.fromEntries(Object.entries(s.noteFind).filter(([k]) => k !== itemId))
       const noteExpanded = Object.fromEntries(Object.entries(s.noteExpanded).filter(([k]) => k !== itemId))
-      return { groups, activeItemId: s.activeItemId === itemId ? null : s.activeItemId, adoCache, adoFind, noteFind, noteExpanded }
+      const memoFloat = s.memoFloat.itemId === itemId ? { ...s.memoFloat, itemId: null } : s.memoFloat
+      return { groups, activeItemId: s.activeItemId === itemId ? null : s.activeItemId, adoCache, adoFind, noteFind, noteExpanded, memoFloat }
     }),
   renameItem: (itemId, name) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, name })) })),
-  togglePin: (itemId) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId, (i) => ({ ...i, pinned: !i.pinned })) })),
+  togglePin: (itemId) => set((s) => ({ groups: mapItems(s.groups, (i) => i.id === itemId && i.kind !== 'memo', (i) => ({ ...i, pinned: !i.pinned })) })),
   setActiveItem: (itemId) =>
     set((s) => {
       const g = s.groups.find((grp) => grp.items.some((i) => i.id === itemId))
@@ -491,10 +513,11 @@ export const useHub = create<HubState>((set, get) => ({
     const s = get()
     return {
       activeGroupId: s.activeGroupId,
+      memoFloat: s.memoFloat,
       groups: s.groups.map((g) => ({
         id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd, color: g.color,
         ...(g.ado ? { ado: g.ado } : {}),
-        items: g.items.filter((i) => i.pinned).map((i) => ({
+        items: g.items.filter((i) => i.pinned || i.kind === 'memo').map((i) => ({
           id: i.id, name: i.name, cwd: i.cwd, split: i.split, kind: i.kind,
           ...(i.kind === 'ado' && i.ado ? { ado: i.ado } : {}),
           ...(i.kind === 'note' && i.note ? { note: i.note } : {}),
@@ -508,6 +531,7 @@ export const useHub = create<HubState>((set, get) => ({
       activeGroupId: tree.activeGroupId,
       activeItemId: null,
       focusedPane: 'left',
+      memoFloat: tree.memoFloat ?? initial.memoFloat,
       groups: normalizeAll(
         tree.groups.map((g) => ({
           id: g.id, name: g.name, collapsed: g.collapsed, defaultCwd: g.defaultCwd ?? null, color: g.color ?? null,
@@ -517,6 +541,7 @@ export const useHub = create<HubState>((set, get) => ({
             split: i.split ?? 1, findOpen: false, agentsOpen: false, searchQuery: '',
             kind: i.kind ?? 'claude', ...(i.kind === 'ado' ? { ado: i.ado ?? { view: 'tree', iterationPath: null } } : {}),
             ...(i.kind === 'note' ? { note: i.note ?? { root: '', rootKind: 'file', activePath: null } } : {}),
+            ...(i.kind === 'memo' ? { memoClosed: true } : {}),
             ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {})
           }))
         }))

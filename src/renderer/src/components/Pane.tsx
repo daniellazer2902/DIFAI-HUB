@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useHub, parseRef, type Group, type PaneTab, type Pane as Side } from '../store'
 import { StateDot } from './StateDot'
-import { TerminalIcon, EditIcon, PinIcon, TrashIcon, AzureIcon, ClaudeIcon, NotesIcon, ActivityIcon, PlusIcon } from './icons'
+import { TerminalIcon, EditIcon, PinIcon, TrashIcon, AzureIcon, ClaudeIcon, NotesIcon, ActivityIcon, PlusIcon, MemoIcon } from './icons'
 import { NotesView } from './NotesView'
+import { MemoView } from './MemoView'
+import { makeMemoItem } from '../memo'
+import { deleteMemoItem } from '../memoActions'
 import { readDefaultVault } from '../settings'
 import { Terminal } from './Terminal'
 import { Console } from './Console'
@@ -28,7 +31,7 @@ type Pos = { x: number; y: number }
 type Ctx = { id: string; x: number; y: number }
 
 function tabLabel(t: PaneTab): string {
-  if (t.kind === 'session' || t.kind === 'ado' || t.kind === 'note') return t.item.name
+  if (t.kind === 'session' || t.kind === 'ado' || t.kind === 'note' || t.kind === 'memo') return t.item.name
   return `${t.item.name} - ${t.kind === 'find' ? 'Find' : 'Exécutions'}`
 }
 
@@ -125,6 +128,11 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
       agents: [], openAgentId: null, split: side === 'right' ? 2 : 1, findOpen: false, agentsOpen: false,
       searchQuery: '', kind: 'cmd'
     })
+  }
+
+  function addMemo(): void {
+    closeMenus()
+    useHub.getState().addItem(group.id, makeMemoItem(side === 'right' ? 2 : 1))
   }
 
   function addNoteItem(root: string, rootKind: 'vault' | 'file'): void {
@@ -259,6 +267,41 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                 </div>
               )
             }
+            if (t.kind === 'memo') {
+              return (
+                <div
+                  key={t.ref}
+                  className={`tab${sel ? ' act' : ''}`}
+                  draggable={editingId !== t.item.id}
+                  onDragStart={(e) => { setAddMenu(null); setCtx(null); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', t.item.id); const id = t.item.id; setTimeout(() => setDragId(id), 0) }}
+                  onDragEnd={() => setDragId(null)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.stopPropagation(); onDropTab(t.item.id) }}
+                  onClick={() => useHub.getState().selectTab(side, t.ref)}
+                  onContextMenu={(e) => { e.preventDefault(); const x = Math.max(4, Math.min(e.clientX, window.innerWidth - 190)); const y = Math.min(e.clientY, window.innerHeight - 150); setCtx(ctx?.id === t.item.id ? null : { id: t.item.id, x, y }) }}
+                >
+                  <span className="tab-ic"><MemoIcon /></span>
+                  {editingId === t.item.id ? (
+                    <input
+                      ref={editRef}
+                      className="inline-edit"
+                      value={editValue}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={commitRename}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); commitRename() }
+                        else if (e.key === 'Escape') { e.preventDefault(); setEditingId(null) }
+                      }}
+                    />
+                  ) : (
+                    <span className="tab-title">{t.item.name}</span>
+                  )}
+                  <span className="tab-pin"><PinIcon /></span>
+                  <span className="tab-close" title="Fermer l'onglet (le mémo reste dans la barre latérale)" onClick={(e) => { e.stopPropagation(); useHub.getState().setMemoClosed(t.item.id, true) }}>✕</span>
+                </div>
+              )
+            }
             const onClose = t.kind === 'find' ? () => useHub.getState().closeFind(t.item.id) : () => useHub.getState().closeAgentsTab(t.item.id)
             return (
               <div key={t.ref} className={`tab aux${sel ? ' act' : ''}`} onClick={() => useHub.getState().selectTab(side, t.ref)}>
@@ -288,6 +331,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
                   <div className="ovf-add" onClick={onPick}><ClaudeIcon /> Claude (choisir un dossier…)</div>
                   <div className="ovf-add" onClick={() => { setOverflowOpen(false); setAdvancedOpen(true) }}><ClaudeIcon /> Claude avancé…</div>
                   <div className="ovf-add" onClick={() => { setOverflowOpen(false); addCmd() }}><TerminalIcon /> Terminal</div>
+                  <div className="ovf-add" onClick={addMemo}><MemoIcon /> Mémo</div>
                   <div className="ovf-add" onClick={() => { setOverflowOpen(false); addAdo() }}><AzureIcon /> ADO – Azure</div>
                   {readDefaultVault() && <div className="ovf-add" onClick={() => { setOverflowOpen(false); addDefaultVault() }}><NotesIcon /> Vault par défaut</div>}
                   <div className="ovf-add" onClick={() => { setOverflowOpen(false); addNoteFolder() }}><NotesIcon /> Markdown : dossier…</div>
@@ -309,6 +353,10 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
           const it = group.items.find((i) => i.id === active.itemId)
           return it ? <AdoBoard item={it} group={group} /> : null
         })()}
+        {active?.kind === 'memo' && (() => {
+          const it = group.items.find((i) => i.id === active.itemId)
+          return it ? <MemoView key={it.id} item={it} group={group} /> : null
+        })()}
         {active?.kind === 'note' && (() => {
           const it = group.items.find((i) => i.id === active.itemId)
           return it ? <NotesView item={it} /> : null
@@ -321,6 +369,7 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
           <div onClick={onPick}><ClaudeIcon /> Claude (choisir un dossier…)</div>
           <div onClick={() => { closeMenus(); setAdvancedOpen(true) }}><ClaudeIcon /> Claude avancé…</div>
           <div onClick={addCmd}><TerminalIcon /> Terminal</div>
+          <div onClick={addMemo}><MemoIcon /> Mémo</div>
           <div onClick={addAdo}><AzureIcon /> ADO – Azure</div>
           {readDefaultVault() && <div onClick={addDefaultVault}><NotesIcon /> Vault par défaut</div>}
           <div onClick={addNoteFolder}><NotesIcon /> Markdown : ouvrir un dossier…</div>
@@ -329,11 +378,11 @@ export function Pane({ side, group, tabs, activeRef, width, hasOther, dragId, se
       {ctx && ctxItem && (
         <div className="ctx-menu tab-ctx" style={{ position: 'fixed', left: ctx.x, top: ctx.y, right: 'auto' }} onClick={(e) => e.stopPropagation()}>
           <div onClick={() => startRename(ctxItem.id, ctxItem.name)}><EditIcon /> Renommer</div>
-          <div onClick={() => { useHub.getState().togglePin(ctxItem.id); setCtx(null) }}><PinIcon /> {ctxItem.pinned ? 'Désépingler' : 'Épingler'}</div>
+          {ctxItem.kind !== 'memo' && <div onClick={() => { useHub.getState().togglePin(ctxItem.id); setCtx(null) }}><PinIcon /> {ctxItem.pinned ? 'Désépingler' : 'Épingler'}</div>}
           {ctxItem.kind === 'claude' && (
             <div onClick={() => { if (ctxItem.agentsOpen) useHub.getState().closeAgentsTab(ctxItem.id); else useHub.getState().openAgentsTab(ctxItem.id); setCtx(null) }}><TerminalIcon /> {ctxItem.agentsOpen ? 'Cacher Exécutions' : 'Afficher Exécutions'}</div>
           )}
-          <div className="danger" onClick={(e) => { if (ctxItem.kind === 'ado') { e.stopPropagation(); useHub.getState().removeItem(ctxItem.id) } else closeSession(e, ctxItem.id, ctxItem.tabId); setCtx(null) }}><TrashIcon /> Supprimer</div>
+          <div className="danger" onClick={(e) => { if (ctxItem.kind === 'memo') { e.stopPropagation(); void deleteMemoItem(ctxItem) } else if (ctxItem.kind === 'ado') { e.stopPropagation(); useHub.getState().removeItem(ctxItem.id) } else closeSession(e, ctxItem.id, ctxItem.tabId); setCtx(null) }}><TrashIcon /> Supprimer</div>
         </div>
       )}
     </div>

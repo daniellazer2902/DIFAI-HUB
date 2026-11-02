@@ -99,3 +99,24 @@ describe('workspaceStore note (lecteur Markdown)', () => {
     expect(t.groups[0].items[0].kind).toBe('note')
   })
 })
+
+describe('workspaceStore mémos', () => {
+  it('conserve le kind memo au rechargement', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'G', collapsed: false, defaultCwd: null,
+      items: [{ id: 'm1', name: 'Mémo', cwd: '', kind: 'memo' }] }] })
+    expect(parseWorkspace(raw).groups[0].items[0]).toMatchObject({ id: 'm1', kind: 'memo', name: 'Mémo' })
+  })
+})
+
+describe('workspaceStore fenêtre mémo', () => {
+  it('relit l\'état de la fenêtre flottante et complète les valeurs manquantes', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', memoFloat: { open: true, itemId: 'm1', x: 10, y: 'bad' },
+      groups: [{ id: 'g1', name: 'G', collapsed: false, defaultCwd: null, items: [] }] })
+    expect(parseWorkspace(raw).memoFloat).toEqual({ open: true, itemId: 'm1', x: 10, y: -1, w: 340, h: 420 })
+  })
+
+  it('absent = pas de champ memoFloat', () => {
+    const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'G', collapsed: false, defaultCwd: null, items: [] }] })
+    expect(parseWorkspace(raw).memoFloat).toBeUndefined()
+  })
+})
