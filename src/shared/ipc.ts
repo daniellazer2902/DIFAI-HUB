@@ -40,6 +40,10 @@ export const IPC = {
   NotesWatch: 'notes:watch',
   NotesUnwatch: 'notes:unwatch',
   NotesResolveFile: 'notes:resolve-file',
+  // Mémos (renderer -> main)
+  MemoLoad: 'memo:load',
+  MemoSave: 'memo:save',
+  MemoDelete: 'memo:delete',
   // main -> renderer
   CloseRequest: 'app:close-request',
   PtyData: 'pty:data',
@@ -68,10 +72,12 @@ export interface TranscriptMatch {
 }
 
 /** Sous-ensemble persistable d'un item (config, sans état runtime de session). */
-export interface PersistItem { id: string; name: string; cwd: string; split?: 1 | 2; kind?: 'claude' | 'ado' | 'cmd' | 'note'; claudeArgs?: string[]; ado?: { view: 'tree' | 'board'; iterationPath: string | null }; note?: PersistNote }
+export interface PersistItem { id: string; name: string; cwd: string; split?: 1 | 2; kind?: 'claude' | 'ado' | 'cmd' | 'note' | 'memo'; claudeArgs?: string[]; ado?: { view: 'tree' | 'board'; iterationPath: string | null }; note?: PersistNote }
 export interface PersistGroup { id: string; name: string; collapsed: boolean; defaultCwd: string | null; color?: string | null; ado?: { connId: string; project: string; team: string | null } | null; items: PersistItem[] }
 /** Arborescence persistée sur disque (groupes + items épinglés). */
-export interface WorkspaceTree { activeGroupId: string | null; groups: PersistGroup[] }
+export interface WorkspaceTree { activeGroupId: string | null; groups: PersistGroup[]; memoFloat?: PersistMemoFloat }
+/** Fenêtre flottante des mémos : visibilité, mémo affiché, position et taille (x/y < 0 = jamais placée). */
+export interface PersistMemoFloat { open: boolean; itemId: string | null; x: number; y: number; w: number; h: number }
 
 // --- ADO (lot 4) ---
 export interface AdoConnection {
@@ -192,4 +198,9 @@ export interface HubApi {
   notesResolveFile(cwd: string, token: string): Promise<string | null>
   onNotesChanged(cb: (itemId: string, event: string, path: string) => void): Unsub
   onDideOpen(cb: (p: DideOpenPayload) => void): Unsub
+  /** Contenu HTML d'un mémo ('' si absent). */
+  memoLoad(id: string): Promise<string>
+  /** Écrit le contenu d'un mémo (atomique côté main). */
+  memoSave(id: string, html: string): Promise<void>
+  memoDelete(id: string): void
 }

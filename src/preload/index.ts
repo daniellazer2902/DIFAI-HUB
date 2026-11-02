@@ -54,7 +54,10 @@ const hub: HubApi = {
   notesUnwatch: (itemId) => ipcRenderer.send(IPC.NotesUnwatch, itemId),
   notesResolveFile: (cwd, token) => ipcRenderer.invoke(IPC.NotesResolveFile, cwd, token),
   onNotesChanged: (cb) => on(IPC.NotesChanged, (itemId, event, path) => cb(itemId as string, event as string, path as string)),
-  onDideOpen: (cb) => on(IPC.DideOpen, (p) => cb(p as DideOpenPayload))
+  onDideOpen: (cb) => on(IPC.DideOpen, (p) => cb(p as DideOpenPayload)),
+  memoLoad: (id) => ipcRenderer.invoke(IPC.MemoLoad, id),
+  memoSave: (id, html) => ipcRenderer.invoke(IPC.MemoSave, id, html),
+  memoDelete: (id) => ipcRenderer.send(IPC.MemoDelete, id)
 }
 
 contextBridge.exposeInMainWorld('hub', hub)

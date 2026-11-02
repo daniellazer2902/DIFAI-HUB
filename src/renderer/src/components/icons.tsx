@@ -133,3 +133,18 @@ export function MoreIcon({ size = 15 }: IconProps): React.JSX.Element {
     </svg>
   )
 }
+
+/** Pense-bête — lucide « sticky-note ». */
+export function MemoIcon({ size = 14 }: IconProps): React.JSX.Element {
+  return line(size, <><path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8z" /><path d="M15 3v4a2 2 0 0 0 2 2h4" /></>)
+}
+
+/** Liste à puces — lucide « list ». */
+export function ListIcon({ size = 16 }: IconProps): React.JSX.Element {
+  return line(size, <path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01" />, 2)
+}
+
+/** Croix (fermer) — lucide « x ». */
+export function CloseIcon({ size = 14 }: IconProps): React.JSX.Element {
+  return line(size, <path d="M18 6 6 18M6 6l12 12" />, 2)
+}

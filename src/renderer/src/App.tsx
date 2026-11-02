@@ -4,6 +4,8 @@ import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { Workspace } from './components/Workspace'
 import { ConfirmHost } from './components/ConfirmHost'
+import { MemoFloat } from './components/MemoFloat'
+import { memoSync } from './memoSync'
 import { basename, readConsoleWidth, isBusy } from './util'
 import { confirm } from './confirm'
 import { soundForTransition, playSound, readSoundEnabled } from './sound'
@@ -31,7 +33,7 @@ export function App(): React.JSX.Element {
           // Board ADO = page DOM → recherche in-page ; session Claude → Find transcript ; terminal cmd → rien (pas de transcript).
           if (kind === 'ado') s.setAdoFind(itemId, { open: !(s.adoFind[itemId]?.open) })
           else if (item?.kind === 'note') s.setNoteFind(itemId, { open: !(s.noteFind[itemId]?.open) })
-          else if (item?.kind === 'cmd') { /* pas de recherche sur un terminal */ }
+          else if (item?.kind === 'cmd' || item?.kind === 'memo') { /* pas de recherche sur un terminal ni un mémo */ }
           else s.toggleFind(itemId)
         }
       }
@@ -80,9 +82,17 @@ export function App(): React.JSX.Element {
 
   // Fermeture propre : si la confirmation est activée, on demande TOUJOURS (et on indique les sessions en cours).
   useEffect(() => {
-    return window.hub.onCloseRequest(async () => {
+    // Mémos en attente d'écriture : sauvés avant que la fenêtre soit détruite.
+    const quit = async (): Promise<void> => {
+      await memoSync.flushAll()
+      window.hub.saveWorkspace(useHub.getState().toPersistable()) // la sauvegarde debouncée peut ne pas être partie
+      window.hub.confirmClose()
+    }
+    const onUnload = (): void => { void memoSync.flushAll() }
+    window.addEventListener('beforeunload', onUnload)
+    const unsub = window.hub.onCloseRequest(async () => {
       const s = useHub.getState()
-      if (!s.confirmOnClose) { window.hub.confirmClose(); return }
+      if (!s.confirmOnClose) { await quit(); return }
       const busy = s.groups.flatMap((g) => g.items).filter(isBusy).map((i) => i.name)
       const ok = await confirm({
         title: 'Quitter DIFAI-IDE ?',
@@ -91,8 +101,9 @@ export function App(): React.JSX.Element {
         confirmLabel: 'Quitter',
         danger: busy.length > 0
       })
-      if (ok) window.hub.confirmClose()
+      if (ok) await quit()
     })
+    return () => { unsub(); window.removeEventListener('beforeunload', onUnload) }
   }, [])
 
   // Boot : charger l'arborescence, relancer les items épinglés dans leurs dossiers.
@@ -111,7 +122,7 @@ export function App(): React.JSX.Element {
       }
       for (const g of tree.groups) {
         for (const i of g.items) {
-          if (i.kind === 'ado' || i.kind === 'note') continue // board ADO / note : pas de pty à relancer
+          if (i.kind === 'ado' || i.kind === 'note' || i.kind === 'memo') continue // board ADO / note / mémo : pas de pty à relancer
           const tabId = i.kind === 'cmd' ? await window.hub.newCmd(i.cwd) : await window.hub.newSession(i.cwd, i.claudeArgs)
           if (!active) return
           useHub.getState().bindSession(i.id, tabId)
@@ -140,6 +151,7 @@ export function App(): React.JSX.Element {
           <Workspace />
         </div>
       </div>
+      <MemoFloat />
       <ConfirmHost />
     </div>
   )

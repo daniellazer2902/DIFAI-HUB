@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { WorkspaceTree, PersistGroup, PersistItem } from '../shared/ipc'
+import type { WorkspaceTree, PersistGroup, PersistItem, PersistMemoFloat } from '../shared/ipc'
 
 export function defaultWorkspace(): WorkspaceTree {
   const g: PersistGroup = { id: 'g-default', name: 'Sessions', collapsed: false, defaultCwd: null, items: [] }
@@ -13,7 +13,7 @@ function normItem(x: unknown): PersistItem | null {
   if (typeof o.id !== 'string' || typeof o.name !== 'string' || typeof o.cwd !== 'string') return null
   const split: 1 | 2 | undefined = o.split === 2 ? 2 : o.split === 1 ? 1 : undefined
   const kind: PersistItem['kind'] =
-    o.kind === 'ado' ? 'ado' : o.kind === 'cmd' ? 'cmd' : o.kind === 'note' ? 'note' : o.kind === 'claude' ? 'claude' : undefined
+    o.kind === 'ado' ? 'ado' : o.kind === 'memo' ? 'memo' : o.kind === 'cmd' ? 'cmd' : o.kind === 'note' ? 'note' : o.kind === 'claude' ? 'claude' : undefined
   let ado: PersistItem['ado'] | undefined
   const a = o.ado as Record<string, unknown> | undefined
   if (a && (a.view === 'tree' || a.view === 'board')) {
@@ -44,6 +44,13 @@ function normGroup(x: unknown): PersistGroup | null {
   return { id: o.id, name: o.name, collapsed: o.collapsed === true, defaultCwd, items, ...(color ? { color } : {}), ...(ado ? { ado } : {}) }
 }
 
+function normMemoFloat(x: unknown): PersistMemoFloat | undefined {
+  if (!x || typeof x !== 'object') return undefined
+  const o = x as Record<string, unknown>
+  const n = (v: unknown, d: number): number => (typeof v === 'number' && Number.isFinite(v) ? v : d)
+  return { open: o.open === true, itemId: typeof o.itemId === 'string' ? o.itemId : null, x: n(o.x, -1), y: n(o.y, -1), w: n(o.w, 340), h: n(o.h, 420) }
+}
+
 /** Parse le contenu JSON ; renvoie l'arbre par défaut si invalide/incomplet. */
 export function parseWorkspace(raw: string): WorkspaceTree {
   try {
@@ -53,7 +60,8 @@ export function parseWorkspace(raw: string): WorkspaceTree {
     const activeGroupId = typeof o.activeGroupId === 'string' && groups.some((g) => g.id === o.activeGroupId)
       ? o.activeGroupId
       : groups[0].id
-    return { activeGroupId, groups }
+    const memoFloat = normMemoFloat(o.memoFloat)
+    return { activeGroupId, groups, ...(memoFloat ? { memoFloat } : {}) }
   } catch {
     return defaultWorkspace()
   }
