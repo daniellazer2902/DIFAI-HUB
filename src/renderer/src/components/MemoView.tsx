@@ -5,10 +5,10 @@ import { MemoEditor } from './MemoEditor'
 
 interface Props { item: Item; group: Group }
 
-/** Onglet d'un mémo : papier teinté de la couleur du groupe. */
+/** Onglet d'un mémo : fond uni, la couleur du groupe ne sert qu'aux accents de la barre d'outils. */
 export function MemoView({ item, group }: Props): React.JSX.Element {
   return (
-    <div className="memo-view memo-paper" style={memoColorVars(group.color)}>
+    <div className="memo-view" style={memoColorVars(group.color)}>
       <MemoEditor itemId={item.id} />
     </div>
   )

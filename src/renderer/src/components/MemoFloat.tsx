@@ -4,6 +4,7 @@ import { clampMemoRect, makeMemoItem, memoOptions, resolveMemoTarget, type Rect 
 import { memoColorVars } from '../memoColor'
 import { MemoEditor } from './MemoEditor'
 import { CloseIcon } from './icons'
+import { MemoPicker } from './MemoPicker'
 
 // Hauteur de la barre de titre (titleBarOverlay) : la fenêtre ne doit pas passer dessous.
 const TITLE_H = 36
@@ -73,9 +74,6 @@ export function MemoFloat(): React.JSX.Element | null {
     s.setMemoFloat({ itemId: item.id })
   }
 
-  const byGroup = groups
-    .map((g) => ({ g, memos: options.filter((o) => o.groupId === g.id) }))
-    .filter((x) => x.memos.length > 0)
   const activeGroup = groups.find((g) => g.id === activeGroupId) ?? groups[0]
 
   return (
@@ -87,24 +85,18 @@ export function MemoFloat(): React.JSX.Element | null {
     >
       <div
         className="memo-float-head"
-        onPointerDown={(e) => { if (!(e.target as HTMLElement).closest('select, button')) begin('move', e) }}
+        onPointerDown={(e) => { if (!(e.target as HTMLElement).closest('button, .memo-picker-pop')) begin('move', e) }}
         onPointerMove={move}
         onPointerUp={end}
         onPointerCancel={end}
       >
         {options.length > 0 ? (
-          <select
-            className="memo-float-select"
-            value={targetId ?? ''}
-            title={target ? `${target.groupName} — ${target.name}` : ''}
-            onChange={(e) => useHub.getState().setMemoFloat({ itemId: e.target.value })}
-          >
-            {byGroup.map(({ g, memos }) => (
-              <optgroup key={g.id} label={g.name}>
-                {memos.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </optgroup>
-            ))}
-          </select>
+          <MemoPicker
+            groups={groups}
+            options={options}
+            value={targetId}
+            onChange={(id) => useHub.getState().setMemoFloat({ itemId: id })}
+          />
         ) : (
           <span className="memo-float-title">Mémo</span>
         )}
