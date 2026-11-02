@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { findUrlLinks, urlLinkRanges } from '../src/renderer/src/urlLinks'
+import { findUrlLinks, urlLinkRanges, urlLinkRangesAcrossRows, type TermRow } from '../src/renderer/src/urlLinks'
 
 describe('urlLinks', () => {
   it('détecte une URL https simple', () => {
@@ -45,5 +45,53 @@ describe('urlLinks', () => {
     expect(r).toHaveLength(1)
     expect(r[0].range).toEqual({ start: { x: 3, y: 5 }, end: { x: 14, y: 5 } })
     expect(r[0].href).toBe('https://a.io')
+  })
+})
+
+describe('urlLinkRangesAcrossRows', () => {
+  const COLS = 20
+  const pad = (t: string): string => t.padEnd(COLS, ' ')
+  const rows = (...r: TermRow[]) => (y: number): TermRow | undefined => r[y - 1]
+
+  it('relie une URL coupée par un retour dur de la TUI (ligne pleine)', () => {
+    const get = rows(
+      { text: pad('Ouvre ce lien :'), isWrapped: false },
+      { text: 'https://a.io/abcdefg', isWrapped: false },
+      { text: pad('hij?x=1'), isWrapped: false }
+    )
+    for (const y of [2, 3]) {
+      const r = urlLinkRangesAcrossRows(get, y, COLS)
+      expect(r).toHaveLength(1)
+      expect(r[0].href).toBe('https://a.io/abcdefghij?x=1')
+      expect(r[0].range).toEqual({ start: { x: 1, y: 2 }, end: { x: 7, y: 3 } })
+    }
+    expect(urlLinkRangesAcrossRows(get, 1, COLS)).toEqual([])
+  })
+
+  it('relie une URL coupée par un retour souple xterm (isWrapped)', () => {
+    const get = rows(
+      { text: 'voir https://a.io/ab', isWrapped: false },
+      { text: pad('cd fin'), isWrapped: true }
+    )
+    const r = urlLinkRangesAcrossRows(get, 2, COLS)
+    expect(r[0].href).toBe('https://a.io/abcd')
+    expect(r[0].range).toEqual({ start: { x: 6, y: 1 }, end: { x: 2, y: 2 } })
+  })
+
+  it('ne relie pas une ligne courte à la suivante', () => {
+    const get = rows(
+      { text: pad('https://a.io'), isWrapped: false },
+      { text: pad('suite'), isWrapped: false }
+    )
+    expect(urlLinkRangesAcrossRows(get, 1, COLS)[0].href).toBe('https://a.io')
+    expect(urlLinkRangesAcrossRows(get, 2, COLS)).toEqual([])
+  })
+
+  it('ne relie pas si la ligne suivante commence par un espace', () => {
+    const get = rows(
+      { text: 'https://a.io/abcdefg', isWrapped: false },
+      { text: pad('  suite'), isWrapped: false }
+    )
+    expect(urlLinkRangesAcrossRows(get, 1, COLS)[0].href).toBe('https://a.io/abcdefg')
   })
 })

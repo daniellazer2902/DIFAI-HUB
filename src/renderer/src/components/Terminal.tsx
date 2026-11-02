@@ -4,7 +4,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import { useHub } from '../store'
 import { mdLinkRanges } from '../mdLinks'
-import { urlLinkRanges } from '../urlLinks'
+import { urlLinkRangesAcrossRows, type TermRow, type UrlLinkRange } from '../urlLinks'
 import { confirm } from '../confirm'
 
 export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
@@ -24,10 +24,19 @@ export function Terminal({ tabId }: { tabId: string }): React.JSX.Element {
         const line = term.buffer.active.getLine(y - 1)
         if (!line) { callback(undefined); return }
         const text = line.translateToString(true)
-        const urls = urlLinkRanges(text, y)
+        const getRow = (n: number): TermRow | undefined => {
+          const l = term.buffer.active.getLine(n - 1)
+          return l ? { text: l.translateToString(false), isWrapped: l.isWrapped } : undefined
+        }
+        const urls = urlLinkRangesAcrossRows(getRow, y, term.cols)
         // Une URL finissant en .md matcherait aussi le détecteur .md : l'URL prime (on écarte les .md qui chevauchent une URL).
+        // Portion de l'URL sur la ligne y (elle peut déborder sur les lignes voisines).
+        const onRow = (u: UrlLinkRange): { s: number; e: number } => ({
+          s: u.range.start.y < y ? 1 : u.range.start.x,
+          e: u.range.end.y > y ? Number.MAX_SAFE_INTEGER : u.range.end.x
+        })
         const overlapsUrl = (r: { range: { start: { x: number }; end: { x: number } } }): boolean =>
-          urls.some((u) => r.range.start.x <= u.range.end.x && u.range.start.x <= r.range.end.x)
+          urls.some((u) => { const p = onRow(u); return r.range.start.x <= p.e && p.s <= r.range.end.x })
         const mds = mdLinkRanges(text, y).filter((r) => !overlapsUrl(r))
         const links = [
           ...urls.map((r) => ({ range: r.range, text: r.text, activate: () => window.hub.notesOpenExternal(r.href) })),
