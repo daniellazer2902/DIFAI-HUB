@@ -466,6 +466,10 @@
       .memo-tool.mt-i { font-style: italic; }
       .memo-tool.mt-u { text-decoration: underline; }
       .memo-tool.mt-s { text-decoration: line-through; font-size: 15px; }
+      .memo-body span[data-spoiler] { border-radius: 4px; padding: 0 2px; background: color-mix(in srgb, var(--text) 9%, transparent); transition: background .15s var(--ease), color .15s var(--ease); }
+      .memo-body span[data-spoiler]:not([data-revealed]) { background: #2b2d31; color: transparent; cursor: pointer; }
+      .memo-body span[data-spoiler]:not([data-revealed]) * { color: transparent !important; text-decoration-color: transparent; }
+      .memo-body span[data-spoiler]:not([data-revealed]):hover { background: #34363c; }
 
       .memo-float { position: fixed; z-index: 60; box-sizing: border-box; display: flex; flex-direction: column; border: 1px solid color-mix(in srgb, var(--mc) 55%, var(--border-2)); border-radius: var(--r-card); box-shadow: 0 24px 60px -16px rgba(0,0,0,.8); overflow: hidden; }
       .memo-float.dragging { user-select: none; opacity: .96; }

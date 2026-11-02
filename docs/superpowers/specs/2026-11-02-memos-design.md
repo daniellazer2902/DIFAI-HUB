@@ -15,6 +15,7 @@ Garder des notes rapides par projet (groupe) et y revenir en un clic, sans quitt
 7. Couleur : l'onglet garde un fond uni ; la fenêtre flottante est teintée de la couleur du groupe (gris neutre sans couleur), avec l'en-tête dans la couleur pleine.
 8. Fenêtre flottante interne à l'app, ouverte par l'entrée « Mémo » au-dessus de « Paramètres » : liste déroulante des mémos qui reprend la hiérarchie de la sidebar (en-tête de groupe teinté, mémos rattachés par le trait coloré, mémo courant surligné à la couleur du groupe), contenu, barre de styles, croix. Déplaçable par l'en-tête, redimensionnable par le coin, toujours bornée à la zone visible (recalée au resize). État persisté dans `workspace.json` (`memoFloat`).
 9. L'onglet et la fenêtre flottante partagent le même cache (`memoSync`) : une frappe d'un côté apparaît de l'autre.
+10. Spoiler (Ctrl+Shift+H ou bouton œil barré) : le texte sélectionné est masqué par un bloc gris, un clic le révèle. Il se masque de nouveau dès qu'il sort de la zone visible (défilement) et à chaque changement de mémo ou d'onglet. L'état révélé n'est jamais sauvegardé. La frappe et Entrée au bord d'un spoiler masqué restent hors du spoiler.
 
 ## Hors périmètre
 
