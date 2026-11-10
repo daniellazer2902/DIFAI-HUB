@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { IPC, type HubApi, type Unsub, type SessionState, type ConsoleLine, type WorkspaceTree, type DideOpenPayload } from '../shared/ipc'
+import { IPC, type HubApi, type Unsub, type SessionState, type SessionResume, type ConsoleLine, type WorkspaceTree, type DideOpenPayload } from '../shared/ipc'
 
 /** Abonne un canal et renvoie un désabonnement (retire le bon listener). */
 function on(channel: string, handler: (...args: unknown[]) => void): Unsub {
@@ -9,7 +9,7 @@ function on(channel: string, handler: (...args: unknown[]) => void): Unsub {
 }
 
 const hub: HubApi = {
-  newSession: (cwd, extraArgs) => ipcRenderer.invoke(IPC.SessionNew, cwd, extraArgs),
+  newSession: (cwd, extraArgs, resume) => ipcRenderer.invoke(IPC.SessionNew, cwd, extraArgs, resume),
   newCmd: (cwd) => ipcRenderer.invoke(IPC.CmdNew, cwd),
   sendInput: (tabId, data) => ipcRenderer.send(IPC.SessionInput, tabId, data),
   resize: (tabId, cols, rows) => ipcRenderer.send(IPC.SessionResize, tabId, cols, rows),
@@ -25,6 +25,7 @@ const hub: HubApi = {
   onData: (cb) => on(IPC.PtyData, (tabId, data) => cb(tabId as string, data as string)),
   onExit: (cb) => on(IPC.PtyExit, (tabId, code) => cb(tabId as string, code as number)),
   onSessionState: (cb) => on(IPC.SessionState, (tabId, state) => cb(tabId as string, state as SessionState)),
+  onSessionCorrelated: (cb) => on(IPC.SessionCorrelated, (tabId, resume) => cb(tabId as string, resume as SessionResume)),
   onAgentAdded: (cb) =>
     on(IPC.AgentAdded, (tabId, agentId, type, desc, kind) =>
       cb(tabId as string, agentId as string, type as string, desc as string, (kind as 'agent' | 'shell') ?? 'agent')),

@@ -30,6 +30,13 @@ describe('agentsModule', () => {
     expect(ctx.sender.send).toHaveBeenCalledWith(IPC.SessionState, 't1', 'waiting')
   })
 
+  it('SessionStart => pousse id + transcript de session au renderer (reprise des épinglés)', () => {
+    const { ctx, fire } = fakeCtx()
+    createAgentsModule().register(ctx)
+    fire({ hook_event_name: 'SessionStart', tabId: 't1', session_id: 's1', transcript_path: 'C:/p/s1.jsonl' })
+    expect(ctx.sender.send).toHaveBeenCalledWith(IPC.SessionCorrelated, 't1', { sessionId: 's1', transcriptPath: 'C:/p/s1.jsonl' })
+  })
+
   it('UserPromptSubmit => état active poussé au renderer', () => {
     const { ctx, fire } = fakeCtx()
     createAgentsModule().register(ctx)

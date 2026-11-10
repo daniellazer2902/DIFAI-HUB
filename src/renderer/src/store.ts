@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ConsoleLine, SessionState, WorkspaceTree, AdoBoard, PersistNote, PersistMemoFloat } from '../../shared/ipc'
+import type { ConsoleLine, SessionState, SessionResume, WorkspaceTree, AdoBoard, PersistNote, PersistMemoFloat } from '../../shared/ipc'
 import { basename } from './util'
 
 export interface AgentView {
@@ -48,6 +48,8 @@ export interface Item {
   kind: 'claude' | 'ado' | 'cmd' | 'note' | 'memo'
   /** Arguments de lancement supplémentaires (Claude avancé) — persistés pour relance à l'identique. */
   claudeArgs?: string[]
+  /** Dernière conversation Claude de l'item : reprise (`--resume`) à la relance d'un épinglé. */
+  resume?: SessionResume
   ado?: AdoView
   /** Board ado épinglé dont l'onglet a été fermé (reste en sidebar, masqué des onglets). Éphémère. */
   adoClosed?: boolean
@@ -133,6 +135,7 @@ interface HubState {
   closeSession: (itemId: string) => void
 
   setItemState: (tabId: string, state: SessionState) => void
+  setItemResume: (tabId: string, resume: SessionResume) => void
   addAgent: (tabId: string, agent: AgentView) => void
   appendLines: (tabId: string, agentId: string, lines: ConsoleLine[]) => void
   removeAgent: (tabId: string, agentId: string) => void
@@ -433,6 +436,8 @@ export const useHub = create<HubState>((set, get) => ({
   },
 
   setItemState: (tabId, state) => set((s) => ({ groups: mapItems(s.groups, (i) => i.tabId === tabId, (i) => ({ ...i, state })) })),
+  setItemResume: (tabId, resume) =>
+    set((s) => ({ groups: mapItems(s.groups, (i) => i.tabId === tabId && i.kind === 'claude', (i) => ({ ...i, resume })) })),
   addAgent: (tabId, agent) =>
     set((s) => ({
       groups: mapItems(s.groups, (i) => i.tabId === tabId, (i) => (i.agents.some((a) => a.id === agent.id) ? i : { ...i, agents: [...i.agents, agent] }))
@@ -521,7 +526,8 @@ export const useHub = create<HubState>((set, get) => ({
           id: i.id, name: i.name, cwd: i.cwd, split: i.split, kind: i.kind,
           ...(i.kind === 'ado' && i.ado ? { ado: i.ado } : {}),
           ...(i.kind === 'note' && i.note ? { note: i.note } : {}),
-          ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {})
+          ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {}),
+          ...(i.kind === 'claude' && i.resume ? { resume: i.resume } : {})
         }))
       }))
     }
@@ -542,7 +548,8 @@ export const useHub = create<HubState>((set, get) => ({
             kind: i.kind ?? 'claude', ...(i.kind === 'ado' ? { ado: i.ado ?? { view: 'tree', iterationPath: null } } : {}),
             ...(i.kind === 'note' ? { note: i.note ?? { root: '', rootKind: 'file', activePath: null } } : {}),
             ...(i.kind === 'memo' ? { memoClosed: true } : {}),
-            ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {})
+            ...(i.claudeArgs && i.claudeArgs.length ? { claudeArgs: i.claudeArgs } : {}),
+            ...(i.resume ? { resume: i.resume } : {})
           }))
         }))
       )

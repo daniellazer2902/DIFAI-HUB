@@ -100,6 +100,20 @@ describe('workspaceStore note (lecteur Markdown)', () => {
   })
 })
 
+describe('workspaceStore reprise de conversation', () => {
+  const tree = (resume: unknown): string => JSON.stringify({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'G', collapsed: false, defaultCwd: null,
+    items: [{ id: 'c1', name: 'C', cwd: 'C:/p', kind: 'claude', resume }] }] })
+
+  it('conserve resume (sessionId + transcriptPath)', () => {
+    expect(parseWorkspace(tree({ sessionId: 's1', transcriptPath: 'C:/p/s1.jsonl' })).groups[0].items[0].resume)
+      .toEqual({ sessionId: 's1', transcriptPath: 'C:/p/s1.jsonl' })
+  })
+
+  it('ignore un resume mal formé', () => {
+    expect(parseWorkspace(tree({ sessionId: 42 })).groups[0].items[0].resume).toBeUndefined()
+  })
+})
+
 describe('workspaceStore mémos', () => {
   it('conserve le kind memo au rechargement', () => {
     const raw = JSON.stringify({ activeGroupId: 'g1', groups: [{ id: 'g1', name: 'G', collapsed: false, defaultCwd: null,

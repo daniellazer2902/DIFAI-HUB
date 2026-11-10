@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { createSessionModule } from '../src/main/modules/sessionModule'
 import { IPC } from '../src/shared/ipc'
 import type { AppContext } from '../src/main/AppContext'
@@ -33,6 +36,30 @@ describe('sessionModule', () => {
       env: { DIFAI_HUB_PORT: '4242' }
     })
     expect(ctx.registry.register).toHaveBeenCalledWith('tab-1', 'C:/proj')
+  })
+
+  it('session:new avec resume dont le transcript existe : remplace les flags de reprise par --resume <id>', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'hub-resume-'))
+    const transcriptPath = join(dir, 'sid-1.jsonl')
+    writeFileSync(transcriptPath, '{}\n')
+    const { ctx, handlers } = fakeCtx()
+    createSessionModule().register(ctx)
+    handlers.get(IPC.SessionNew)!({}, 'C:/proj', ['--resume', 'old', '--model', 'opus'], { sessionId: 'sid-1', transcriptPath })
+    expect(ctx.pty.create).toHaveBeenCalledWith('C:/proj', {
+      args: ['--settings', 'C:/settings.json', '--model', 'opus', '--resume', 'sid-1'],
+      env: { DIFAI_HUB_PORT: '4242' }
+    })
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('session:new avec resume sans transcript : session neuve, args d\'origine conservés', () => {
+    const { ctx, handlers } = fakeCtx()
+    createSessionModule().register(ctx)
+    handlers.get(IPC.SessionNew)!({}, 'C:/proj', ['--model', 'opus'], { sessionId: 'sid-1', transcriptPath: join(tmpdir(), 'absent-hub-resume.jsonl') })
+    expect(ctx.pty.create).toHaveBeenCalledWith('C:/proj', {
+      args: ['--settings', 'C:/settings.json', '--model', 'opus'],
+      env: { DIFAI_HUB_PORT: '4242' }
+    })
   })
 
   it('session:input écrit dans le pty', () => {

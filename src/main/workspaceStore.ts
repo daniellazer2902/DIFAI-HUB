@@ -27,7 +27,11 @@ function normItem(x: unknown): PersistItem | null {
   const claudeArgs = Array.isArray(o.claudeArgs) && o.claudeArgs.every((a) => typeof a === 'string')
     ? (o.claudeArgs as string[])
     : undefined
-  return { id: o.id, name: o.name, cwd: o.cwd, ...(split ? { split } : {}), ...(kind ? { kind } : {}), ...(claudeArgs ? { claudeArgs } : {}), ...(ado ? { ado } : {}), ...(note ? { note } : {}) }
+  const r = o.resume as Record<string, unknown> | undefined
+  const resume = r && typeof r.sessionId === 'string' && typeof r.transcriptPath === 'string'
+    ? { sessionId: r.sessionId, transcriptPath: r.transcriptPath }
+    : undefined
+  return { id: o.id, name: o.name, cwd: o.cwd, ...(split ? { split } : {}), ...(kind ? { kind } : {}), ...(claudeArgs ? { claudeArgs } : {}), ...(resume ? { resume } : {}), ...(ado ? { ado } : {}), ...(note ? { note } : {}) }
 }
 
 function normGroup(x: unknown): PersistGroup | null {

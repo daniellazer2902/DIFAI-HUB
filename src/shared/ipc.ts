@@ -49,6 +49,7 @@ export const IPC = {
   PtyData: 'pty:data',
   PtyExit: 'pty:exit',
   SessionState: 'session:state',
+  SessionCorrelated: 'session:correlated',
   AgentAdded: 'agent:added',
   AgentLines: 'agent:lines',
   AgentDone: 'agent:done',
@@ -71,8 +72,11 @@ export interface TranscriptMatch {
   count: number
 }
 
+/** Conversation Claude à reprendre (`--resume`) : id de session + transcript pour vérifier qu'elle existe. */
+export interface SessionResume { sessionId: string; transcriptPath: string }
+
 /** Sous-ensemble persistable d'un item (config, sans état runtime de session). */
-export interface PersistItem { id: string; name: string; cwd: string; split?: 1 | 2; kind?: 'claude' | 'ado' | 'cmd' | 'note' | 'memo'; claudeArgs?: string[]; ado?: { view: 'tree' | 'board'; iterationPath: string | null }; note?: PersistNote }
+export interface PersistItem { id: string; name: string; cwd: string; split?: 1 | 2; kind?: 'claude' | 'ado' | 'cmd' | 'note' | 'memo'; claudeArgs?: string[]; resume?: SessionResume; ado?: { view: 'tree' | 'board'; iterationPath: string | null }; note?: PersistNote }
 export interface PersistGroup { id: string; name: string; collapsed: boolean; defaultCwd: string | null; color?: string | null; ado?: { connId: string; project: string; team: string | null } | null; items: PersistItem[] }
 /** Arborescence persistée sur disque (groupes + items épinglés). */
 export interface WorkspaceTree { activeGroupId: string | null; groups: PersistGroup[]; memoFloat?: PersistMemoFloat }
@@ -152,7 +156,8 @@ export interface DideOpenPayload { tabId: string | null; absPath: string; isDir:
 
 /** Contrat exposé au renderer via contextBridge. Le preload l'implémente, le renderer le consomme. */
 export interface HubApi {
-  newSession(cwd: string, extraArgs?: string[]): Promise<string>
+  /** `resume` : reprend cette conversation si son transcript existe encore (sinon session neuve). */
+  newSession(cwd: string, extraArgs?: string[], resume?: SessionResume): Promise<string>
   newCmd(cwd: string): Promise<string>
   sendInput(tabId: string, data: string): void
   resize(tabId: string, cols: number, rows: number): void
@@ -171,6 +176,8 @@ export interface HubApi {
   onData(cb: (tabId: string, data: string) => void): Unsub
   onExit(cb: (tabId: string, code: number) => void): Unsub
   onSessionState(cb: (tabId: string, state: SessionState) => void): Unsub
+  /** Session Claude identifiée (démarrage, reprise, /clear) : id + transcript courants de l'onglet. */
+  onSessionCorrelated(cb: (tabId: string, resume: SessionResume) => void): Unsub
   onAgentAdded(cb: (tabId: string, agentId: string, agentType: string, description: string, kind: 'agent' | 'shell') => void): Unsub
   onAgentLines(cb: (tabId: string, agentId: string, lines: ConsoleLine[]) => void): Unsub
   onAgentDone(cb: (tabId: string, agentId: string, failed: boolean) => void): Unsub
