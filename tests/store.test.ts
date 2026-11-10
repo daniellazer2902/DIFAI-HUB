@@ -319,6 +319,25 @@ describe('store ADO (lot 4.2)', () => {
     useHub.getState().loadWorkspace(persisted)
     expect(useHub.getState().itemById('adv')!.claudeArgs).toEqual(['--dangerously-skip-permissions'])
   })
+
+  it('setItemResume mémorise la dernière session (écrase au /clear) et persiste en round-trip', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkItem('pin', { pinned: true, kind: 'claude', tabId: 't-pin' }))
+    useHub.getState().setItemResume('t-pin', { sessionId: 's1', transcriptPath: 'C:/p/s1.jsonl' })
+    useHub.getState().setItemResume('t-pin', { sessionId: 's2', transcriptPath: 'C:/p/s2.jsonl' })
+    const persisted = useHub.getState().toPersistable()
+    expect(persisted.groups[0].items[0].resume).toEqual({ sessionId: 's2', transcriptPath: 'C:/p/s2.jsonl' })
+    useHub.getState().reset()
+    useHub.getState().loadWorkspace(persisted)
+    expect(useHub.getState().itemById('pin')!.resume).toEqual({ sessionId: 's2', transcriptPath: 'C:/p/s2.jsonl' })
+  })
+
+  it('setItemResume ignore les terminaux cmd', () => {
+    const g = useHub.getState().addGroup('G')
+    useHub.getState().addItem(g, mkItem('cmd', { pinned: true, kind: 'cmd', tabId: 't-cmd' }))
+    useHub.getState().setItemResume('t-cmd', { sessionId: 's1', transcriptPath: 'x' })
+    expect(useHub.getState().itemById('cmd')!.resume).toBeUndefined()
+  })
 })
 
 describe('items note', () => {

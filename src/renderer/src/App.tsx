@@ -62,6 +62,7 @@ export function App(): React.JSX.Element {
         if (snd && useHub.getState().soundEnabled) playSound(snd)
       }
     }))
+    unsubs.push(window.hub.onSessionCorrelated((tid, resume) => useHub.getState().setItemResume(tid, resume)))
     unsubs.push(window.hub.onAgentAdded((tid, agentId, type, desc, kind) =>
       useHub.getState().addAgent(tid, { id: agentId, type, desc, lines: [], done: false, kind })))
     unsubs.push(window.hub.onAgentLines((tid, agentId, lines) => useHub.getState().appendLines(tid, agentId, lines)))
@@ -123,7 +124,7 @@ export function App(): React.JSX.Element {
       for (const g of tree.groups) {
         for (const i of g.items) {
           if (i.kind === 'ado' || i.kind === 'note' || i.kind === 'memo') continue // board ADO / note / mémo : pas de pty à relancer
-          const tabId = i.kind === 'cmd' ? await window.hub.newCmd(i.cwd) : await window.hub.newSession(i.cwd, i.claudeArgs)
+          const tabId = i.kind === 'cmd' ? await window.hub.newCmd(i.cwd) : await window.hub.newSession(i.cwd, i.claudeArgs, i.resume)
           if (!active) return
           useHub.getState().bindSession(i.id, tabId)
         }

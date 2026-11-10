@@ -1,10 +1,20 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { shell, clipboard } from 'electron'
 import { IPC } from '../../shared/ipc'
 import { searchTranscript } from '../transcriptSearch'
 import type { AppContext, HubModule } from '../AppContext'
 import { loadWorkspace, saveWorkspace } from '../workspaceStore'
-import type { WorkspaceTree } from '../../shared/ipc'
+import { withResume } from '../../shared/resumeArgs'
+import type { SessionResume, WorkspaceTree } from '../../shared/ipc'
+
+/**
+ * Claude refuse `--resume` sur une session sans transcript (épinglée avant tout message,
+ * ou transcript purgé) : dans ce cas on relance une session neuve plutôt qu'un onglet en erreur.
+ */
+function canResume(r: SessionResume | undefined): r is SessionResume {
+  return !!r && typeof r.sessionId === 'string' && /^[\w-]+$/.test(r.sessionId)
+    && typeof r.transcriptPath === 'string' && existsSync(r.transcriptPath)
+}
 
 /** Cycle de vie du terminal : création de session, I/O, resize, kill, et flux pty -> renderer. */
 export function createSessionModule(): HubModule {
@@ -18,9 +28,10 @@ export function createSessionModule(): HubModule {
         ctx.sender.send(IPC.PtyExit, tabId, code)
       })
 
-      ctx.ipc.handle(IPC.SessionNew, (_e, cwd: string, extraArgs?: string[]) => {
+      ctx.ipc.handle(IPC.SessionNew, (_e, cwd: string, extraArgs?: string[], resume?: SessionResume) => {
+        const base = Array.isArray(extraArgs) ? extraArgs : []
         const tabId = ctx.pty.create(cwd, {
-          args: ['--settings', ctx.hooksSettingsPath(), ...(Array.isArray(extraArgs) ? extraArgs : [])],
+          args: ['--settings', ctx.hooksSettingsPath(), ...(canResume(resume) ? withResume(base, resume.sessionId) : base)],
           env: { DIFAI_HUB_PORT: String(ctx.hookServer.port) }
         })
         ctx.registry.register(tabId, cwd)

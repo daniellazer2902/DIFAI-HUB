@@ -23,6 +23,9 @@ export function createAgentsModule(): HubModule {
         if (!tabId) return
         const s = ctx.registry.get(tabId)
         if (s) ctx.sender.send(IPC.SessionState, tabId, s.state)
+        if (event.hook_event_name === 'SessionStart' && s?.sessionId && s.transcriptPath) {
+          ctx.sender.send(IPC.SessionCorrelated, tabId, { sessionId: s.sessionId, transcriptPath: s.transcriptPath })
+        }
 
         if (event.hook_event_name === 'SubagentStop' && event.agent_id) {
           ctx.sender.send(IPC.AgentDone, tabId, event.agent_id)
